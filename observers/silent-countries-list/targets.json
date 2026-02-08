@@ -1,0 +1,15 @@
+[
+  {
+    "country": "US",
+    "targets": [
+      {"name": "Example web", "host": "example.com"},
+      {"name": "Example IPv4", "host": "93.184.216.34"}
+    ]
+  },
+  {
+    "country": "FR",
+    "targets": [
+      {"name": "IANA", "host": "iana.org"}
+    ]
+  }
+]
