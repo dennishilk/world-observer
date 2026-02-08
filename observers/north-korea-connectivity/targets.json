@@ -1,0 +1,6 @@
+[
+  { "name": "Naenara", "host": "naenara.com.kp", "type": "hostname" },
+  { "name": "Korea Computer Center", "host": "kcc.kp", "type": "hostname" },
+  { "name": "Star Joint Venture", "host": "star-co.net.kp", "type": "hostname" },
+  { "name": "Ryugyong Hotel", "host": "ryugyong.com.kp", "type": "hostname" }
+]
