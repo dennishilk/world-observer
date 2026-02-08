@@ -74,7 +74,9 @@ apt install -y \
   unzip \
   locales \
   tzdata \
-  zram-tools
+  zram-tools \
+  fonts-dejavu-core \
+  fonts-dejavu-extra
 
 log "Ensuring locale en_US.UTF-8 is available..."
 if ! locale -a | grep -qx "en_US.utf8"; then
@@ -104,6 +106,7 @@ if [[ ! -d /opt/world-observer/.venv ]]; then
 fi
 sudo -u observer /opt/world-observer/.venv/bin/pip install --upgrade pip
 sudo -u observer /opt/world-observer/.venv/bin/pip install dnspython
+sudo -u observer /opt/world-observer/.venv/bin/pip install pillow
 
 log "Configuring zram (memory pressure smoothing / OOM protection)..."
 # zram-tools reads /etc/default/zramswap on Debian.
@@ -189,5 +192,12 @@ SECURITY NOTES (not applied automatically):
   Do NOT open inbound ports unless required for administration.
 
 SECURITY
+
+log "Verifying PNG generation prerequisites..."
+if ! sudo -u observer /opt/world-observer/.venv/bin/python -c "from PIL import Image, ImageDraw, ImageFont"; then
+  echo "ERROR: PNG generation prerequisites missing (Pillow import failed)." >&2
+  exit 1
+fi
+log "PNG generation prerequisites OK"
 
 log "Setup complete. Review the output above for deploy key instructions and notes."
