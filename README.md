@@ -1,3 +1,9 @@
+![status](https://img.shields.io/badge/status-active-blue?style=flat)
+![updates](https://img.shields.io/badge/updates-daily-blue?style=flat)
+![language](https://img.shields.io/badge/language-python-blue?style=flat)
+![license](https://img.shields.io/badge/license-MIT-gray?style=flat)
+![scope](https://img.shields.io/badge/scope-observational-lightgrey?style=flat)
+
 # World Observer
 
 World Observer is a long-term, passive observation project focused on global
