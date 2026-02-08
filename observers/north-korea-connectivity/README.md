@@ -24,7 +24,9 @@ Targets are defined in `targets.json` within this module.
 Connectivity into and out of North Korea is heavily filtered and often silent.
 Silence is **expected** and treated as a valid result; it is **not** a prompt to
 increase probing. Measurements are intentionally narrow and infrequent, and the
-observer stores no historical state.
+observer stores no historical state. Total silence is an expected outcome, and
+the observer is designed to keep running and emit JSON even under complete
+network isolation.
 
 ## Dependencies
 The observer uses the Python standard library. For DNS A/AAAA queries with

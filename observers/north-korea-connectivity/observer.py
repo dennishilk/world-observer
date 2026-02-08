@@ -59,6 +59,8 @@ def _ping_host(host: str, timeout_s: int = 2) -> Dict[str, Any]:
         )
     except FileNotFoundError:
         return {"ok": False, "rtt_ms": None, "error": "ping_not_available"}
+    except Exception as exc:  # Defensive: treat all failures as data.
+        return {"ok": False, "rtt_ms": None, "error": exc.__class__.__name__}
 
     output = (result.stdout or "") + (result.stderr or "")
     if "Operation not permitted" in output or "Permission denied" in output:
@@ -96,12 +98,15 @@ def _dns_query(host: str, record_type: str) -> Dict[str, Any]:
     if _is_ip_address(host):
         return {"status": "noanswer", "answers": [], "error": "not_hostname"}
 
-    if importlib.util.find_spec("dns") is None:
-        return {"status": "error", "answers": [], "error": "dnspython_not_installed"}
+    try:
+        if importlib.util.find_spec("dns") is None:
+            return {"status": "error", "answers": [], "error": "dnspython_not_installed"}
 
-    dns_resolver = importlib.import_module("dns.resolver")
-    dns_exception = importlib.import_module("dns.exception")
-    dns_name = importlib.import_module("dns.name")
+        dns_resolver = importlib.import_module("dns.resolver")
+        dns_exception = importlib.import_module("dns.exception")
+        dns_name = importlib.import_module("dns.name")
+    except Exception as exc:
+        return {"status": "error", "answers": [], "error": exc.__class__.__name__}
 
     resolver = dns_resolver.Resolver(configure=True)
     resolver.lifetime = 3.0
@@ -121,34 +126,71 @@ def _dns_query(host: str, record_type: str) -> Dict[str, Any]:
     return {"status": "answer", "answers": resolved, "error": None}
 
 
+def _all_checks_failed(observation: Dict[str, Any]) -> bool:
+    ping_ok = observation.get("ping", {}).get("ok")
+    tcp_ok = observation.get("tcp_443", {}).get("ok")
+    dns_a_status = observation.get("dns", {}).get("a", {}).get("status")
+    dns_aaaa_status = observation.get("dns", {}).get("aaaa", {}).get("status")
+    dns_failed = dns_a_status in {"timeout", "error"} and dns_aaaa_status in {
+        "timeout",
+        "error",
+    }
+    return ping_ok is False and tcp_ok is False and dns_failed
+
+
 def _observe_target(target: Dict[str, str]) -> Dict[str, Any]:
     host = target["host"]
-    return {
-        "name": target["name"],
-        "host": host,
-        "ping": _ping_host(host),
-        "tcp_443": _tcp_handshake(host),
-        "dns": {
-            "a": _dns_query(host, "A"),
-            "aaaa": _dns_query(host, "AAAA"),
-        },
-    }
+    try:
+        observation = {
+            "name": target["name"],
+            "host": host,
+            "ping": _ping_host(host),
+            "tcp_443": _tcp_handshake(host),
+            "dns": {
+                "a": _dns_query(host, "A"),
+                "aaaa": _dns_query(host, "AAAA"),
+            },
+        }
+    except Exception as exc:
+        observation = {
+            "name": target.get("name", "unknown"),
+            "host": host,
+            "ping": {"ok": False, "rtt_ms": None, "error": exc.__class__.__name__},
+            "tcp_443": {"ok": False, "connect_ms": None, "error": exc.__class__.__name__},
+            "dns": {
+                "a": {"status": "error", "answers": [], "error": exc.__class__.__name__},
+                "aaaa": {"status": "error", "answers": [], "error": exc.__class__.__name__},
+            },
+        }
+
+    return observation
 
 
 def run() -> Observation:
     """Run the observer and return a structured observation."""
 
     timestamp = datetime.now(timezone.utc).isoformat()
-    targets = _load_targets()
-
-    # NOTE: These measurements are intentionally minimal. Many targets will
-    # appear silent due to filtering, rate limiting, or the absence of public
-    # services. Silence is a valid signal, not an invitation to probe further.
-    observations = [_observe_target(target) for target in targets]
-
     notes = (
         "Passive reachability snapshot only: ICMP, TCP 443 handshake, and DNS A/AAAA."
     )
+
+    try:
+        targets = _load_targets()
+        # NOTE: These measurements are intentionally minimal. Many targets will
+        # appear silent due to filtering, rate limiting, or the absence of public
+        # services. Silence is a valid signal, not an invitation to probe further.
+        observations = [_observe_target(target) for target in targets]
+    except Exception as exc:
+        return Observation(
+            timestamp=timestamp,
+            observer="north-korea-connectivity",
+            targets=[],
+            notes=f"{notes} Unexpected error: {exc.__class__.__name__}.",
+        )
+
+    if observations and all(_all_checks_failed(obs) for obs in observations):
+        notes = f"{notes} All targets unreachable during this run."
+
     return Observation(
         timestamp=timestamp,
         observer="north-korea-connectivity",
@@ -160,7 +202,19 @@ def run() -> Observation:
 def main() -> None:
     """Serialize the observation to JSON on stdout."""
 
-    observation = run()
+    try:
+        observation = run()
+    except Exception as exc:
+        timestamp = datetime.now(timezone.utc).isoformat()
+        observation = Observation(
+            timestamp=timestamp,
+            observer="north-korea-connectivity",
+            targets=[],
+            notes=(
+                "Passive reachability snapshot only: ICMP, TCP 443 handshake, and DNS "
+                f"A/AAAA. Unexpected error: {exc.__class__.__name__}."
+            ),
+        )
     print(json.dumps(observation.__dict__, ensure_ascii=False))
 
 
