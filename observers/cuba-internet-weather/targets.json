@@ -1,0 +1,32 @@
+[
+  {
+    "name": "Cuba government portal",
+    "host": "www.cuba.cu",
+    "type": "hostname"
+  },
+  {
+    "name": "ETECSA",
+    "host": "www.etecsa.cu",
+    "type": "hostname"
+  },
+  {
+    "name": "Granma",
+    "host": "www.granma.cu",
+    "type": "hostname"
+  },
+  {
+    "name": "Cubadebate",
+    "host": "www.cubadebate.cu",
+    "type": "hostname"
+  },
+  {
+    "name": "Juventud Rebelde",
+    "host": "www.juventudrebelde.cu",
+    "type": "hostname"
+  },
+  {
+    "name": "Radio Habana Cuba",
+    "host": "www.radiohc.cu",
+    "type": "hostname"
+  }
+]
