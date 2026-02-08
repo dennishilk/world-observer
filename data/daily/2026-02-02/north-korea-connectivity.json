@@ -1,0 +1,17 @@
+{
+  "observer": "north-korea-connectivity",
+  "timestamp": "2026-02-02T02:00:00Z",
+  "targets": [
+    {
+      "name": "Naenara",
+      "host": "naenara.com.kp",
+      "ping": { "ok": true, "rtt_ms": 421 },
+      "tcp_443": { "ok": false },
+      "dns": {
+        "a": { "status": "answer", "answers": ["175.45.176.15"] },
+        "aaaa": { "status": "timeout" }
+      }
+    }
+  ],
+  "notes": "SIMULATED DATA — intentional test event"
+}
