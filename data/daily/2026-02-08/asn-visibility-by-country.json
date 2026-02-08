@@ -1,0 +1,13 @@
+{
+  "observer": "asn-visibility-by-country",
+  "timestamp": "2026-02-08T17:33:27.056559+00:00",
+  "countries": [
+    {
+      "country": "US",
+      "total_asns": 2,
+      "visible_asns": 2,
+      "visibility_ratio": 1.0
+    }
+  ],
+  "notes": "Reachability is based on a single TCP 443 probe per ASN."
+}

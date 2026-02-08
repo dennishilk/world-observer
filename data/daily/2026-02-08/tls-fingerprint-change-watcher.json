@@ -1,0 +1,16 @@
+{
+  "observer": "tls-fingerprint-change-watcher",
+  "timestamp": "2026-02-08T17:33:27.261269+00:00",
+  "targets": [
+    {
+      "name": "Example",
+      "host": "example.com",
+      "fingerprint_sha256": "734fe78d7efb6f834faa765a58ab7da8cc7dffd3e05ceb769dc5bd650d3c9f9b",
+      "valid_from": "2025-12-16T19:39:32+00:00",
+      "valid_to": "2026-03-16T18:32:44+00:00",
+      "changed": false,
+      "error": null
+    }
+  ],
+  "notes": "TLS handshake only; stores last known fingerprint per target."
+}

@@ -1,0 +1,21 @@
+{
+  "timestamp": "2026-02-08T17:33:33.231208+00:00",
+  "observer": "global-reachability-score",
+  "countries": [
+    {
+      "country": "US",
+      "targets_tested": 1,
+      "max_score": 3,
+      "score": 3,
+      "score_percent": 100.0
+    },
+    {
+      "country": "DE",
+      "targets_tested": 1,
+      "max_score": 3,
+      "score": 3,
+      "score_percent": 100.0
+    }
+  ],
+  "notes": "Each target scores 1 point for ICMP ping, TCP 443 handshake, and DNS A lookup. Country score_percent = (score / max_score) * 100."
+}

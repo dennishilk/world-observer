@@ -1,0 +1,25 @@
+{
+  "observer": "undersea-cable-dependency",
+  "timestamp": "2026-02-08T17:33:38.832354+00:00",
+  "countries": [
+    {
+      "country": "US",
+      "cable_count": 3,
+      "distinct_regions": 3,
+      "reachable": true
+    },
+    {
+      "country": "BR",
+      "cable_count": 2,
+      "distinct_regions": 2,
+      "reachable": true
+    },
+    {
+      "country": "ZA",
+      "cable_count": 2,
+      "distinct_regions": 2,
+      "reachable": true
+    }
+  ],
+  "notes": "This output summarizes static undersea cable infrastructure and a minimal reachability check. It does not measure live cable status, route paths, or outages."
+}

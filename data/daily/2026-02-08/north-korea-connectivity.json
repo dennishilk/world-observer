@@ -1,0 +1,111 @@
+{
+  "timestamp": "2026-02-08T17:31:48.440506+00:00",
+  "observer": "north-korea-connectivity",
+  "targets": [
+    {
+      "name": "Naenara",
+      "host": "naenara.com.kp",
+      "ping": {
+        "ok": false,
+        "rtt_ms": null,
+        "error": "no_reply"
+      },
+      "tcp_443": {
+        "ok": false,
+        "connect_ms": null,
+        "error": "TimeoutError"
+      },
+      "dns": {
+        "a": {
+          "status": "error",
+          "answers": [],
+          "error": "AttributeError"
+        },
+        "aaaa": {
+          "status": "error",
+          "answers": [],
+          "error": "AttributeError"
+        }
+      }
+    },
+    {
+      "name": "Korea Computer Center",
+      "host": "kcc.kp",
+      "ping": {
+        "ok": false,
+        "rtt_ms": null,
+        "error": "no_reply"
+      },
+      "tcp_443": {
+        "ok": false,
+        "connect_ms": null,
+        "error": "gaierror"
+      },
+      "dns": {
+        "a": {
+          "status": "error",
+          "answers": [],
+          "error": "AttributeError"
+        },
+        "aaaa": {
+          "status": "error",
+          "answers": [],
+          "error": "AttributeError"
+        }
+      }
+    },
+    {
+      "name": "Star Joint Venture",
+      "host": "star-co.net.kp",
+      "ping": {
+        "ok": false,
+        "rtt_ms": null,
+        "error": "no_reply"
+      },
+      "tcp_443": {
+        "ok": false,
+        "connect_ms": null,
+        "error": "gaierror"
+      },
+      "dns": {
+        "a": {
+          "status": "error",
+          "answers": [],
+          "error": "AttributeError"
+        },
+        "aaaa": {
+          "status": "error",
+          "answers": [],
+          "error": "AttributeError"
+        }
+      }
+    },
+    {
+      "name": "Ryugyong Hotel",
+      "host": "ryugyong.com.kp",
+      "ping": {
+        "ok": false,
+        "rtt_ms": null,
+        "error": "no_reply"
+      },
+      "tcp_443": {
+        "ok": false,
+        "connect_ms": null,
+        "error": "gaierror"
+      },
+      "dns": {
+        "a": {
+          "status": "error",
+          "answers": [],
+          "error": "AttributeError"
+        },
+        "aaaa": {
+          "status": "error",
+          "answers": [],
+          "error": "AttributeError"
+        }
+      }
+    }
+  ],
+  "notes": "Passive reachability snapshot only: ICMP, TCP 443 handshake, and DNS A/AAAA. All targets unreachable during this run."
+}

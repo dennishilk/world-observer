@@ -1,0 +1,271 @@
+{
+  "observer": "internet-shrinkage-index",
+  "timestamp": "2026-02-08T17:33:26.941905+00:00",
+  "total_targets": 29,
+  "reachable_targets": 28,
+  "index": 0.9655172413793104,
+  "targets": [
+    {
+      "host": "a.root-servers.net",
+      "reachable": true,
+      "checks": {
+        "ping": true,
+        "tcp_443": false,
+        "dns": true
+      }
+    },
+    {
+      "host": "b.root-servers.net",
+      "reachable": true,
+      "checks": {
+        "ping": true,
+        "tcp_443": false,
+        "dns": true
+      }
+    },
+    {
+      "host": "c.root-servers.net",
+      "reachable": true,
+      "checks": {
+        "ping": true,
+        "tcp_443": false,
+        "dns": true
+      }
+    },
+    {
+      "host": "d.root-servers.net",
+      "reachable": true,
+      "checks": {
+        "ping": true,
+        "tcp_443": false,
+        "dns": true
+      }
+    },
+    {
+      "host": "e.root-servers.net",
+      "reachable": true,
+      "checks": {
+        "ping": true,
+        "tcp_443": false,
+        "dns": true
+      }
+    },
+    {
+      "host": "f.root-servers.net",
+      "reachable": true,
+      "checks": {
+        "ping": true,
+        "tcp_443": false,
+        "dns": true
+      }
+    },
+    {
+      "host": "g.root-servers.net",
+      "reachable": false,
+      "checks": {
+        "ping": false,
+        "tcp_443": false,
+        "dns": true
+      }
+    },
+    {
+      "host": "h.root-servers.net",
+      "reachable": true,
+      "checks": {
+        "ping": true,
+        "tcp_443": false,
+        "dns": true
+      }
+    },
+    {
+      "host": "i.root-servers.net",
+      "reachable": true,
+      "checks": {
+        "ping": true,
+        "tcp_443": false,
+        "dns": true
+      }
+    },
+    {
+      "host": "j.root-servers.net",
+      "reachable": true,
+      "checks": {
+        "ping": true,
+        "tcp_443": false,
+        "dns": true
+      }
+    },
+    {
+      "host": "k.root-servers.net",
+      "reachable": true,
+      "checks": {
+        "ping": true,
+        "tcp_443": false,
+        "dns": true
+      }
+    },
+    {
+      "host": "l.root-servers.net",
+      "reachable": true,
+      "checks": {
+        "ping": true,
+        "tcp_443": false,
+        "dns": true
+      }
+    },
+    {
+      "host": "m.root-servers.net",
+      "reachable": true,
+      "checks": {
+        "ping": true,
+        "tcp_443": false,
+        "dns": true
+      }
+    },
+    {
+      "host": "akamai.com",
+      "reachable": true,
+      "checks": {
+        "ping": true,
+        "tcp_443": true,
+        "dns": true
+      }
+    },
+    {
+      "host": "amazon.com",
+      "reachable": true,
+      "checks": {
+        "ping": false,
+        "tcp_443": true,
+        "dns": true
+      }
+    },
+    {
+      "host": "apple.com",
+      "reachable": true,
+      "checks": {
+        "ping": true,
+        "tcp_443": true,
+        "dns": true
+      }
+    },
+    {
+      "host": "baidu.com",
+      "reachable": true,
+      "checks": {
+        "ping": true,
+        "tcp_443": true,
+        "dns": true
+      }
+    },
+    {
+      "host": "bbc.co.uk",
+      "reachable": true,
+      "checks": {
+        "ping": true,
+        "tcp_443": true,
+        "dns": true
+      }
+    },
+    {
+      "host": "cloudflare.com",
+      "reachable": true,
+      "checks": {
+        "ping": false,
+        "tcp_443": true,
+        "dns": true
+      }
+    },
+    {
+      "host": "fastly.com",
+      "reachable": true,
+      "checks": {
+        "ping": true,
+        "tcp_443": true,
+        "dns": true
+      }
+    },
+    {
+      "host": "github.com",
+      "reachable": true,
+      "checks": {
+        "ping": true,
+        "tcp_443": true,
+        "dns": true
+      }
+    },
+    {
+      "host": "google.com",
+      "reachable": true,
+      "checks": {
+        "ping": true,
+        "tcp_443": true,
+        "dns": true
+      }
+    },
+    {
+      "host": "instagram.com",
+      "reachable": true,
+      "checks": {
+        "ping": true,
+        "tcp_443": true,
+        "dns": true
+      }
+    },
+    {
+      "host": "microsoft.com",
+      "reachable": true,
+      "checks": {
+        "ping": false,
+        "tcp_443": true,
+        "dns": true
+      }
+    },
+    {
+      "host": "nytimes.com",
+      "reachable": true,
+      "checks": {
+        "ping": true,
+        "tcp_443": true,
+        "dns": true
+      }
+    },
+    {
+      "host": "stackoverflow.com",
+      "reachable": true,
+      "checks": {
+        "ping": true,
+        "tcp_443": true,
+        "dns": true
+      }
+    },
+    {
+      "host": "wikipedia.org",
+      "reachable": true,
+      "checks": {
+        "ping": true,
+        "tcp_443": true,
+        "dns": true
+      }
+    },
+    {
+      "host": "x.com",
+      "reachable": true,
+      "checks": {
+        "ping": true,
+        "tcp_443": true,
+        "dns": true
+      }
+    },
+    {
+      "host": "youtube.com",
+      "reachable": true,
+      "checks": {
+        "ping": true,
+        "tcp_443": true,
+        "dns": true
+      }
+    }
+  ],
+  "notes": "Reachability is counted when at least two of three checks succeed."
+}

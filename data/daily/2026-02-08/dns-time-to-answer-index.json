@@ -1,0 +1,61 @@
+{
+  "observer": "dns-time-to-answer-index",
+  "timestamp": "2026-02-08T17:33:39.049825+00:00",
+  "targets": [
+    {
+      "name": "Cloudflare",
+      "domain": "cloudflare.com",
+      "queries": {
+        "A": {
+          "status": "success",
+          "query_ms": 3.77,
+          "error": null
+        },
+        "AAAA": {
+          "status": "success",
+          "query_ms": 2.97,
+          "error": null
+        }
+      }
+    },
+    {
+      "name": "Google",
+      "domain": "google.com",
+      "queries": {
+        "A": {
+          "status": "success",
+          "query_ms": 2.61,
+          "error": null
+        },
+        "AAAA": {
+          "status": "success",
+          "query_ms": 1.91,
+          "error": null
+        }
+      }
+    },
+    {
+      "name": "Wikipedia",
+      "domain": "wikipedia.org",
+      "queries": {
+        "A": {
+          "status": "success",
+          "query_ms": 2.0,
+          "error": null
+        },
+        "AAAA": {
+          "status": "success",
+          "query_ms": 2.02,
+          "error": null
+        }
+      }
+    }
+  ],
+  "summary": {
+    "total_queries": 6,
+    "successful": 6,
+    "timeouts": 0,
+    "avg_query_ms": 2.55
+  },
+  "notes": "Sequential DNS A and AAAA lookups with a conservative timeout. No answers, resolver identities, or TTL values are stored."
+}

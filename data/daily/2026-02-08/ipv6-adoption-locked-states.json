@@ -1,0 +1,25 @@
+{
+  "observer": "ipv6-adoption-locked-states",
+  "timestamp": "2026-02-08T17:33:27.952557+00:00",
+  "countries": [
+    {
+      "country": "IR",
+      "targets_tested": 2,
+      "ipv6_available_targets": 0,
+      "ipv6_available": false
+    },
+    {
+      "country": "CU",
+      "targets_tested": 2,
+      "ipv6_available_targets": 0,
+      "ipv6_available": false
+    },
+    {
+      "country": "SY",
+      "targets_tested": 2,
+      "ipv6_available_targets": 0,
+      "ipv6_available": false
+    }
+  ],
+  "notes": "IPv6 availability requires both AAAA resolution and a single TCP 443 handshake over native IPv6. No retries, tunneling, NAT64, or IPv4 fallback."
+}

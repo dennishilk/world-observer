@@ -1,0 +1,26 @@
+{
+  "observer": "silent-countries-list",
+  "timestamp": "2026-02-08T17:33:27.498453+00:00",
+  "countries": [
+    {
+      "country": "US",
+      "silent": false,
+      "signals": {
+        "ping": true,
+        "tcp_443": true,
+        "dns": true
+      }
+    },
+    {
+      "country": "FR",
+      "silent": false,
+      "signals": {
+        "ping": true,
+        "tcp_443": true,
+        "dns": true
+      }
+    }
+  ],
+  "silent_countries": [],
+  "notes": "Single-attempt ICMP, TCP 443 handshake, and DNS A lookups only. No inference about causes of non-response."
+}

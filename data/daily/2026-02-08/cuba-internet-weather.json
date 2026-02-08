@@ -1,0 +1,161 @@
+{
+  "observer": "cuba-internet-weather",
+  "timestamp": "2026-02-08T17:32:27.636197+00:00",
+  "targets": [
+    {
+      "name": "Cuba government portal",
+      "host": "www.cuba.cu",
+      "ping": {
+        "sent": 4,
+        "received": 0,
+        "loss_percent": 100.0,
+        "rtt_min_ms": null,
+        "rtt_avg_ms": null,
+        "rtt_max_ms": null,
+        "error": "Ping failed"
+      },
+      "tcp_443": {
+        "ok": false,
+        "connect_ms": null,
+        "error": "[Errno 111] Connection refused"
+      },
+      "dns": {
+        "a": {
+          "status": "answer",
+          "query_ms": 2.7,
+          "error": null
+        }
+      }
+    },
+    {
+      "name": "ETECSA",
+      "host": "www.etecsa.cu",
+      "ping": {
+        "sent": 4,
+        "received": 4,
+        "loss_percent": 0.0,
+        "rtt_min_ms": 258.95,
+        "rtt_avg_ms": 264.494,
+        "rtt_max_ms": 267.039,
+        "error": null
+      },
+      "tcp_443": {
+        "ok": true,
+        "connect_ms": 255.01,
+        "error": null
+      },
+      "dns": {
+        "a": {
+          "status": "answer",
+          "query_ms": 2.59,
+          "error": null
+        }
+      }
+    },
+    {
+      "name": "Granma",
+      "host": "www.granma.cu",
+      "ping": {
+        "sent": 4,
+        "received": 4,
+        "loss_percent": 0.0,
+        "rtt_min_ms": 257.233,
+        "rtt_avg_ms": 263.318,
+        "rtt_max_ms": 266.906,
+        "error": null
+      },
+      "tcp_443": {
+        "ok": true,
+        "connect_ms": 496.45,
+        "error": null
+      },
+      "dns": {
+        "a": {
+          "status": "answer",
+          "query_ms": 2.53,
+          "error": null
+        }
+      }
+    },
+    {
+      "name": "Cubadebate",
+      "host": "www.cubadebate.cu",
+      "ping": {
+        "sent": 4,
+        "received": 0,
+        "loss_percent": 100.0,
+        "rtt_min_ms": null,
+        "rtt_avg_ms": null,
+        "rtt_max_ms": null,
+        "error": "Ping failed"
+      },
+      "tcp_443": {
+        "ok": true,
+        "connect_ms": 214.23,
+        "error": null
+      },
+      "dns": {
+        "a": {
+          "status": "answer",
+          "query_ms": 2.24,
+          "error": null
+        }
+      }
+    },
+    {
+      "name": "Juventud Rebelde",
+      "host": "www.juventudrebelde.cu",
+      "ping": {
+        "sent": 4,
+        "received": 4,
+        "loss_percent": 0.0,
+        "rtt_min_ms": 251.879,
+        "rtt_avg_ms": 258.54,
+        "rtt_max_ms": 261.209,
+        "error": null
+      },
+      "tcp_443": {
+        "ok": true,
+        "connect_ms": 697.6,
+        "error": null
+      },
+      "dns": {
+        "a": {
+          "status": "answer",
+          "query_ms": 2.51,
+          "error": null
+        }
+      }
+    },
+    {
+      "name": "Radio Habana Cuba",
+      "host": "www.radiohc.cu",
+      "ping": {
+        "sent": 4,
+        "received": 4,
+        "loss_percent": 0.0,
+        "rtt_min_ms": 246.308,
+        "rtt_avg_ms": 254.19,
+        "rtt_max_ms": 258.066,
+        "error": null
+      },
+      "tcp_443": {
+        "ok": true,
+        "connect_ms": 263.8,
+        "error": null
+      },
+      "dns": {
+        "a": {
+          "status": "answer",
+          "query_ms": 2.32,
+          "error": null
+        }
+      }
+    }
+  ],
+  "weather_summary": {
+    "classification": "degraded",
+    "reason": "High packet loss or elevated latency detected."
+  },
+  "notes": "Passive measurement of packet loss, TCP 443 handshake, and DNS A lookups for Cuba. Values represent point-in-time signals only."
+}

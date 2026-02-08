@@ -1,0 +1,163 @@
+{
+  "observer": "iran-dns-behavior",
+  "timestamp": "2026-02-08T17:32:27.864776+00:00",
+  "targets": [
+    {
+      "name": "IANA Example",
+      "domain": "example.com",
+      "queries": {
+        "A": {
+          "status": "answer",
+          "query_ms": 46.74,
+          "answer_count": 2,
+          "error": null
+        },
+        "AAAA": {
+          "status": "answer",
+          "query_ms": 47.64,
+          "answer_count": 2,
+          "error": null
+        },
+        "MX": {
+          "status": "answer",
+          "query_ms": 50.28,
+          "answer_count": 1,
+          "error": null
+        },
+        "TXT": {
+          "status": "answer",
+          "query_ms": 77.05,
+          "answer_count": 2,
+          "error": null
+        }
+      }
+    },
+    {
+      "name": "IANA Root",
+      "domain": "iana.org",
+      "queries": {
+        "A": {
+          "status": "answer",
+          "query_ms": 41.22,
+          "answer_count": 1,
+          "error": null
+        },
+        "AAAA": {
+          "status": "answer",
+          "query_ms": 2.92,
+          "answer_count": 1,
+          "error": null
+        },
+        "MX": {
+          "status": "answer",
+          "query_ms": 44.42,
+          "answer_count": 4,
+          "error": null
+        },
+        "TXT": {
+          "status": "answer",
+          "query_ms": 10.07,
+          "answer_count": 9,
+          "error": null
+        }
+      }
+    },
+    {
+      "name": "Wikipedia",
+      "domain": "wikipedia.org",
+      "queries": {
+        "A": {
+          "status": "answer",
+          "query_ms": 40.2,
+          "answer_count": 1,
+          "error": null
+        },
+        "AAAA": {
+          "status": "answer",
+          "query_ms": 68.67,
+          "answer_count": 1,
+          "error": null
+        },
+        "MX": {
+          "status": "answer",
+          "query_ms": 61.72,
+          "answer_count": 2,
+          "error": null
+        },
+        "TXT": {
+          "status": "answer",
+          "query_ms": 3.28,
+          "answer_count": 3,
+          "error": null
+        }
+      }
+    },
+    {
+      "name": "GitHub",
+      "domain": "github.com",
+      "queries": {
+        "A": {
+          "status": "answer",
+          "query_ms": 39.78,
+          "answer_count": 1,
+          "error": null
+        },
+        "AAAA": {
+          "status": "noanswer",
+          "query_ms": 3.64,
+          "answer_count": 0,
+          "error": null
+        },
+        "MX": {
+          "status": "answer",
+          "query_ms": 40.22,
+          "answer_count": 5,
+          "error": null
+        },
+        "TXT": {
+          "status": "answer",
+          "query_ms": 11.28,
+          "answer_count": 19,
+          "error": null
+        }
+      }
+    },
+    {
+      "name": "Cloudflare",
+      "domain": "cloudflare.com",
+      "queries": {
+        "A": {
+          "status": "answer",
+          "query_ms": 44.53,
+          "answer_count": 2,
+          "error": null
+        },
+        "AAAA": {
+          "status": "answer",
+          "query_ms": 45.5,
+          "answer_count": 2,
+          "error": null
+        },
+        "MX": {
+          "status": "answer",
+          "query_ms": 43.81,
+          "answer_count": 4,
+          "error": null
+        },
+        "TXT": {
+          "status": "answer",
+          "query_ms": 81.67,
+          "answer_count": 25,
+          "error": null
+        }
+      }
+    }
+  ],
+  "summary": {
+    "total_queries": 20,
+    "answered": 19,
+    "timeouts": 0,
+    "refused": 0
+  },
+  "notes": "Queries are performed with standard recursion via the system resolver. No censorship circumvention or evasion techniques are used."
+}

@@ -1,0 +1,23 @@
+{
+  "observer": "traceroute-to-nowhere",
+  "timestamp": "2026-02-08T17:32:30.907527+00:00",
+  "targets": [
+    {
+      "name": "Example",
+      "host": "example.com",
+      "hops_reached": 10,
+      "termination": "completed",
+      "stop_zone": "international",
+      "error": null
+    },
+    {
+      "name": "Cloudflare",
+      "host": "1.1.1.1",
+      "hops_reached": 11,
+      "termination": "completed",
+      "stop_zone": "international",
+      "error": null
+    }
+  ],
+  "notes": "Traceroute limited to low TTL with minimal probes per hop."
+}
