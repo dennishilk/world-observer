@@ -1,0 +1,9 @@
+# world-observer daily automation
+#
+# Instructions:
+# 1) Copy this file into your crontab (crontab -e) or link it from /etc/cron.d.
+# 2) Uncomment the line below to enable the schedule.
+# 3) Ensure python3 and git are available in the PATH for the cron user.
+#
+# Run daily at 02:00 UTC:
+# 0 2 * * * /usr/bin/python3 /workspace/world-observer/scripts/run_daily.py && /workspace/world-observer/scripts/git_publish.sh
