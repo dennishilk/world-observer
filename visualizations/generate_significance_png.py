@@ -248,6 +248,17 @@ def _cuba_classification(payload: Dict[str, Any]) -> Optional[str]:
     return None
 
 
+def _cuba_classification_label(value: Optional[str]) -> str:
+    if not value:
+        return "unknown"
+    normalized = value.strip().lower()
+    if normalized == "offline":
+        return "no response"
+    if normalized == "online":
+        return "responsive"
+    return value
+
+
 def _iran_behavior_class(payload: Dict[str, Any]) -> Optional[str]:
     # Rule: categorize DNS behavior from summary counts (responsive/silent/refused/mixed).
     summary = payload.get("summary")
@@ -459,16 +470,18 @@ def _render_png(date_str: str, event: SignificanceEvent) -> Path:
     image = Image.new("RGB", (width, height), color=background)
     draw = ImageDraw.Draw(image)
 
-    try:
-        title_font = ImageFont.truetype("DejaVuSans.ttf", 36)
-        body_font = ImageFont.truetype("DejaVuSans.ttf", 22)
-        header_font = ImageFont.truetype("DejaVuSans.ttf", 16)
-        footer_font = ImageFont.truetype("DejaVuSans.ttf", 16)
-    except OSError:
-        title_font = ImageFont.load_default()
-        body_font = ImageFont.load_default()
-        header_font = ImageFont.load_default()
-        footer_font = ImageFont.load_default()
+    def load_font(preferred_names: List[str], size: int) -> ImageFont.FreeTypeFont:
+        for name in preferred_names:
+            try:
+                return ImageFont.truetype(name, size)
+            except OSError:
+                continue
+        return ImageFont.load_default()
+
+    title_font = load_font(["DejaVuSans-Bold.ttf", "DejaVuSans.ttf"], 45)
+    body_font = load_font(["DejaVuSans.ttf"], 24)
+    header_font = load_font(["DejaVuSans.ttf"], 18)
+    footer_font = load_font(["DejaVuSans.ttf"], 18)
 
     x_margin = 60
     y = 40
@@ -487,14 +500,14 @@ def _render_png(date_str: str, event: SignificanceEvent) -> Path:
     title_lines = _wrap_text(draw, event.title, title_font, content_width)
     for line in title_lines:
         draw.text((x_margin, y), line, fill=text_color, font=title_font)
-        y += 44
+        y += 54
     y += 10
 
     for bullet in event.bullets:
         bullet_lines = _wrap_text(draw, f"• {bullet}", body_font, content_width)
         for index, line in enumerate(bullet_lines):
             draw.text((x_margin, y), line, fill=text_color, font=body_font)
-            y += 30 if index == len(bullet_lines) - 1 else 26
+            y += 32 if index == len(bullet_lines) - 1 else 28
         y += 6
 
     footer_text = "Deviation from long-term baseline"
@@ -507,31 +520,31 @@ def _render_png(date_str: str, event: SignificanceEvent) -> Path:
 def _ensure_state_comments(state: Dict[str, Any]) -> None:
     state.setdefault(
         "_comment_last_generated_date",
-        "Records the most recent date a PNG snapshot was generated to avoid duplicates.",
+        "Records the most recent PNG date to prevent duplicate renders for the same day.",
     )
     state.setdefault(
         "_comment_last_generated_observer",
-        "Records which observer produced the last PNG snapshot for auditability.",
+        "Records which observer produced the last PNG for audit and deduplication checks.",
     )
     state.setdefault(
         "_comment_area51",
-        "Baseline memory for Area 51 reachability to detect rare shifts after stability.",
+        "Baseline memory for Area 51 reachability to avoid false shifts during short-term noise.",
     )
     state.setdefault(
         "_comment_cuba_internet",
-        "Baseline memory for Cuba classification to measure extended offline periods.",
+        "Baseline memory for Cuba classification to measure extended non-response periods.",
     )
     state.setdefault(
         "_comment_tls_fingerprints",
-        "Baseline memory for TLS fingerprints to detect rare long-term changes.",
+        "Baseline memory for TLS fingerprints to avoid single-day noise and detect long-term changes.",
     )
     state.setdefault(
         "_comment_ipv6_states",
-        "Baseline memory for IPv6 availability to detect first-time or rare changes.",
+        "Baseline memory for IPv6 availability to prevent duplicate first-seen notices.",
     )
     state.setdefault(
         "_comment_global_reachability",
-        "Baseline memory for global reachability to detect new record lows.",
+        "Baseline memory for global reachability to prevent single-day baselines from triggering events.",
     )
 
     area_state = state.setdefault("area51", {})
@@ -549,7 +562,7 @@ def _ensure_state_comments(state: Dict[str, Any]) -> None:
     if isinstance(cuba_state, dict):
         cuba_state.setdefault(
             "_comment_outage_start_date",
-            "Stores the start date of an offline stretch to measure duration.",
+            "Stores the start date of a non-response stretch to measure duration.",
         )
         cuba_state.setdefault(
             "_comment_last_classification",
@@ -574,11 +587,11 @@ def _ensure_state_comments(state: Dict[str, Any]) -> None:
     if isinstance(reach_state, dict):
         reach_state.setdefault(
             "_comment_lowest_score",
-            "Stores the lowest observed score for historical comparison.",
+            "Stores the lowest observed score for historical comparison after baselines exist.",
         )
         reach_state.setdefault(
             "_comment_date",
-            "Stores the date when the lowest score was observed.",
+            "Stores the date when the lowest score was observed to avoid repeats.",
         )
 
 
@@ -703,11 +716,11 @@ def evaluate_significance(
             events.append(
                 SignificanceEvent(
                     observer="cuba-internet-weather",
-                    title="Cuba internet availability changed to offline",
+                    title="Cuba availability classification changed to no response",
                     bullets=[
-                        "Classification today: offline.",
-                        "Yesterday: not offline.",
-                        "Outage duration: 1 day (start of outage).",
+                        f"Classification today: {_cuba_classification_label(today_class)}.",
+                        "Yesterday: response observed.",
+                        "Non-response duration: 1 day (start of stretch).",
                     ],
                     special_values={"outage_duration_days": 1},
                 )
@@ -722,11 +735,11 @@ def evaluate_significance(
             events.append(
                 SignificanceEvent(
                     observer="cuba-internet-weather",
-                    title="Cuba internet availability changed after prolonged offline period",
+                    title="Cuba availability classification changed after prolonged non-response period",
                     bullets=[
-                        f"Outage duration: {outage_days} days.",
-                        f"Classification today: {today_class}.",
-                        "Yesterday: offline.",
+                        f"Non-response duration: {outage_days} days.",
+                        f"Classification today: {_cuba_classification_label(today_class)}.",
+                        "Yesterday: no response.",
                     ],
                     special_values={"outage_duration_days": outage_days},
                 )
@@ -986,19 +999,25 @@ def evaluate_significance(
 
     # 11) global-reachability-score: trigger on lowest value since project start.
     global_today = today_obs.get("global-reachability-score")
-    if global_today:
+    global_yesterday = yesterday_obs.get("global-reachability-score")
+    if global_today and global_yesterday:
         today_score = _global_reachability_score(global_today)
+        yesterday_score = _global_reachability_score(global_yesterday)
         reach_state = state.get("global_reachability", {})
         lowest_score = reach_state.get("lowest_score")
         if today_score is not None:
-            if lowest_score is None or today_score < float(lowest_score):
+            if (
+                yesterday_score is not None
+                and lowest_score is not None
+                and today_score < float(lowest_score)
+            ):
                 events.append(
                     SignificanceEvent(
                         observer="global-reachability-score",
                         title="Global reachability score deviated to a new low",
                         bullets=[
                             f"Score today: {today_score:.2f}.",
-                            "Score rank: lowest on record.",
+                            "Lowest value since measurements began.",
                             "Score from reported country scores only.",
                         ],
                         special_values={"score_rank": "lowest_on_record"},
