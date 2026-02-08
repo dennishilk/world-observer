@@ -1,0 +1,14 @@
+[
+  {
+    "country": "US",
+    "targets": [
+      {"name": "Example", "host": "example.com"}
+    ]
+  },
+  {
+    "country": "DE",
+    "targets": [
+      {"name": "Heise", "host": "www.heise.de"}
+    ]
+  }
+]
