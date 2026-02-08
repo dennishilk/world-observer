@@ -1,0 +1,24 @@
+[
+  {
+    "country": "US",
+    "cables": [
+      {"name": "Atlantic-One", "region": "atlantic"},
+      {"name": "Pacific-Link", "region": "pacific"},
+      {"name": "Gulf-Express", "region": "gulf"}
+    ]
+  },
+  {
+    "country": "BR",
+    "cables": [
+      {"name": "South-Atlantic-West", "region": "atlantic"},
+      {"name": "Caribbean-Connector", "region": "caribbean"}
+    ]
+  },
+  {
+    "country": "ZA",
+    "cables": [
+      {"name": "Cape-Loop", "region": "southern"},
+      {"name": "East-Africa-Route", "region": "indian"}
+    ]
+  }
+]
