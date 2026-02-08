@@ -1,0 +1,37 @@
+{
+  "_comment_last_generated_date": "Records the most recent date a PNG snapshot was generated to avoid duplicates.",
+  "last_generated_date": null,
+  "_comment_last_generated_observer": "Records which observer produced the last PNG snapshot for auditability.",
+  "last_generated_observer": null,
+  "_comment_area51": "Baseline memory for Area 51 reachability to detect rare shifts after stability.",
+  "area51": {
+    "_comment_last_state": "Stores the last reachability state for stability comparisons.",
+    "last_state": null,
+    "_comment_last_change_date": "Stores the date of the last reachability change to compute stability.",
+    "last_change_date": null
+  },
+  "_comment_cuba_internet": "Baseline memory for Cuba classification to measure extended offline periods.",
+  "cuba_internet": {
+    "_comment_outage_start_date": "Stores the start date of an offline stretch to measure duration.",
+    "outage_start_date": null,
+    "_comment_last_classification": "Stores the most recent classification for continuity checks.",
+    "last_classification": null
+  },
+  "_comment_tls_fingerprints": "Baseline memory for TLS fingerprints to detect rare long-term changes.",
+  "tls_fingerprints": {
+    "_comment_hosts": "Stores per-host fingerprints with first-seen dates for change detection.",
+    "hosts": {}
+  },
+  "_comment_ipv6_states": "Baseline memory for IPv6 availability to detect first-time or rare changes.",
+  "ipv6_states": {
+    "_comment_countries": "Stores per-country IPv6 availability with stability timestamps.",
+    "countries": {}
+  },
+  "_comment_global_reachability": "Baseline memory for global reachability to detect new record lows.",
+  "global_reachability": {
+    "_comment_lowest_score": "Stores the lowest observed score for historical comparison.",
+    "lowest_score": null,
+    "_comment_date": "Stores the date when the lowest score was observed.",
+    "date": null
+  }
+}
