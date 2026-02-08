@@ -17,6 +17,8 @@
 
 set -euo pipefail
 
+OBSERVER_USER="${SUDO_USER:-$(whoami)}"
+
 log() {
   printf '\n[world-observer] %s\n' "$*"
 }
@@ -55,6 +57,17 @@ ensure_line_in_file() {
 
 require_root
 
+if ! getent passwd "$OBSERVER_USER" >/dev/null 2>&1; then
+  echo "ERROR: User '$OBSERVER_USER' does not exist. Create the user first and re-run." >&2
+  exit 1
+fi
+
+OBSERVER_HOME="$(getent passwd "$OBSERVER_USER" | cut -d: -f6)"
+if [[ -z "$OBSERVER_HOME" || ! -d "$OBSERVER_HOME" ]]; then
+  echo "ERROR: User '$OBSERVER_USER' does not have a valid home directory." >&2
+  exit 1
+fi
+
 log "Updating base system and installing required packages..."
 export DEBIAN_FRONTEND=noninteractive
 apt update
@@ -91,22 +104,19 @@ if [[ -f /etc/timezone ]]; then
 fi
 timedatectl set-timezone UTC
 
-log "Creating dedicated user 'observer' (no sudo privileges)..."
-if ! id observer >/dev/null 2>&1; then
-  useradd --create-home --home-dir /home/observer --shell /bin/bash observer
-  passwd -l observer >/dev/null 2>&1 || true
-fi
+# User creation intentionally removed: the installer now uses an existing user
+# (derived from sudo) to avoid SSH and account-management conflicts.
 
-log "Ensuring /opt/world-observer exists and is owned by observer..."
-ensure_directory "/opt/world-observer" "observer" "observer" "0755"
+log "Ensuring /opt/world-observer exists and is owned by ${OBSERVER_USER}..."
+ensure_directory "/opt/world-observer" "$OBSERVER_USER" "$OBSERVER_USER" "0755"
 
-log "Configuring Python virtual environment for observer..."
+log "Configuring Python virtual environment for ${OBSERVER_USER}..."
 if [[ ! -d /opt/world-observer/.venv ]]; then
-  sudo -u observer python3 -m venv /opt/world-observer/.venv
+  sudo -u "$OBSERVER_USER" python3 -m venv /opt/world-observer/.venv
 fi
-sudo -u observer /opt/world-observer/.venv/bin/pip install --upgrade pip
-sudo -u observer /opt/world-observer/.venv/bin/pip install dnspython
-sudo -u observer /opt/world-observer/.venv/bin/pip install pillow
+sudo -u "$OBSERVER_USER" /opt/world-observer/.venv/bin/pip install --upgrade pip
+sudo -u "$OBSERVER_USER" /opt/world-observer/.venv/bin/pip install dnspython
+sudo -u "$OBSERVER_USER" /opt/world-observer/.venv/bin/pip install pillow
 
 log "Configuring zram (memory pressure smoothing / OOM protection)..."
 # zram-tools reads /etc/default/zramswap on Debian.
@@ -115,22 +125,22 @@ ensure_line_in_file "ALGO=lz4" /etc/default/zramswap
 ensure_line_in_file "PERCENT=50" /etc/default/zramswap
 systemctl enable --now zramswap.service
 
-log "Preparing SSH deploy key for GitHub (observer user)..."
-sudo -u observer mkdir -p /home/observer/.ssh
-sudo -u observer chmod 700 /home/observer/.ssh
+log "Preparing SSH deploy key for GitHub (${OBSERVER_USER} user)..."
+sudo -u "$OBSERVER_USER" mkdir -p "${OBSERVER_HOME}/.ssh"
+sudo -u "$OBSERVER_USER" chmod 700 "${OBSERVER_HOME}/.ssh"
 
-if [[ ! -f /home/observer/.ssh/id_ed25519_world_observer ]]; then
-  sudo -u observer ssh-keygen \
+if [[ ! -f "${OBSERVER_HOME}/.ssh/id_ed25519_world_observer" ]]; then
+  sudo -u "$OBSERVER_USER" ssh-keygen \
     -t ed25519 \
-    -f /home/observer/.ssh/id_ed25519_world_observer \
+    -f "${OBSERVER_HOME}/.ssh/id_ed25519_world_observer" \
     -N "" \
     -C "world-observer-deploy-key"
 fi
-sudo -u observer chmod 600 /home/observer/.ssh/id_ed25519_world_observer
-sudo -u observer chmod 644 /home/observer/.ssh/id_ed25519_world_observer.pub
+sudo -u "$OBSERVER_USER" chmod 600 "${OBSERVER_HOME}/.ssh/id_ed25519_world_observer"
+sudo -u "$OBSERVER_USER" chmod 644 "${OBSERVER_HOME}/.ssh/id_ed25519_world_observer.pub"
 
 log "PUBLIC KEY (add as GitHub Deploy Key with read/write access):"
-cat /home/observer/.ssh/id_ed25519_world_observer.pub
+cat "${OBSERVER_HOME}/.ssh/id_ed25519_world_observer.pub"
 
 cat <<'INSTRUCTIONS'
 
@@ -140,26 +150,26 @@ Add this key as a DEPLOY KEY in your GitHub repository:
 
 Press Enter to continue once the deploy key is added.
 INSTRUCTIONS
-read -r
+read -r </dev/tty || true
 
 log "Writing SSH config for GitHub..."
-if [[ ! -f /home/observer/.ssh/config ]]; then
-  sudo -u observer touch /home/observer/.ssh/config
+if [[ ! -f "${OBSERVER_HOME}/.ssh/config" ]]; then
+  sudo -u "$OBSERVER_USER" touch "${OBSERVER_HOME}/.ssh/config"
 fi
-sudo -u observer chmod 600 /home/observer/.ssh/config
-cat <<'SSHCONF' > /home/observer/.ssh/config
+sudo -u "$OBSERVER_USER" chmod 600 "${OBSERVER_HOME}/.ssh/config"
+sudo -u "$OBSERVER_USER" tee "${OBSERVER_HOME}/.ssh/config" >/dev/null <<'SSHCONF'
 Host github.com
   IdentityFile ~/.ssh/id_ed25519_world_observer
   IdentitiesOnly yes
 SSHCONF
 
-log "Configuring git identity for observer..."
-sudo -u observer git config --global user.name "world-observer"
-sudo -u observer git config --global user.email "observer@localhost"
+log "Configuring git identity for ${OBSERVER_USER}..."
+sudo -u "$OBSERVER_USER" git config --global user.name "world-observer"
+sudo -u "$OBSERVER_USER" git config --global user.email "observer@localhost"
 
 log "Validating SSH connectivity to GitHub..."
 set +e
-sudo -u observer ssh -T git@github.com
+sudo -u "$OBSERVER_USER" ssh -T git@github.com
 ssh_status=$?
 set -e
 if [[ "$ssh_status" -eq 1 || "$ssh_status" -eq 0 ]]; then
@@ -179,7 +189,7 @@ cat <<'CRONEX' > /opt/world-observer/cron_example.txt
 #   python scripts/run_daily.py && \
 #   bash scripts/git_publish.sh
 CRONEX
-chown observer:observer /opt/world-observer/cron_example.txt
+chown "$OBSERVER_USER:$OBSERVER_USER" /opt/world-observer/cron_example.txt
 chmod 0644 /opt/world-observer/cron_example.txt
 
 cat <<'SECURITY'
@@ -194,7 +204,7 @@ SECURITY NOTES (not applied automatically):
 SECURITY
 
 log "Verifying PNG generation prerequisites..."
-if ! sudo -u observer /opt/world-observer/.venv/bin/python -c "from PIL import Image, ImageDraw, ImageFont"; then
+if ! sudo -u "$OBSERVER_USER" /opt/world-observer/.venv/bin/python -c "from PIL import Image, ImageDraw, ImageFont"; then
   echo "ERROR: PNG generation prerequisites missing (Pillow import failed)." >&2
   exit 1
 fi
