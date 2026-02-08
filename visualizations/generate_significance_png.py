@@ -103,6 +103,7 @@ def _load_state() -> Dict[str, Any]:
 
 
 def _save_state(state: Dict[str, Any]) -> None:
+    _ensure_state_comments(state)
     STATE_PATH.parent.mkdir(parents=True, exist_ok=True)
     STATE_PATH.write_text(json.dumps(state, ensure_ascii=False, indent=2) + "\n")
 
@@ -140,6 +141,101 @@ def _nk_any_success(payload: Dict[str, Any]) -> bool:
         if ping_ok is True or tcp_ok is True or dns_a == "answer" or dns_aaaa == "answer":
             return True
     return False
+
+
+def _looks_like_ip_or_asn(value: str) -> bool:
+    if not value:
+        return False
+    if value.lower().startswith("as") and value[2:].isdigit():
+        return True
+    if ":" in value and all(part for part in value.split(":")):
+        return True
+    parts = value.split(".")
+    if len(parts) == 4 and all(part.isdigit() for part in parts):
+        return True
+    return False
+
+
+def _map_origin_context(value: str) -> Optional[str]:
+    if not isinstance(value, str) or not value.strip():
+        return None
+    if _looks_like_ip_or_asn(value):
+        return None
+    normalized = value.lower()
+    if "domestic" in normalized or "internal" in normalized or "local" in normalized:
+        return "domestic_network"
+    if "international" in normalized or "transit" in normalized or "external" in normalized:
+        return "international_transit"
+    if "unknown" in normalized:
+        return "unknown"
+    return None
+
+
+def _map_country_hint(value: str) -> Optional[str]:
+    if not isinstance(value, str) or not value.strip():
+        return None
+    if _looks_like_ip_or_asn(value):
+        return None
+    normalized = value.strip().lower()
+    north_korea_values = {
+        "kp",
+        "prk",
+        "north korea",
+        "democratic people's republic of korea",
+        "democratic peoples republic of korea",
+    }
+    if normalized in north_korea_values:
+        return "domestic_network"
+    return "international_transit"
+
+
+def _map_response_path(value: Any) -> Optional[str]:
+    if isinstance(value, list):
+        countries: List[str] = []
+        for hop in value:
+            if isinstance(hop, dict):
+                for key in ("country", "country_code", "asn_country"):
+                    hop_value = hop.get(key)
+                    if isinstance(hop_value, str):
+                        countries.append(hop_value)
+            elif isinstance(hop, str):
+                countries.append(hop)
+        mapped = [_map_country_hint(country) for country in countries]
+        mapped = [item for item in mapped if item]
+        if not mapped:
+            return None
+        if "international_transit" in mapped:
+            return "international_transit"
+        return "domestic_network"
+    if isinstance(value, str):
+        return _map_origin_context(value)
+    return None
+
+
+def _nk_origin_context(payload: Dict[str, Any]) -> str:
+    for candidate in [payload.get("origin_context"), payload.get("asn_country")]:
+        mapped = _map_origin_context(candidate) or _map_country_hint(candidate)
+        if mapped:
+            return mapped
+    response_path = payload.get("response_path")
+    mapped_path = _map_response_path(response_path)
+    if mapped_path:
+        return mapped_path
+    targets = payload.get("targets")
+    if isinstance(targets, list):
+        for target in targets:
+            if not isinstance(target, dict):
+                continue
+            for key in ("origin_context", "asn_country", "response_path"):
+                mapped = _map_origin_context(target.get(key)) or _map_country_hint(
+                    target.get(key)
+                )
+                if mapped:
+                    return mapped
+                mapped_path = _map_response_path(target.get(key))
+                if mapped_path:
+                    return mapped_path
+    return "unknown"
 
 
 def _cuba_classification(payload: Dict[str, Any]) -> Optional[str]:
@@ -334,6 +430,22 @@ def _select_event(events: List[SignificanceEvent]) -> Optional[SignificanceEvent
     return sorted(events, key=lambda event: priority_map.get(event.observer, 9999))[0]
 
 
+def _wrap_text(draw: ImageDraw.ImageDraw, text: str, font: ImageFont.FreeTypeFont, max_width: int) -> List[str]:
+    words = text.split()
+    lines: List[str] = []
+    current = ""
+    for word in words:
+        tentative = f"{current} {word}".strip()
+        if draw.textlength(tentative, font=font) <= max_width or not current:
+            current = tentative
+        else:
+            lines.append(current)
+            current = word
+    if current:
+        lines.append(current)
+    return lines
+
+
 def _render_png(date_str: str, event: SignificanceEvent) -> Path:
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     filename = f"{date_str}-{event.observer}.png"
@@ -350,27 +462,124 @@ def _render_png(date_str: str, event: SignificanceEvent) -> Path:
     try:
         title_font = ImageFont.truetype("DejaVuSans.ttf", 36)
         body_font = ImageFont.truetype("DejaVuSans.ttf", 22)
-        footer_font = ImageFont.truetype("DejaVuSans.ttf", 18)
+        header_font = ImageFont.truetype("DejaVuSans.ttf", 16)
+        footer_font = ImageFont.truetype("DejaVuSans.ttf", 16)
     except OSError:
         title_font = ImageFont.load_default()
         body_font = ImageFont.load_default()
+        header_font = ImageFont.load_default()
         footer_font = ImageFont.load_default()
 
     x_margin = 60
-    y = 60
+    y = 40
+    content_width = width - (x_margin * 2)
 
-    draw.text((x_margin, y), event.title, fill=text_color, font=title_font)
-    y += 70
+    draw.text(
+        (x_margin, y),
+        "WORLD OBSERVER — SIGNIFICANT EVENT",
+        fill=muted_color,
+        font=header_font,
+    )
+    y += 24
+    draw.text((x_margin, y), date_str, fill=muted_color, font=header_font)
+    y += 50
+
+    title_lines = _wrap_text(draw, event.title, title_font, content_width)
+    for line in title_lines:
+        draw.text((x_margin, y), line, fill=text_color, font=title_font)
+        y += 44
+    y += 10
 
     for bullet in event.bullets:
-        draw.text((x_margin, y), f"• {bullet}", fill=text_color, font=body_font)
-        y += 40
+        bullet_lines = _wrap_text(draw, f"• {bullet}", body_font, content_width)
+        for index, line in enumerate(bullet_lines):
+            draw.text((x_margin, y), line, fill=text_color, font=body_font)
+            y += 30 if index == len(bullet_lines) - 1 else 26
+        y += 6
 
     footer_text = "Deviation from long-term baseline"
     draw.text((x_margin, height - 60), footer_text, fill=muted_color, font=footer_font)
 
     image.save(output_path)
     return output_path
+
+
+def _ensure_state_comments(state: Dict[str, Any]) -> None:
+    state.setdefault(
+        "_comment_last_generated_date",
+        "Records the most recent date a PNG snapshot was generated to avoid duplicates.",
+    )
+    state.setdefault(
+        "_comment_last_generated_observer",
+        "Records which observer produced the last PNG snapshot for auditability.",
+    )
+    state.setdefault(
+        "_comment_area51",
+        "Baseline memory for Area 51 reachability to detect rare shifts after stability.",
+    )
+    state.setdefault(
+        "_comment_cuba_internet",
+        "Baseline memory for Cuba classification to measure extended offline periods.",
+    )
+    state.setdefault(
+        "_comment_tls_fingerprints",
+        "Baseline memory for TLS fingerprints to detect rare long-term changes.",
+    )
+    state.setdefault(
+        "_comment_ipv6_states",
+        "Baseline memory for IPv6 availability to detect first-time or rare changes.",
+    )
+    state.setdefault(
+        "_comment_global_reachability",
+        "Baseline memory for global reachability to detect new record lows.",
+    )
+
+    area_state = state.setdefault("area51", {})
+    if isinstance(area_state, dict):
+        area_state.setdefault(
+            "_comment_last_state",
+            "Stores the last reachability state for stability comparisons.",
+        )
+        area_state.setdefault(
+            "_comment_last_change_date",
+            "Stores the date of the last reachability change to compute stability.",
+        )
+
+    cuba_state = state.setdefault("cuba_internet", {})
+    if isinstance(cuba_state, dict):
+        cuba_state.setdefault(
+            "_comment_outage_start_date",
+            "Stores the start date of an offline stretch to measure duration.",
+        )
+        cuba_state.setdefault(
+            "_comment_last_classification",
+            "Stores the most recent classification for continuity checks.",
+        )
+
+    tls_state = state.setdefault("tls_fingerprints", {})
+    if isinstance(tls_state, dict):
+        tls_state.setdefault(
+            "_comment_hosts",
+            "Stores per-host fingerprints with first-seen dates for change detection.",
+        )
+
+    ipv6_state = state.setdefault("ipv6_states", {})
+    if isinstance(ipv6_state, dict):
+        ipv6_state.setdefault(
+            "_comment_countries",
+            "Stores per-country IPv6 availability with stability timestamps.",
+        )
+
+    reach_state = state.setdefault("global_reachability", {})
+    if isinstance(reach_state, dict):
+        reach_state.setdefault(
+            "_comment_lowest_score",
+            "Stores the lowest observed score for historical comparison.",
+        )
+        reach_state.setdefault(
+            "_comment_date",
+            "Stores the date when the lowest score was observed.",
+        )
 
 
 def _update_area51_state(state: Dict[str, Any], today_state: Optional[str], today_str: str) -> None:
@@ -465,6 +674,7 @@ def evaluate_significance(
     nk_yesterday = yesterday_obs.get("north-korea-connectivity")
     if nk_today and nk_yesterday:
         if _nk_is_silent(nk_yesterday) and _nk_any_success(nk_today):
+            origin_context = _nk_origin_context(nk_today)
             events.append(
                 SignificanceEvent(
                     observer="north-korea-connectivity",
@@ -472,9 +682,9 @@ def evaluate_significance(
                     bullets=[
                         "Yesterday: complete silence across monitored targets.",
                         "Today: at least one successful response observed.",
-                        "Origin context: unknown.",
+                        f"Response observed via {origin_context}.",
                     ],
-                    special_values={"origin_context": "unknown"},
+                    special_values={"origin_context": origin_context},
                 )
             )
 
@@ -493,7 +703,7 @@ def evaluate_significance(
             events.append(
                 SignificanceEvent(
                     observer="cuba-internet-weather",
-                    title="Cuba internet availability dropped to zero",
+                    title="Cuba internet availability changed to offline",
                     bullets=[
                         "Classification today: offline.",
                         "Yesterday: not offline.",
@@ -512,7 +722,7 @@ def evaluate_significance(
             events.append(
                 SignificanceEvent(
                     observer="cuba-internet-weather",
-                    title="Cuba internet availability recovered after outage",
+                    title="Cuba internet availability changed after prolonged offline period",
                     bullets=[
                         f"Outage duration: {outage_days} days.",
                         f"Classification today: {today_class}.",
@@ -536,7 +746,7 @@ def evaluate_significance(
                     bullets=[
                         f"Previous class: {yesterday_class}.",
                         f"Current class: {today_class}.",
-                        "Category change based on summary query outcomes.",
+                        "Category change from summary query outcomes.",
                     ],
                     special_values={"dns_behavior_class": today_class},
                 )
@@ -555,15 +765,15 @@ def evaluate_significance(
                 events.append(
                     SignificanceEvent(
                         observer="area51-reachability",
-                        title="Area 51 reachability state shifted after stability",
-                        bullets=[
-                            f"New reachability state: {today_state}.",
-                            f"Stable for {stable_days} days before change.",
-                            "Reachability derived from ping/TCP outcomes only.",
-                        ],
-                        special_values={"reachability_state": today_state},
-                    )
+                    title="Area 51 reachability state shifted after stability",
+                    bullets=[
+                        f"New reachability state: {today_state}.",
+                        f"Stable for {stable_days} days before change.",
+                        "Reachability from ping/TCP outcomes only.",
+                    ],
+                    special_values={"reachability_state": today_state},
                 )
+            )
 
     # 5) traceroute-to-nowhere: trigger on stop-zone change or hop collapse >= 50%.
     trace_today = today_obs.get("traceroute-to-nowhere")
@@ -591,7 +801,7 @@ def evaluate_significance(
                         bullets=[
                             f"Termination region today: {today_zone}.",
                             f"Termination region yesterday: {yesterday_zone}.",
-                            "Stop region derived from hop count only.",
+                            "Stop region from hop count only.",
                         ],
                         special_values={"termination_region": today_zone},
                     )
@@ -606,7 +816,7 @@ def evaluate_significance(
                 events.append(
                     SignificanceEvent(
                         observer="traceroute-to-nowhere",
-                        title="Traceroute path length collapsed",
+                        title="Traceroute path length changed",
                         bullets=[
                             f"Termination region today: {today_zone or 'unknown'}.",
                             f"Hops today: {today_hops}.",
@@ -659,7 +869,7 @@ def evaluate_significance(
                 events.append(
                     SignificanceEvent(
                         observer="asn-visibility-by-country",
-                        title="ASN visibility dropped sharply in one country",
+                        title="ASN visibility changed in one country",
                         bullets=[
                             f"Affected country: {country}.",
                             f"Visible ASNs today: {today_visible}.",
@@ -719,7 +929,7 @@ def evaluate_significance(
                 events.append(
                     SignificanceEvent(
                         observer="silent-countries-list",
-                        title="Silent country count increased",
+                        title="Silent country count changed",
                         bullets=[
                             f"Silent countries today: {today_count}.",
                             f"Silent countries yesterday: {yesterday_count}.",
@@ -748,10 +958,10 @@ def evaluate_significance(
                 events.append(
                     SignificanceEvent(
                         observer="ipv6-adoption-locked-states",
-                        title="IPv6 presence appeared for the first time",
+                        title="IPv6 presence detected for the first time",
                         bullets=[
                             f"Country: {country}.",
-                            "IPv6 state: appeared.",
+                            "IPv6 state: detected.",
                             "First observed in current data.",
                         ],
                         special_values={"ipv6_state": "appeared"},
@@ -763,10 +973,10 @@ def evaluate_significance(
                     events.append(
                         SignificanceEvent(
                             observer="ipv6-adoption-locked-states",
-                            title="IPv6 presence disappeared after stability",
+                            title="IPv6 presence changed after stability",
                             bullets=[
                                 f"Country: {country}.",
-                                "IPv6 state: disappeared.",
+                                "IPv6 state: changed.",
                                 f"Stable for {stable_days} days before change.",
                             ],
                             special_values={"ipv6_state": "disappeared"},
@@ -785,11 +995,11 @@ def evaluate_significance(
                 events.append(
                     SignificanceEvent(
                         observer="global-reachability-score",
-                        title="Global reachability score hit a new low",
+                        title="Global reachability score deviated to a new low",
                         bullets=[
                             f"Score today: {today_score:.2f}.",
                             "Score rank: lowest on record.",
-                            "Derived from reported country scores only.",
+                            "Score from reported country scores only.",
                         ],
                         special_values={"score_rank": "lowest_on_record"},
                     )
@@ -813,7 +1023,7 @@ def evaluate_significance(
                 events.append(
                     SignificanceEvent(
                         observer="undersea-cable-dependency",
-                        title="Undersea cable redundancy reduced",
+                        title="Undersea cable redundancy changed",
                         bullets=[
                             f"Affected region: {country}.",
                             f"Cable count today: {today_count}.",
@@ -827,7 +1037,7 @@ def evaluate_significance(
                 events.append(
                     SignificanceEvent(
                         observer="undersea-cable-dependency",
-                        title="Undersea cable redundancy lost",
+                        title="Undersea cable redundancy changed",
                         bullets=[
                             f"Affected region: {country}.",
                             f"Cable count today: {today_count}.",
@@ -854,7 +1064,7 @@ def evaluate_significance(
             events.append(
                 SignificanceEvent(
                     observer="dns-time-to-answer-index",
-                    title="Global DNS latency doubled",
+                    title="Global DNS latency changed sharply",
                     bullets=[
                         f"Average query time today: {today_avg:.2f} ms.",
                         f"Average query time yesterday: {yesterday_avg:.2f} ms.",
@@ -874,7 +1084,7 @@ def evaluate_significance(
             events.append(
                 SignificanceEvent(
                     observer="mx-presence-by-country",
-                    title="MX presence appeared in a country",
+                    title="MX presence detected in a country",
                     bullets=[
                         f"Country: {country}.",
                         f"Valid MX domains today: {mx_count}.",
@@ -884,13 +1094,13 @@ def evaluate_significance(
                 )
             )
 
-    # 15) world-observer-meta: trigger when >= 3 observers signaled deviations.
+    # 15) world-observer-meta: use a single meta event when >= 3 observers signal deviations.
     if len(events) >= 3:
         observers_involved = sorted({event.observer for event in events})
-        events.append(
+        events = [
             SignificanceEvent(
                 observer="world-observer-meta",
-                title="Multiple observers reported deviations",
+                title="Multiple observers detected deviations",
                 bullets=[
                     f"Observers involved: {', '.join(observers_involved)}.",
                     f"Total observers: {len(observers_involved)}.",
@@ -898,7 +1108,7 @@ def evaluate_significance(
                 ],
                 special_values={"observers_involved": observers_involved},
             )
-        )
+        ]
 
     # Update baseline state after evaluation to preserve change detection.
     if cuba_today:
@@ -931,6 +1141,7 @@ def main() -> None:
     yesterday_obs = _collect_observations(yesterday_dir)
 
     state = _load_state()
+    _ensure_state_comments(state)
     events, state = evaluate_significance(
         today_str,
         yesterday_str,
@@ -941,7 +1152,15 @@ def main() -> None:
 
     selected = _select_event(events)
 
-    already_generated = state.get("last_generated_date") == today_str
+    existing_png = None
+    if OUTPUT_DIR.exists():
+        matches = sorted(OUTPUT_DIR.glob(f"{today_str}-*.png"))
+        existing_png = matches[0] if matches else None
+    already_generated = state.get("last_generated_date") == today_str or existing_png is not None
+    if existing_png and state.get("last_generated_date") != today_str:
+        observer_name = existing_png.stem[len(today_str) + 1 :]
+        state["last_generated_date"] = today_str
+        state["last_generated_observer"] = observer_name or state.get("last_generated_observer")
     if selected and not already_generated:
         output_path = _render_png(today_str, selected)
         state["last_generated_date"] = today_str
@@ -951,7 +1170,10 @@ def main() -> None:
         return
 
     _save_state(state)
-    print("No significant deviation detected.")
+    if not selected:
+        print("No significant deviation detected.")
+    else:
+        print("Deviation already observed for this date.")
 
 
 if __name__ == "__main__":
