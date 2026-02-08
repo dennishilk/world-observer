@@ -1,0 +1,14 @@
+[
+  {
+    "name": "Cloudflare",
+    "domain": "cloudflare.com"
+  },
+  {
+    "name": "Google",
+    "domain": "google.com"
+  },
+  {
+    "name": "Wikipedia",
+    "domain": "wikipedia.org"
+  }
+]
