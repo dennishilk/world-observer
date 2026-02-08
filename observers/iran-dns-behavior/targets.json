@@ -1,0 +1,22 @@
+[
+  {
+    "name": "IANA Example",
+    "domain": "example.com"
+  },
+  {
+    "name": "IANA Root",
+    "domain": "iana.org"
+  },
+  {
+    "name": "Wikipedia",
+    "domain": "wikipedia.org"
+  },
+  {
+    "name": "GitHub",
+    "domain": "github.com"
+  },
+  {
+    "name": "Cloudflare",
+    "domain": "cloudflare.com"
+  }
+]
