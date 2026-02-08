@@ -4,11 +4,16 @@
   "_comment_last_generated_observer": "Records which observer produced the last PNG snapshot for auditability.",
   "last_generated_observer": null,
   "_comment_area51": "Baseline memory for Area 51 reachability to detect rare shifts after stability.",
+  "_comment_area51_flight_baseline": "Rolling baseline storage for Area 51 aggregated flight activity deviations.",
   "area51": {
     "_comment_last_state": "Stores the last reachability state for stability comparisons.",
     "last_state": null,
     "_comment_last_change_date": "Stores the date of the last reachability change to compute stability.",
     "last_change_date": null
+  },
+  "area51_flight_baseline": {
+    "window_days": 30,
+    "values": []
   },
   "_comment_cuba_internet": "Baseline memory for Cuba classification to measure extended offline periods.",
   "cuba_internet": {

@@ -30,6 +30,7 @@ class SignificanceEvent:
     title: str
     bullets: List[str]
     special_values: Dict[str, Any]
+    footer: Optional[str] = None
 
 
 PRIORITY_ORDER = [
@@ -307,6 +308,55 @@ def _area51_state(payload: Dict[str, Any]) -> Optional[str]:
     return None
 
 
+def _area51_flight_event(payload: Dict[str, Any]) -> Optional[SignificanceEvent]:
+    flight_activity = payload.get("flight_activity")
+    if not isinstance(flight_activity, dict):
+        return None
+    counts = flight_activity.get("counts")
+    baseline = flight_activity.get("baseline")
+    deviation = flight_activity.get("deviation")
+    if not isinstance(counts, dict) or not isinstance(baseline, dict) or not isinstance(deviation, dict):
+        return None
+
+    janet_like = counts.get("janet_like")
+    baseline_avg = baseline.get("janet_like_avg")
+    window_days = baseline.get("window_days")
+    deviation_percent = deviation.get("percent")
+    significance = deviation.get("significance")
+
+    if significance != "high":
+        return None
+    if not isinstance(janet_like, int):
+        return None
+    if not isinstance(baseline_avg, (int, float)) or baseline_avg <= 0:
+        return None
+    if not isinstance(window_days, int):
+        window_days = 30
+    if not isinstance(deviation_percent, (int, float)):
+        return None
+
+    percent_label = f"{deviation_percent:+.0f}%"
+    baseline_label = f"{baseline_avg:.0f}"
+    return SignificanceEvent(
+        observer="area51-reachability",
+        title="Area 51 – Flight Activity Deviation Detected",
+        bullets=[
+            f"Janet-like flight activity significantly above {window_days}-day baseline.",
+            f"Baseline ({window_days}d avg): {baseline_label}.",
+            f"Today: {janet_like}.",
+            f"Deviation: {percent_label}.",
+        ],
+        special_values={
+            "janet_like": janet_like,
+            "baseline_avg": round(float(baseline_avg), 2),
+            "deviation_percent": round(float(deviation_percent), 2),
+        },
+        footer=(
+            "Aggregated public airspace activity. No flight paths or identifiers observed."
+        ),
+    )
+
+
 def _traceroute_targets(payload: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
     targets = payload.get("targets")
     if not isinstance(targets, list):
@@ -510,7 +560,7 @@ def _render_png(date_str: str, event: SignificanceEvent) -> Path:
             y += 32 if index == len(bullet_lines) - 1 else 28
         y += 6
 
-    footer_text = "Deviation from long-term baseline"
+    footer_text = event.footer or "Deviation from long-term baseline"
     draw.text((x_margin, height - 60), footer_text, fill=muted_color, font=footer_font)
 
     image.save(output_path)
@@ -529,6 +579,10 @@ def _ensure_state_comments(state: Dict[str, Any]) -> None:
     state.setdefault(
         "_comment_area51",
         "Baseline memory for Area 51 reachability to avoid false shifts during short-term noise.",
+    )
+    state.setdefault(
+        "_comment_area51_flight_baseline",
+        "Rolling baseline storage for Area 51 aggregated flight activity deviations.",
     )
     state.setdefault(
         "_comment_cuba_internet",
@@ -557,6 +611,13 @@ def _ensure_state_comments(state: Dict[str, Any]) -> None:
             "_comment_last_change_date",
             "Stores the date of the last reachability change to compute stability.",
         )
+    state.setdefault(
+        "area51_flight_baseline",
+        {
+            "window_days": 30,
+            "values": [],
+        },
+    )
 
     cuba_state = state.setdefault("cuba_internet", {})
     if isinstance(cuba_state, dict):
@@ -768,25 +829,28 @@ def evaluate_significance(
     # 4) area51-reachability: trigger if state changes after >= 30 days stability.
     area_today = today_obs.get("area51-reachability")
     if area_today:
+        flight_event = _area51_flight_event(area_today)
+        if flight_event:
+            events.append(flight_event)
         today_state = _area51_state(area_today)
         area_state = state.get("area51", {})
         last_state = area_state.get("last_state")
         last_change = area_state.get("last_change_date")
-        if today_state and last_state and last_change and today_state != last_state:
+        if not flight_event and today_state and last_state and last_change and today_state != last_state:
             stable_days = (today - _parse_date(last_change)).days
             if stable_days >= 30:
                 events.append(
                     SignificanceEvent(
                         observer="area51-reachability",
-                    title="Area 51 reachability state shifted after stability",
-                    bullets=[
-                        f"New reachability state: {today_state}.",
-                        f"Stable for {stable_days} days before change.",
-                        "Reachability from ping/TCP outcomes only.",
-                    ],
-                    special_values={"reachability_state": today_state},
+                        title="Area 51 reachability state shifted after stability",
+                        bullets=[
+                            f"New reachability state: {today_state}.",
+                            f"Stable for {stable_days} days before change.",
+                            "Reachability from ping/TCP outcomes only.",
+                        ],
+                        special_values={"reachability_state": today_state},
+                    )
                 )
-            )
 
     # 5) traceroute-to-nowhere: trigger on stop-zone change or hop collapse >= 50%.
     trace_today = today_obs.get("traceroute-to-nowhere")
