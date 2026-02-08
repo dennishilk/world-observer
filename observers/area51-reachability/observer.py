@@ -11,10 +11,16 @@ import os
 import socket
 import subprocess
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any, Dict, Optional, Tuple
+from urllib.error import URLError
+from urllib.request import urlopen
 
 OBSERVER_NAME = "area51-reachability"
 OUTPUT_DIR = os.path.join("data", OBSERVER_NAME)
+BASELINE_WINDOW_DAYS = 30
+REPO_ROOT = Path(__file__).resolve().parents[2]
+STATE_PATH = REPO_ROOT / "visualizations" / "significant_state.json"
 
 # Public, stable targets used only for reachability and DNS behavior.
 # The point is to show that public endpoints behave normally and consistently.
@@ -173,17 +179,139 @@ def _traceroute_summary(hostname: str) -> Dict[str, Any]:
     }
 
 
+def _load_json_from_path(path: Path) -> Optional[Dict[str, Any]]:
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    if not isinstance(payload, dict):
+        return None
+    return payload
+
+
+def _load_json_from_url(url: str) -> Optional[Dict[str, Any]]:
+    try:
+        with urlopen(url, timeout=10) as response:  # nosec - open data aggregation only
+            payload = json.loads(response.read().decode("utf-8"))
+    except (URLError, json.JSONDecodeError, UnicodeDecodeError):
+        return None
+    if not isinstance(payload, dict):
+        return None
+    return payload
+
+
+def _load_state() -> Dict[str, Any]:
+    if not STATE_PATH.exists():
+        return {}
+    payload = _load_json_from_path(STATE_PATH)
+    return payload or {}
+
+
+def _save_state(state: Dict[str, Any]) -> None:
+    STATE_PATH.parent.mkdir(parents=True, exist_ok=True)
+    STATE_PATH.write_text(json.dumps(state, ensure_ascii=False, indent=2) + "\n")
+
+
+def _load_flight_counts() -> Tuple[Optional[int], Optional[int], str]:
+    path_env = os.getenv("AREA51_FLIGHT_ACTIVITY_PATH")
+    url_env = os.getenv("AREA51_FLIGHT_ACTIVITY_URL")
+    payload: Optional[Dict[str, Any]] = None
+
+    if path_env:
+        payload = _load_json_from_path(Path(path_env))
+    elif url_env:
+        payload = _load_json_from_url(url_env)
+    else:
+        return None, None, "unavailable"
+
+    if not payload:
+        return None, None, "unavailable"
+
+    janet_like = payload.get("janet_like")
+    other = payload.get("other")
+    if not isinstance(janet_like, int) or not isinstance(other, int):
+        return None, None, "unavailable"
+
+    return janet_like, other, "available"
+
+
+def _compute_flight_baseline(
+    state: Dict[str, Any],
+    janet_like_today: Optional[int],
+) -> Tuple[Optional[float], int, Optional[int], Optional[float], str, Dict[str, Any]]:
+    baseline_state = state.setdefault("area51_flight_baseline", {})
+    window_days = baseline_state.get("window_days")
+    if not isinstance(window_days, int) or window_days <= 0:
+        window_days = BASELINE_WINDOW_DAYS
+
+    values = baseline_state.get("values")
+    if not isinstance(values, list):
+        values = []
+    values = [value for value in values if isinstance(value, int)]
+
+    baseline_avg = round(sum(values) / len(values), 2) if values else None
+    deviation_abs: Optional[int] = None
+    deviation_percent: Optional[float] = None
+    significance = "low"
+
+    if janet_like_today is not None and baseline_avg is not None and baseline_avg > 0:
+        raw_delta = janet_like_today - baseline_avg
+        deviation_abs = int(round(raw_delta))
+        deviation_percent = round((raw_delta / baseline_avg) * 100, 2)
+        if (
+            len(values) >= 14
+            and janet_like_today >= (2 * baseline_avg)
+            and raw_delta >= 5
+        ):
+            significance = "high"
+
+    if janet_like_today is not None:
+        values.append(janet_like_today)
+        if len(values) > window_days:
+            values = values[-window_days:]
+        baseline_state["window_days"] = window_days
+        baseline_state["values"] = values
+
+    return baseline_avg, window_days, deviation_abs, deviation_percent, significance, state
+
+
 def _flight_activity_summary() -> Dict[str, Any]:
     """Return daily aggregated ADS-B counts when available.
 
     No callsigns, routes, times, or identifiers are retained. If no data source
     is configured, we explicitly state that the count is unavailable.
     """
+    janet_like, other, data_status = _load_flight_counts()
+    state = _load_state()
+    baseline_avg, window_days, deviation_abs, deviation_percent, significance, state = (
+        _compute_flight_baseline(state, janet_like)
+    )
+    if janet_like is not None:
+        _save_state(state)
+
     return {
-        "janet_flights": None,
-        "other_flights": None,
-        "data_status": "unavailable",
-        "source": "no_adsb_feed_configured",
+        "data_status": data_status,
+        "source": "opensky_network",
+        "aggregation": "daily",
+        "airspace": "southern_nevada_public",
+        "classification_method": "icao_hex_prefix + operator_pattern",
+        "counts": {
+            "janet_like": janet_like,
+            "other": other,
+        },
+        "baseline": {
+            "window_days": window_days,
+            "janet_like_avg": baseline_avg,
+        },
+        "deviation": {
+            "absolute": deviation_abs,
+            "percent": deviation_percent,
+            "significance": significance,
+        },
+        "notes": (
+            "Aggregated daily activity only. No routes, timestamps, identifiers, "
+            "or destinations are collected."
+        ),
     }
 
 

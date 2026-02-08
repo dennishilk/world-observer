@@ -43,6 +43,21 @@ repeatable, low-risk observations that can be sustained for years.
 - `scripts/`: Helper scripts for scheduling or data hygiene.
 - `cron/`: Example schedules for long-running operation.
 
+## Observers
+### Area 51 Reachability
+The Area 51 observer focuses on mundane, public-facing signals (reachability,
+DNS behavior, and coarse traceroute outcomes). It is intentionally constrained
+to avoid sensitive data collection and to preserve long-term comparability.
+
+#### Flight Activity (Aggregated, Non-Tracking)
+- This project does **not** track individual aircraft, and it performs **no**
+  real-time monitoring of flights.
+- No routes, identifiers, destinations, timestamps per flight, or aircraft
+  metadata are collected or stored.
+- Activity is aggregated daily into simple counts and evaluated statistically.
+- Significance is based on deviations from a long-term baseline, **not** on
+  absolute activity levels or speculative interpretation.
+
 ## Getting Started
 Each observer is a self-contained module with a stub `observer.py` file. The
 stubs are intentionally conservative and produce placeholder JSON to be replaced
