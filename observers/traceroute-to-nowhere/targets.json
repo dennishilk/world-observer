@@ -1,0 +1,10 @@
+[
+  {
+    "name": "Example",
+    "host": "example.com"
+  },
+  {
+    "name": "Cloudflare",
+    "host": "1.1.1.1"
+  }
+]
