@@ -1,0 +1,23 @@
+[
+  {
+    "country": "IR",
+    "targets": [
+      { "name": "Government Portal", "host": "www.iran.gov.ir" },
+      { "name": "National News Agency", "host": "www.irna.ir" }
+    ]
+  },
+  {
+    "country": "CU",
+    "targets": [
+      { "name": "Government Portal", "host": "www.gob.cu" },
+      { "name": "State Telecom", "host": "www.etecsa.cu" }
+    ]
+  },
+  {
+    "country": "SY",
+    "targets": [
+      { "name": "Government Portal", "host": "www.gov.sy" },
+      { "name": "State News", "host": "www.sana.sy" }
+    ]
+  }
+]
