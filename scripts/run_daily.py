@@ -7,11 +7,12 @@ stdout, and stores results in data/daily/<YYYY-MM-DD>/.
 
 from __future__ import annotations
 
+import argparse
 import json
 import shutil
 import subprocess
 import sys
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
@@ -39,8 +40,17 @@ def _repo_root() -> Path:
     return Path(__file__).resolve().parents[1]
 
 
-def _today_utc() -> str:
-    return datetime.now(timezone.utc).date().isoformat()
+def _yesterday_utc() -> str:
+    return (datetime.now(timezone.utc).date() - timedelta(days=1)).isoformat()
+
+
+def _parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Run daily observers.")
+    parser.add_argument(
+        "--date",
+        help="Override date (YYYY-MM-DD). Defaults to yesterday (UTC).",
+    )
+    return parser.parse_args()
 
 
 def _write_json(path: Path, payload: Dict[str, Any]) -> None:
@@ -175,9 +185,17 @@ def _update_latest(daily_dir: Path) -> None:
 
 
 def main() -> None:
-    date_str = _today_utc()
-    daily_dir = _repo_root() / "data" / "daily" / date_str
-    daily_dir.mkdir(parents=True, exist_ok=True)
+    args = _parse_args()
+    if args.date:
+        date_str = args.date
+        daily_dir = _repo_root() / "data" / "daily" / date_str
+        daily_dir.mkdir(parents=True, exist_ok=True)
+    else:
+        date_str = _yesterday_utc()
+        daily_dir = _repo_root() / "data" / "daily" / date_str
+        if daily_dir.exists() and any(daily_dir.iterdir()):
+            return
+        daily_dir.mkdir(parents=True, exist_ok=True)
 
     failures: List[str] = []
 
