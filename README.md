@@ -35,6 +35,25 @@ repeatable, low-risk observations that can be sustained for years.
 - Add new observers only when they meet strict passive and ethical requirements.
 - Preserve the full historical record of observation outputs.
 
+### Periodic GitHub Heartbeat
+The repository publishes a minimal heartbeat as a liveness indicator only. These
+hourly commits are not observation results and should not be interpreted as
+signals, anomalies, or summaries.
+
+- **Purpose**: confirm the automation is alive and pushing on schedule.
+- **Frequency**: every hour.
+- **Retention**: keep only the last 12 heartbeat files.
+
+Example usage:
+```sh
+cat state/heartbeat/2026-02-19T14Z.json
+```
+
+Heartbeat commits:
+- do **not** indicate unusual events,
+- are **not** significance indicators,
+- are **not** daily summaries.
+
 ## Repository Layout
 - `observers/`: Passive observer modules emitting JSON.
 - `data/`: Raw observation outputs.
