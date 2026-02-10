@@ -125,9 +125,29 @@ SSHCONF
   fi
 }
 
+
+configure_repo_git_ssh() {
+  if [[ ! -d "${REPO_DIR}/.git" ]]; then
+    log "Skipping repository git SSH config (no .git directory at ${REPO_DIR})."
+    return
+  fi
+
+  local origin_url
+  origin_url="$(sudo -u "$OBSERVER_USER" git -C "$REPO_DIR" remote get-url origin 2>/dev/null || true)"
+  if [[ -z "$origin_url" ]]; then
+    log "No origin remote configured; skipping remote rewrite."
+  elif [[ "$origin_url" =~ ^https://github.com/(.+/.+)\.git$ ]]; then
+    local repo_path="${BASH_REMATCH[1]}"
+    sudo -u "$OBSERVER_USER" git -C "$REPO_DIR" remote set-url origin "git@github.com:${repo_path}.git"
+    log "Updated origin remote to SSH for ${repo_path}."
+  fi
+
+  sudo -u "$OBSERVER_USER" git -C "$REPO_DIR" config core.sshCommand "ssh -i ${SSH_KEY_PATH} -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new"
+}
+
 install_cron_jobs() {
-  local heartbeat_job="0 * * * * /bin/bash -lc 'cd ${REPO_DIR} && source .venv/bin/activate && python scripts/heartbeat_push.py >> ${LOG_DIR}/cron.log 2>&1'"
-  local daily_job="0 2 * * * /bin/bash -lc 'cd ${REPO_DIR} && source .venv/bin/activate && python scripts/run_daily.py && python visualizations/generate_significance_png.py && git add -A && ( git diff --cached --quiet || git commit -m \"daily update \\$(date -u +\\%F)\" ) && git push >> ${LOG_DIR}/cron.log 2>&1'"
+  local heartbeat_job="0 * * * * /bin/bash -lc 'cd ${REPO_DIR} && . ${VENV_DIR}/bin/activate && python scripts/heartbeat_push.py >> ${LOG_DIR}/cron.log 2>&1'"
+  local daily_job="5 2 * * * /bin/bash -lc 'cd ${REPO_DIR} && . ${VENV_DIR}/bin/activate && python scripts/run_daily.py >> ${LOG_DIR}/cron.log 2>&1 && python visualizations/generate_significance_png.py >> ${LOG_DIR}/cron.log 2>&1 && scripts/git_publish.sh >> ${LOG_DIR}/cron.log 2>&1'"
 
   local existing
   existing="$(sudo -u "$OBSERVER_USER" crontab -l 2>/dev/null || true)"
@@ -140,7 +160,7 @@ install_cron_jobs() {
     existing="${existing}"$'\n'"${daily_job}"
   fi
 
-  printf '%s\n' "$existing" | sed '/^[[:space:]]*$/N;/^\n$/D' | sudo -u "$OBSERVER_USER" crontab -
+  printf '%s\n' "$existing" | awk 'NF' | sudo -u "$OBSERVER_USER" crontab -
 }
 
 require_root
@@ -180,10 +200,15 @@ if [[ ! -d "$VENV_DIR" ]]; then
   sudo -u "$OBSERVER_USER" python3 -m venv "$VENV_DIR"
 fi
 sudo -u "$OBSERVER_USER" "$VENV_DIR/bin/pip" install --upgrade pip
-sudo -u "$OBSERVER_USER" "$VENV_DIR/bin/pip" install dnspython pillow
+if [[ -f "$REPO_DIR/requirements.txt" ]]; then
+  sudo -u "$OBSERVER_USER" "$VENV_DIR/bin/pip" install -r "$REPO_DIR/requirements.txt"
+else
+  sudo -u "$OBSERVER_USER" "$VENV_DIR/bin/pip" install dnspython matplotlib pillow
+fi
 
 configure_zram
 configure_ssh_for_github
+configure_repo_git_ssh
 
 log "Ensuring cron service is enabled and running..."
 systemctl enable --now cron

@@ -1,9 +1,10 @@
-# world-observer daily automation
+# world-observer daily automation (example)
 #
-# Instructions:
-# 1) Copy this file into your crontab (crontab -e) or link it from /etc/cron.d.
-# 2) Uncomment the line below to enable the schedule.
-# 3) Ensure python3 and git are available in the PATH for the cron user.
+# Run from the repository root with virtualenv activated.
+# Logs append to logs/cron.log.
 #
-# Run daily at 02:00 UTC:
-# 0 2 * * * /usr/bin/python3 /workspace/world-observer/scripts/run_daily.py && /workspace/world-observer/scripts/git_publish.sh
+# Hourly heartbeat (UTC):
+# 0 * * * * /bin/bash -lc 'cd /workspace/world-observer && . .venv/bin/activate && python scripts/heartbeat_push.py >> logs/cron.log 2>&1'
+#
+# Daily run once per UTC day at 02:05:
+# 5 2 * * * /bin/bash -lc 'cd /workspace/world-observer && . .venv/bin/activate && python scripts/run_daily.py >> logs/cron.log 2>&1 && python visualizations/generate_significance_png.py >> logs/cron.log 2>&1 && scripts/git_publish.sh >> logs/cron.log 2>&1'
