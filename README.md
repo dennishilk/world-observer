@@ -56,11 +56,67 @@ Heartbeat commits:
 
 ## Repository Layout
 - `observers/`: Passive observer modules emitting JSON.
-- `data/`: Raw observation outputs.
+- `data/`: Aggregated daily outputs, rolling latest snapshots, and local-only raw capture folders (ignored by Git for raw data).
 - `visualizations/`: Downstream visual analysis (separate from observers).
 - `reports/`: Periodic summaries and research notes.
 - `scripts/`: Helper scripts for scheduling or data hygiene.
 - `cron/`: Example schedules for long-running operation.
+
+## Data Hygiene and Automation
+### Raw vs Aggregated Data in Git
+Raw observer output is intentionally retained on the server but ignored by Git.
+The repository `.gitignore` excludes these local-only raw directories:
+
+- `data/*-reachability/`
+- `data/*-connectivity/`
+- `data/*-weather/`
+- `data/*-trace/`
+
+This keeps raw capture storage available for local analysis and troubleshooting
+without bloating repository history.
+
+### Directory Layout
+- `data/daily/YYYY-MM-DD/`: immutable daily aggregated JSON/summary artifacts
+  intended for long-term tracking in Git.
+- `data/latest/`: rolling latest aggregate snapshots in Git for quick inspection.
+- `data/*-(reachability|connectivity|weather|trace)/`: raw observer output,
+  generated locally and ignored by Git.
+
+### Heartbeat and Cron Schedule
+The automation layer installs two cron jobs for the observer user:
+
+- **Hourly heartbeat at minute 0**
+  - Runs `python scripts/heartbeat_push.py`.
+  - Appends output to `logs/cron.log`.
+- **Daily UTC run at 02:00**
+  - Runs aggregation (`scripts/run_daily.py`).
+  - Generates significance PNG (`visualizations/generate_significance_png.py`).
+  - Stages changes, creates a date-based commit if needed, and pushes.
+  - Appends output to `logs/cron.log`.
+
+Cron entries are installed idempotently by `setup_world_observer.sh`, so
+re-running setup will not duplicate jobs.
+
+### Daily Automation Workflow
+1. Observers produce raw local JSON output under ignored `data/*-.../` folders.
+2. Daily aggregation writes canonical outputs to `data/daily/YYYY-MM-DD/`.
+3. Latest snapshots are refreshed in `data/latest/`.
+4. PNG significance output is generated from aggregated state.
+5. Git commit/push only occurs when there is a real staged change.
+
+### Inspecting Cron Logs
+Use the shared log file under the repo to inspect automation health:
+
+```sh
+tail -f ~/world-observer/logs/cron.log
+```
+
+For scheduler-level issues:
+
+```sh
+sudo systemctl status cron
+crontab -l
+```
 
 ## Observers
 ### Area 51 Reachability
