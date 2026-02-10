@@ -22,3 +22,25 @@ changes, and supports cautious, evidence-based interpretation.
 
 These limits are intentional. The goal is to establish a durable, ethically
 sound baseline rather than to maximize coverage through aggressive techniques.
+
+## DNS TTA Stress Index (aggregated)
+The `dns-tta-stress-index` observer estimates DNS stress using only aggregate
+signals from minimal A/AAAA probe timing outcomes.
+
+### What DNS stress means
+Higher stress indicates slower and less stable DNS answers relative to local
+historical baselines, combining:
+- elevated p95 response latency,
+- increased timeout rate,
+- reduced success rate,
+- increased latency jitter.
+
+### Why PNG charts are rare
+A chart is generated only when significance triggers fire (`z` excursion,
+hard timeout threshold breach, or same-day multi-country mass event). This keeps
+visual artifacts focused on unusual days, not daily noise.
+
+### Privacy constraints
+Tracked outputs exclude hostnames, resolver identifiers, IP addresses, and
+per-query rows. Local raw samples are stored outside tracked outputs and are
+excluded from Git.

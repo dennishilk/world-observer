@@ -1,0 +1,24 @@
+{
+  "countries": ["US", "DE", "BR", "IN", "ZA", "JP", "AU", "CA"],
+  "domains": ["example.com", "iana.org", "wikipedia.org"],
+  "query_types": ["A", "AAAA"],
+  "timeout_s": 2.0,
+  "trials_per_domain": 2,
+  "baseline_days": 30,
+  "sigma_mult": 2.0,
+  "mass_event_k": 5,
+  "hard_timeout_rate": 0.35,
+  "weights": {
+    "tta_p95": 0.35,
+    "timeout_rate": 0.3,
+    "success_rate": 0.2,
+    "jitter": 0.15
+  },
+  "normalizers": {
+    "tta_p95_ms": 600.0,
+    "jitter_ms": 150.0
+  },
+  "trend_days": 7,
+  "top_countries_in_chart": 6,
+  "notes": "Aggregated-only DNS TTA stress observer configuration. No hostnames, resolvers, IPs, or per-query artifacts are persisted to tracked outputs."
+}
