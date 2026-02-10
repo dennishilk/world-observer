@@ -1,4 +1,9 @@
 {
-  "status": "placeholder",
-  "notes": "Document passive, publicly observable data sources here."
+  "baseline_days": 30,
+  "max_ttl": 16,
+  "timeout_s": 1.5,
+  "probe_delay_s": 0.35,
+  "sigma_mult": 2.0,
+  "median_drop_threshold": 2.0,
+  "unreachable_markers": ["!N", "!H", "!P", "!X", "!S"]
 }

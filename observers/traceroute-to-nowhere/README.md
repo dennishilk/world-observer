@@ -1,62 +1,84 @@
 # traceroute-to-nowhere
 
 ## Purpose
-This observer measures how far packets travel before paths stop responding. It uses
-traceroute cautiously to summarize **where** paths tend to break without attempting to
-map or enumerate infrastructure.
+This observer runs a **minimal** daily traceroute set against a small static anchor list and records only aggregated indicators of potential path failure/blackhole behavior.
 
-## Why traceroute (used cautiously)
-Traceroute reveals hop-by-hop responses, but this module intentionally restricts the
-measurement to a low TTL and a single probe per hop. The goal is to understand *how far*
-traffic travels rather than *which* devices are involved.
-
-## What is intentionally NOT collected
-To avoid infrastructure mapping, the observer does **not** store:
-- IP addresses
-- Hostnames
-- Full hop lists
+## Strict privacy model
+This observer is intentionally designed to avoid route mapping. It **never** stores or publishes:
+- hop IP addresses
+- hop hostnames
 - ASNs
-- Geolocation of individual hops
+- exact routes
+- per-target route details
 
-Only coarse summaries are saved, such as the number of hops reached and the termination
-reason.
+Hop-level lines are parsed in-memory only to derive coarse per-trace summaries and then discarded.
 
-## Why stop points matter more than routes
-Stop points indicate where connectivity stalls or is filtered. These patterns can help
-identify broad connectivity constraints without collecting sensitive routing details.
+## Probe profile
+- Small static anchor list (default: 8 targets)
+- System `traceroute` with conservative settings:
+  - numeric mode (`-n`)
+  - single probe per hop (`-q 1`)
+  - bounded max TTL (default 16)
+  - short timeout (default 1.5s)
+- One run per anchor with light pacing between traces
 
-## Ethical and legal constraints
-- No automation or scheduled runs.
-- One traceroute per target per run.
-- Conservative probing defaults with strict rate limiting.
-- Neutral, scientific reporting focused on aggregate behavior.
-- The observer must comply with local laws, acceptable use policies, and operational
-  guidelines for measurement ethics.
+## Aggregated metrics emitted
+- `trace_count`
+- `fail_rate`
+- `median_last_replied_hop`
+- `early_blackhole_rate` (`last_replied_hop <= 3`)
+- `timeout_hop_density` (mean unanswered hop proportion)
 
-## Configuration
-Targets are defined in `targets.json` with entries:
+## Significance model
+A rolling baseline (default 30 days) is computed for:
+- `fail_rate`
+- `median_last_replied_hop`
 
-```json
-{ "name": "...", "host": "hostname_or_ip" }
-```
+A day is marked significant if any trigger fires:
+- `z(fail_rate) > sigma_mult` (default 2.0)
+- median hop drops past `median_drop_threshold`
+- mass event: failed anchors >= half the configured anchors
 
-## Output
-The observer emits JSON with the following schema:
+## Output contract
+### Daily file
+`data/daily/YYYY-MM-DD/traceroute-to-nowhere.json`
+
+Schema:
 
 ```json
 {
   "observer": "traceroute-to-nowhere",
-  "timestamp": "ISO8601",
-  "targets": [
-    {
-      "name": "...",
-      "host": "...",
-      "hops_reached": 0,
-      "termination": "completed|timeout|unreachable|filtered",
-      "stop_zone": "local|regional|international|transit|unknown",
-      "error": null
-    }
-  ],
-  "notes": "..."
+  "date_utc": "YYYY-MM-DD",
+  "data_status": "ok|partial|unavailable",
+  "anchors": {"count": 8},
+  "metrics": {
+    "trace_count": 8,
+    "fail_rate": 0.125,
+    "median_last_replied_hop": 7.0,
+    "early_blackhole_rate": 0.0,
+    "timeout_hop_density": 0.18
+  },
+  "baseline_30d": {
+    "fail_rate": {"mean": 0.09, "std": 0.04},
+    "median_last_replied_hop": {"mean": 8.2, "std": 0.8}
+  },
+  "significance": {
+    "sigma_mult": 2.0,
+    "any_significant": false,
+    "triggers": []
+  }
 }
 ```
+
+### Latest summary
+`data/latest/summary.json` includes:
+- `last_run_utc`
+- `latest_date_utc`
+- `last_7_days` (`fail_rate` + `any_significant`)
+- `chart_path` **only when a chart exists**
+
+### PNG policy (strict)
+- PNG is generated **only** when `any_significant == true`
+- Path is fixed to: `data/latest/chart.png`
+- Existing chart is overwritten on significant events
+- No chart is retained on normal days
