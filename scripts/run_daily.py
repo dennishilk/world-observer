@@ -31,6 +31,7 @@ OBSERVERS: List[str] = [
     "global-reachability-score",
     "undersea-cable-dependency",
     "dns-time-to-answer-index",
+    "dns-tta-stress-index",
     "mx-presence-by-country",
 ]
 
