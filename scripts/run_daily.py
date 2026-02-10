@@ -25,7 +25,7 @@ OBSERVERS: List[str] = [
     "traceroute-to-nowhere",
     "internet-shrinkage-index",
     "asn-visibility-by-country",
-    "tls-fingerprint-change-watcher",
+    "tls-fingerprint-change",
     "silent-countries-list",
     "ipv6-locked-states",
     "global-reachability-score",

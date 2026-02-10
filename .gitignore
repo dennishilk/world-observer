@@ -15,3 +15,6 @@ state/dns-tta-stress-index/
 
 # Local raw MX probe artifacts
 state/mx-presence-per-country/
+
+# Local raw TLS probe artifacts
+state/tls-fingerprint-change/
