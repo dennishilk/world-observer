@@ -28,6 +28,16 @@ LATEST_CHART_PATH = LATEST_DIR / "chart.png"
 
 TCP_PORTS = (80, 443, 22)
 LAYER_NAMES = ("dns", "tcp", "icmp", "tls")
+RARE_STATE_TRANSITIONS = {
+    "silent->partial",
+    "silent->controlled",
+    "silent->anomalous",
+    "silent->open_ish",
+    "dark->anomalous",
+    "dark->open_ish",
+    "controlled->anomalous",
+    "controlled->open_ish",
+}
 
 
 def _today_utc() -> str:
@@ -375,16 +385,28 @@ def _significance(
     previous_state = prior_states[-1] if prior_states else None
     transition = f"{previous_state}->{current_state}" if previous_state else None
     prior_count = prior_states.count(current_state)
-    rare_state = bool(prior_states) and (prior_count / len(prior_states)) < 0.1 and previous_state != current_state
+    transition_is_uncommon = bool(prior_states) and (prior_count / len(prior_states)) < 0.1
+    transition_is_known_rare = bool(transition) and transition in RARE_STATE_TRANSITIONS
+    rare_state = bool(prior_states) and previous_state != current_state and (
+        transition_is_known_rare or transition_is_uncommon
+    )
 
     any_significant = metric_triggered or rare_state
+    triggered_metrics = [
+        metric_name
+        for metric_name, metric_payload in metric_details.items()
+        if metric_payload.get("triggered")
+    ]
     details: Dict[str, Any] = {
         "metrics": metric_details,
+        "triggered_metrics": triggered_metrics,
         "state_transition": {
             "previous_state": previous_state,
             "current_state": current_state,
             "transition": transition,
             "rare": rare_state,
+            "known_rare_transition": transition_is_known_rare,
+            "uncommon_state_today": transition_is_uncommon,
         },
     }
 
