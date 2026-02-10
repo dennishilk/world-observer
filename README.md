@@ -139,6 +139,15 @@ Each observer is a self-contained module with a stub `observer.py` file. The
 stubs are intentionally conservative and produce placeholder JSON to be replaced
 by approved passive data sources in the future.
 
+
+### Global Reachability Long Horizon
+The `global-reachability-long-horizon` observer computes 90-day and 180-day
+trend metrics from `global-reachability-score` daily outputs and flags major
+long-term events (new 180d highs/lows, mass low events, and trend breaks).
+
+It writes `data/latest/chart.png` only on significant days and removes the PNG
+on normal days.
+
 ### IPv6 Global Compare
 The `ipv6-global-compare` observer derives a daily global IPv6 rate from
 `ipv6-locked-states` outputs and compares each country against that baseline.

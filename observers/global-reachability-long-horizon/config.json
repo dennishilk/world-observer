@@ -1,0 +1,6 @@
+{
+  "mass_event_k": 5,
+  "trend_break_threshold": 0.08,
+  "top_countries_in_chart": 6,
+  "notes": "Uses only historical data/daily/*/global-reachability-score.json outputs. No network access or active probes."
+}
