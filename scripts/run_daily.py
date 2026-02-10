@@ -31,7 +31,7 @@ OBSERVERS: List[str] = [
     "ipv6-global-compare",
     "global-reachability-score",
     "global-reachability-long-horizon",
-    "undersea-cable-dependency",
+    "undersea-cable-dependency-map",
     "dns-time-to-answer-index",
     "dns-tta-stress-index",
     "mx-presence-per-country",
