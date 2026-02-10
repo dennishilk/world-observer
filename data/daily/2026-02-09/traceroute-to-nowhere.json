@@ -1,11 +1,11 @@
 {
   "observer": "traceroute-to-nowhere",
-  "timestamp": "2026-02-08T18:47:51.257843+00:00",
+  "timestamp": "2026-02-10T02:00:48.042259+00:00",
   "targets": [
     {
       "name": "Example",
       "host": "example.com",
-      "hops_reached": 10,
+      "hops_reached": 9,
       "termination": "completed",
       "stop_zone": "international",
       "error": null
@@ -13,7 +13,7 @@
     {
       "name": "Cloudflare",
       "host": "1.1.1.1",
-      "hops_reached": 10,
+      "hops_reached": 9,
       "termination": "completed",
       "stop_zone": "international",
       "error": null

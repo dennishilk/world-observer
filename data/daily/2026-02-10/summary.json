@@ -1,0 +1,27 @@
+{
+  "observer": "world-observer-meta",
+  "date": "2026-02-10",
+  "observers_run": [],
+  "observers_missing": [
+    "area51-reachability",
+    "asn-visibility-by-country",
+    "cuba-internet-weather",
+    "dns-time-to-answer-index",
+    "global-reachability-score",
+    "internet-shrinkage-index",
+    "ipv6-adoption-locked-states",
+    "iran-dns-behavior",
+    "mx-presence-by-country",
+    "north-korea-connectivity",
+    "silent-countries-list",
+    "tls-fingerprint-change-watcher",
+    "traceroute-to-nowhere",
+    "undersea-cable-dependency"
+  ],
+  "highlights": {
+    "internet_shrinkage_index": null,
+    "global_reachability_score": null,
+    "silent_countries_count": null
+  },
+  "notes": "Missing observers: area51-reachability, asn-visibility-by-country, cuba-internet-weather, dns-time-to-answer-index, global-reachability-score, internet-shrinkage-index, ipv6-adoption-locked-states, iran-dns-behavior, mx-presence-by-country, north-korea-connectivity, silent-countries-list, tls-fingerprint-change-watcher, traceroute-to-nowhere, undersea-cable-dependency"
+}

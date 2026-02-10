@@ -1,6 +1,6 @@
 {
   "observer": "area51-reachability",
-  "date": "2026-02-08T18:47:06.343187+00:00",
+  "date": "2026-02-10T02:00:01.530114+00:00",
   "network": {
     "targets": {
       "www.nellis.af.mil": {
@@ -27,7 +27,7 @@
   },
   "traceroute": {
     "target": "www.nellis.af.mil",
-    "max_hops_reached": 9,
+    "max_hops_reached": 7,
     "stop_classification": "public_transit",
     "destination_reached": false
   },
