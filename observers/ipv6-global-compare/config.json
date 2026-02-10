@@ -1,0 +1,11 @@
+{
+  "observer": "ipv6-global-compare",
+  "input_observer": "ipv6-locked-states",
+  "baseline_window_days": 30,
+  "trend_window_days": 7,
+  "sigma_mult": 2.0,
+  "mass_event_k": 3,
+  "divergence_min_global_slope": 0.001,
+  "divergence_max_country_slope": 0.0,
+  "top_countries_in_chart": 6
+}
