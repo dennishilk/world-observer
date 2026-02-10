@@ -60,7 +60,11 @@ def main() -> None:
     _write_if_changed(heartbeat_path, _heartbeat_payload(timestamp))
     _apply_retention(heartbeat_dir, keep=12)
 
-    _git(["git", "add", "-A", "state/heartbeat"])
+    add = subprocess.run(
+    ["git", "add", "-A", "state/heartbeat"],
+    cwd=repo_root,
+)
+
     diff_check = subprocess.run(
         ["git", "diff", "--cached", "--quiet", "--", "state/heartbeat"],
         cwd=repo_root,
