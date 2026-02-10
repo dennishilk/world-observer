@@ -1,0 +1,9 @@
+{
+  "dataset_name": "Greg's Cable Map derivative (open license)",
+  "dataset_url": "",
+  "dataset_path": "",
+  "last_updated_hint": "",
+  "top_n": 10,
+  "metric_delta_threshold": 0.03,
+  "top_country_set_threshold": 2
+}
