@@ -1,0 +1,22 @@
+{
+  "observer": "ipv6-locked-states",
+  "locked_states": [
+    {"country": "KP", "display_name": "North Korea"},
+    {"country": "IR", "display_name": "Iran"},
+    {"country": "CU", "display_name": "Cuba"}
+  ],
+  "baseline_window_days": 30,
+  "sigma_mult": 2.0,
+  "step_threshold_pp": 5.0,
+  "mass_event_k": 3,
+  "source": {
+    "provider": "APNIC Labs",
+    "description": "IPv6 capability per-country time series",
+    "endpoints": [
+      "https://stats.labs.apnic.net/ipv6-measurement/economies/{country}?output=json",
+      "https://stats.labs.apnic.net/ipv6-measurement/economies/{country}?format=json",
+      "https://stats.labs.apnic.net/ipv6-measurement?c={country}&output=json"
+    ],
+    "timeout_seconds": 20
+  }
+}

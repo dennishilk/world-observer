@@ -3,3 +3,6 @@ data/*-reachability/
 data/*-connectivity/
 data/*-weather/
 data/*-trace/
+
+# Local APNIC raw cache
+observers/ipv6-locked-states/.cache/

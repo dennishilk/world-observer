@@ -162,7 +162,7 @@ def _collect_signals(payloads: Dict[str, Dict[str, Any]]) -> Dict[str, CountrySi
             if score_percent <= 20.0:
                 record["hard_silence"] = max(record["hard_silence"], 1.0)
 
-    ipv6 = payloads.get("ipv6-adoption-locked-states", {})
+    ipv6 = payloads.get("ipv6-locked-states", {})
     countries = ipv6.get("countries")
     if isinstance(countries, list):
         for item in countries:
@@ -171,10 +171,10 @@ def _collect_signals(payloads: Dict[str, Dict[str, Any]]) -> Dict[str, CountrySi
             country = _normalize_country(item.get("country"))
             if not country:
                 continue
-            available = item.get("ipv6_available")
-            if isinstance(available, bool):
+            rate = _safe_float(item.get("ipv6_capable_rate"))
+            if rate is not None:
                 record = touch(country)
-                record["ipv6_absence"] = max(record["ipv6_absence"], 0.0 if available else 1.0)
+                record["ipv6_absence"] = max(record["ipv6_absence"], _clip01(1.0 - rate))
 
     iran = payloads.get("iran-dns-behavior", {})
     summary = iran.get("summary")
