@@ -28,6 +28,7 @@ OBSERVERS: List[str] = [
     "tls-fingerprint-change",
     "silent-countries-list",
     "ipv6-locked-states",
+    "ipv6-global-compare",
     "global-reachability-score",
     "undersea-cable-dependency",
     "dns-time-to-answer-index",

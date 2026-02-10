@@ -138,3 +138,11 @@ numbers, routes, or per-aircraft identifiers.
 Each observer is a self-contained module with a stub `observer.py` file. The
 stubs are intentionally conservative and produce placeholder JSON to be replaced
 by approved passive data sources in the future.
+
+### IPv6 Global Compare
+The `ipv6-global-compare` observer derives a daily global IPv6 rate from
+`ipv6-locked-states` outputs and compares each country against that baseline.
+
+It computes per-country `delta_vs_global`, 30-day baseline z-scores, and a
+trend divergence signal (country flat/down while global rises). It writes
+`data/latest/chart.png` only when significance is detected.
