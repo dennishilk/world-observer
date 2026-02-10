@@ -1,0 +1,48 @@
+{
+  "observer": "area51-reachability",
+  "date_utc": "2026-02-10",
+  "data_status": "unavailable",
+  "bucket_minutes": 15,
+  "bbox": {
+    "min_lat": 36.2,
+    "max_lat": 37.4,
+    "min_lon": -116.2,
+    "max_lon": -114.6
+  },
+  "bucket_count": 0,
+  "au": {
+    "janet_like": 0,
+    "other": 0,
+    "total": 0
+  },
+  "baseline_30d": {
+    "janet_like": {
+      "mean": 0.0,
+      "std": 0.0
+    },
+    "other": {
+      "mean": 0.0,
+      "std": 0.0
+    },
+    "total": {
+      "mean": 0.0,
+      "std": 0.0
+    }
+  },
+  "significance": {
+    "sigma_mult": 2.0,
+    "janet_like": {
+      "is_significant": false,
+      "z": 0.0
+    },
+    "other": {
+      "is_significant": false,
+      "z": 0.0
+    },
+    "total": {
+      "is_significant": false,
+      "z": 0.0
+    },
+    "any_significant": false
+  }
+}

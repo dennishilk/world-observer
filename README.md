@@ -120,18 +120,19 @@ crontab -l
 
 ## Observers
 ### Area 51 Reachability
-The Area 51 observer focuses on mundane, public-facing signals (reachability,
-DNS behavior, and coarse traceroute outcomes). It is intentionally constrained
-to avoid sensitive data collection and to preserve long-term comparability.
+The Area 51 observer uses a bounded airspace aggregation model with 15-minute
+UTC buckets and daily Activity Unit (AU) totals:
 
-#### Flight Activity (Aggregated, Non-Tracking)
-- This project does **not** track individual aircraft, and it performs **no**
-  real-time monitoring of flights.
-- No routes, identifiers, destinations, timestamps per flight, or aircraft
-  metadata are collected or stored.
-- Activity is aggregated daily into simple counts and evaluated statistically.
-- Significance is based on deviations from a long-term baseline, **not** on
-  absolute activity levels or speculative interpretation.
+- `janet_like`: JANET-like transponder movement segments (heuristic class only)
+- `other`: non-JANET-like movement segments
+- `total`: all movement segments in-bbox
+
+The observer writes daily JSON with rolling 30-day baseline (`mean`, `std`) and
+significance (`observed > mean + 2σ` by default). It writes `data/latest/summary.json`
+on every run and writes `data/latest/chart.png` only when any AU class is significant.
+
+Privacy constraints are strict: tracked outputs never contain callsigns, tail
+numbers, routes, or per-aircraft identifiers.
 
 ## Getting Started
 Each observer is a self-contained module with a stub `observer.py` file. The

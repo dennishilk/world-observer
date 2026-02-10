@@ -1,4 +1,16 @@
 {
-  "status": "placeholder",
-  "notes": "Document passive, publicly observable data sources here."
+  "bucket_minutes": 15,
+  "baseline_window": 30,
+  "sigma_mult": 2.0,
+  "bbox": {
+    "min_lat": 36.2,
+    "max_lat": 37.4,
+    "min_lon": -116.2,
+    "max_lon": -114.6
+  },
+  "source": {
+    "name": "adsb_lol_public_feed",
+    "url": "https://api.adsb.lol/v2/aircraft",
+    "timeout_s": 15
+  }
 }
