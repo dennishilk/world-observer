@@ -7,11 +7,12 @@
 
 set -euo pipefail
 
-OBSERVER_USER="${OBSERVER_USER:-observer}"
+OBSERVER_USER="${SUDO_USER:-$(whoami)}"
+OBSERVER_HOME="$(eval echo "~${OBSERVER_USER}")"
 OBSERVER_GROUP="${OBSERVER_GROUP:-$OBSERVER_USER}"
-REPO_DIR="${REPO_DIR:-/home/${OBSERVER_USER}/world-observer}"
+REPO_DIR="${REPO_DIR:-${OBSERVER_HOME}/world-observer}"
 VENV_DIR="${REPO_DIR}/.venv"
-SSH_KEY_PATH="/home/${OBSERVER_USER}/.ssh/id_ed25519_world_observer"
+SSH_KEY_PATH="${OBSERVER_HOME}/.ssh/id_ed25519_world_observer"
 LOG_DIR="${REPO_DIR}/logs"
 
 log() {
@@ -79,7 +80,7 @@ configure_zram() {
 }
 
 configure_ssh_for_github() {
-  local ssh_dir="/home/${OBSERVER_USER}/.ssh"
+  local ssh_dir="${OBSERVER_HOME}/.ssh"
   local ssh_config="${ssh_dir}/config"
 
   log "Preparing SSH deploy key for GitHub..."
