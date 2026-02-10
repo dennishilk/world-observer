@@ -1,10 +1,10 @@
 [
-  {
-    "name": "Example",
-    "host": "example.com"
-  },
-  {
-    "name": "Cloudflare",
-    "host": "1.1.1.1"
-  }
+  {"name": "Cloudflare DNS", "host": "1.1.1.1"},
+  {"name": "Google DNS", "host": "8.8.8.8"},
+  {"name": "Quad9 DNS", "host": "9.9.9.9"},
+  {"name": "OpenDNS", "host": "208.67.222.222"},
+  {"name": "Wikipedia", "host": "wikipedia.org"},
+  {"name": "IANA", "host": "iana.org"},
+  {"name": "GitHub", "host": "github.com"},
+  {"name": "Fastly", "host": "151.101.1.69"}
 ]
