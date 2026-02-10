@@ -6,3 +6,6 @@ data/*-trace/
 
 # Local APNIC raw cache
 observers/ipv6-locked-states/.cache/
+
+# Local passive BGP observer caches
+observers/asn-visibility-by-country/.cache/

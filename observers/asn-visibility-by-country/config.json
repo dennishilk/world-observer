@@ -1,4 +1,16 @@
 {
-  "status": "placeholder",
-  "notes": "Document passive, publicly observable data sources here."
+  "collectors": {
+    "ris": ["rrc00", "rrc10"],
+    "routeviews": ["route-views2", "route-views.eqix"]
+  },
+  "rib_time_window_utc": ["0000", "0200"],
+  "baseline_window_days": 30,
+  "sigma_mult": 2.0,
+  "step_threshold_pct": 15.0,
+  "mass_event_k": 5,
+  "top_n": 15,
+  "cache_paths": {
+    "rib": "observers/asn-visibility-by-country/.cache/rib",
+    "as2org": "observers/asn-visibility-by-country/.cache/as2org"
+  }
 }
