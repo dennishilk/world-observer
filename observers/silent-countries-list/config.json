@@ -5,7 +5,7 @@
     "cuba-internet-weather",
     "internet-shrinkage-index",
     "global-reachability-score",
-    "ipv6-adoption-locked-states"
+    "ipv6-locked-states"
   ],
   "weights": {
     "hard_silence": 0.55,

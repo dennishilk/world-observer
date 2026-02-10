@@ -27,7 +27,7 @@ OBSERVERS: List[str] = [
     "asn-visibility-by-country",
     "tls-fingerprint-change-watcher",
     "silent-countries-list",
-    "ipv6-adoption-locked-states",
+    "ipv6-locked-states",
     "global-reachability-score",
     "undersea-cable-dependency",
     "dns-time-to-answer-index",

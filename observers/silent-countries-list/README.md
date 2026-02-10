@@ -18,7 +18,7 @@ Default contributing observers (configurable):
 - `cuba-internet-weather`
 - `internet-shrinkage-index`
 - `global-reachability-score`
-- `ipv6-adoption-locked-states`
+- `ipv6-locked-states`
 
 Missing inputs are handled gracefully. `data_status` is:
 
