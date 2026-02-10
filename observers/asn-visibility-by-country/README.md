@@ -1,54 +1,40 @@
 # asn-visibility-by-country
 
 ## Purpose
-This observer measures, at a high level, how many autonomous systems (ASNs)
-from a given country appear publicly reachable. ASNs are the administrative
-identities that operate Internet routing domains (for example, a major ISP or
-cloud provider). Visibility matters because if ASNs in a country are not
-reachable, it can indicate broad outages, filtering, or infrastructure issues.
-
-This module is **not** BGP analysis. It does not inspect routing tables,
-announcement paths, or any changes in routing behavior. It only performs a
-single minimal reachability check per ASN.
+This observer passively estimates daily ASN visibility **by country** from public
+BGP RIB snapshots. It does not probe hosts or networks directly.
 
 ## Data sources
-Input comes from a static `asn_sources.json` file containing a country code and
-representative probe IPs per ASN. This file is expected to be populated from
-public ASN-to-country mappings and manually chosen representative IPs.
+- RIPE RIS and/or RouteViews RIB snapshots (MRT files).
+- CAIDA AS Organizations (AS2Org) dataset for ASN → organization → country mapping.
 
-## How it works
-For each ASN listed in `asn_sources.json`, the observer performs **one** TCP 443
-connectivity check to the representative IP. It records only whether the probe
-is reachable (`true`/`false`). There are no retries, no scanning, and no storage
-of IP ranges or prefixes.
+## Processing model
+1. Select a RIB snapshot in the configured UTC window.
+2. Parse MRT and extract unique ASNs observed in AS_PATH attributes.
+3. Map each ASN to a country via CAIDA AS2Org organization-country.
+4. Aggregate to per-country `asn_visible_count` and discard ASN lists.
 
-## Output
-The observer emits JSON:
+The country mapping is an **organization-country proxy**, not necessarily the
+physical location of all routed infrastructure.
 
-```json
-{
-  "observer": "asn-visibility-by-country",
-  "timestamp": "ISO8601",
-  "countries": [
-    {
-      "country": "XX",
-      "total_asns": 1,
-      "visible_asns": 1,
-      "visibility_ratio": 1.0
-    }
-  ],
-  "notes": "..."
-}
-```
+## Privacy and retention constraints
+- Tracked outputs include only country-level counts and derived statistics.
+- No prefixes, no AS_PATHs, no ASN lists are written to tracked outputs.
+- Raw downloads and parse intermediates stay in local cache directories
+  (`.cache/`) and are gitignored.
 
-## Limitations
-- Single probe IPs are not representative of full ASN reachability.
-- TCP 443 reachability does not imply service availability.
-- Results depend on the accuracy and freshness of the ASN-to-country mapping.
-- This is a minimal, passive signal; it does not infer routing behavior.
+## Significance model
+For each country:
+- 30-day baseline mean/std
+- z-score and percent step change
 
-## Ethical boundaries
-- No scanning or automation.
-- No retries beyond one probe per ASN.
-- No storage of prefixes, IP ranges, or routing paths.
-- No BGP analysis or routing change monitoring.
+A country is significant when either threshold triggers:
+- `abs(z) > sigma_mult`
+- `abs(delta_pct) >= step_threshold_pct`
+
+Mass event triggers when `significant_count >= mass_event_k`.
+
+## PNG policy
+`data/latest/chart.png` is generated **only** on significant days. The file is
+overwritten on each significant event and omitted from summary metadata when no
+chart is produced.
