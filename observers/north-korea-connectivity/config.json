@@ -1,4 +1,8 @@
 {
-  "status": "placeholder",
-  "notes": "Document passive, publicly observable data sources here."
+  "baseline_days": 30,
+  "sigma_mult": 2.0,
+  "timeout_s": 2.0,
+  "time_to_silence_trials": 5,
+  "time_to_silence_max_rounds": 6,
+  "notes": "Aggregated-only observer settings. No per-probe identifiers are persisted."
 }

@@ -1,35 +1,67 @@
 # north-korea-connectivity
 
 ## Purpose
-This observer provides **minimal, passive reachability signals** for a small,
-public list of North Korea–associated targets. It is intentionally limited to
-avoid scanning, probing beyond basic reachability, or collecting sensitive data.
+This observer is a **stateful, multi-layer connectivity monitor** focused on
+aggregated behavior, not binary up/down status. It emits one daily JSON record,
+builds a 30-day rolling baseline, and only writes a PNG when change is
+statistically significant.
 
-## What is measured
-Each run emits a JSON snapshot with:
-1. **ICMP ping** — Boolean success and round-trip time (if permitted).
-2. **TCP 443 handshake** — Boolean success and connection time (no data exchange).
-3. **DNS behavior** — A/AAAA query status and any answers.
+## Measurement model (aggregated only)
+The observer probes a constrained target list and stores **only daily aggregate
+metrics**:
 
-Targets are defined in `targets.json` within this module.
+- DNS: response existence + mean latency.
+- TCP: connect outcomes over ports 80/443/22.
+- ICMP: reachability outcomes.
+- TLS: handshake success/failure over port 443.
 
-## What is NOT measured
-- No port scanning beyond TCP/443.
-- No brute force or exploitation.
-- No traceroutes, routing maps, or network topology inference.
-- No tracking of individuals or user identifiers.
-- No bypassing of filtering, censorship, or access controls.
+For each layer, the output includes:
 
-## Limitations and ethics
-Connectivity into and out of North Korea is heavily filtered and often silent.
-Silence is **expected** and treated as a valid result; it is **not** a prompt to
-increase probing. Measurements are intentionally narrow and infrequent, and the
-observer stores no historical state. Total silence is an expected outcome, and
-the observer is designed to keep running and emit JSON even under complete
-network isolation.
+- `success_rate`
+- `probe_count`
+- `data_completeness`
+- `mean_latency_ms` (DNS only)
 
-## Dependencies
-The observer uses the Python standard library. For DNS A/AAAA queries with
-proper status classification, it relies on **dnspython** (`dns.resolver`). If
-dnspython is not installed, DNS results are returned with `error:
-"dnspython_not_installed"`.
+No target names, hostnames, IP addresses, routes, ASNs, certificates,
+fingerprints, or per-probe identifiers are written to tracked outputs.
+
+## Daily connectivity states
+A single state is derived per day:
+
+- `silent`: no layer responds.
+- `dark`: DNS responds but TCP/TLS fail.
+- `partial`: limited TCP/TLS success.
+- `controlled`: stable/narrow TCP+TLS success pattern.
+- `anomalous`: statistically unusual increase/deviation from baseline.
+- `open_ish`: significantly broader reachability than baseline.
+
+## Time-to-silence index
+The observer runs multiple bounded trials and measures elapsed time until all
+layers in a trial become silent. It reports:
+
+- `mean_seconds`
+- `p95_seconds`
+- `worst_seconds`
+
+## Baseline and significance
+A 30-day rolling baseline is computed for layer success rates and
+`time_to_silence` metrics (`mean/stddev`).
+
+Significance is true if either:
+
+1. A metric exceeds the sigma threshold (`sigma_mult`, default `2.0`).
+2. A rare state transition is observed versus recent state history.
+
+## PNG policy (intentionally rare)
+`data/latest/chart.png` is generated **only** when
+`significance.any_significant == true`.
+
+This intentionally keeps chart events sparse in Git history and avoids noisy,
+daily visual artifacts. On normal days, no new PNG is generated.
+
+## Outputs
+Tracked outputs for this observer:
+
+- `data/daily/YYYY-MM-DD/north-korea-connectivity.json`
+- `data/latest/summary.json`
+- `data/latest/chart.png` (significant events only)
