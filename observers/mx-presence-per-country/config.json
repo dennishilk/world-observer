@@ -1,0 +1,17 @@
+{
+  "country_domain_samples": {
+    "US": ["example.com", "example.org", "iana.org"],
+    "DE": ["example.com", "wikipedia.org", "wikimedia.org"],
+    "IN": ["example.com", "iana.org", "wikipedia.org"],
+    "BR": ["example.com", "example.net", "wikimedia.org"],
+    "JP": ["example.com", "example.org", "iana.org"]
+  },
+  "resolver": "",
+  "dns_timeout_s": 2.0,
+  "smtp_timeout_s": 2.0,
+  "baseline_days": 30,
+  "sigma_mult": 2.0,
+  "mass_event_k": 5,
+  "top_countries_in_chart": 6,
+  "trend_days": 7
+}

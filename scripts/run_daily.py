@@ -32,7 +32,7 @@ OBSERVERS: List[str] = [
     "undersea-cable-dependency",
     "dns-time-to-answer-index",
     "dns-tta-stress-index",
-    "mx-presence-by-country",
+    "mx-presence-per-country",
 ]
 
 META_OBSERVER = "world-observer-meta"
