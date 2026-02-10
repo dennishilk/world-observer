@@ -1,0 +1,18 @@
+{
+  "countries": ["US", "DE", "IN", "BR", "JP", "ZA"],
+  "neutral_targets": ["example.com", "iana.org"],
+  "probes_per_country": 4,
+  "connect_timeout_s": 4.0,
+  "baseline_days": 30,
+  "sigma_mult": 2.0,
+  "mass_event_k": 5,
+  "major_version_shift_threshold": 0.35,
+  "min_history_days_for_z": 7,
+  "top_countries_in_chart": 6,
+  "weights": {
+    "version_delta": 0.4,
+    "cipher_delta": 0.25,
+    "abort_delta": 0.2,
+    "alpn_delta": 0.15
+  }
+}
