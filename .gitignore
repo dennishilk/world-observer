@@ -1,0 +1,5 @@
+# Raw observer outputs are stored locally on servers and excluded from Git.
+data/*-reachability/
+data/*-connectivity/
+data/*-weather/
+data/*-trace/
