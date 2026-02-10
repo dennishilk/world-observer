@@ -1,6 +1,17 @@
 {
-  "observer": "world-observer-meta",
-  "date": "2026-02-09",
-  "status": "error",
-  "error": "summary output missing"
+  "observer": "area51-reachability",
+  "last_run_utc": "2026-02-10T09:35:14.859166+00:00",
+  "latest_date_utc": "2026-02-10",
+  "last_7_days": [
+    {
+      "date_utc": "2026-02-10",
+      "au": {
+        "janet_like": 0,
+        "other": 0,
+        "total": 0
+      },
+      "any_significant": false
+    }
+  ],
+  "chart_path": null
 }

@@ -8,6 +8,7 @@ stdout, and stores results in data/daily/<YYYY-MM-DD>/.
 from __future__ import annotations
 
 import argparse
+import os
 import json
 import shutil
 import subprocess
@@ -80,12 +81,15 @@ def _run_observer(observer: str, date_str: str, daily_dir: Path) -> Tuple[bool, 
         )
         return False, "observer.py not found"
 
+    env = os.environ.copy()
+    env["WORLD_OBSERVER_DATE_UTC"] = date_str
     result = subprocess.run(
         [sys.executable, str(observer_path)],
         cwd=_repo_root(),
         capture_output=True,
         text=True,
         check=False,
+        env=env,
     )
 
     if result.returncode != 0:
@@ -137,12 +141,15 @@ def _run_meta_observer(date_str: str, daily_dir: Path) -> Tuple[bool, str]:
         )
         return False, "observer.py not found"
 
+    env = os.environ.copy()
+    env["WORLD_OBSERVER_DATE_UTC"] = date_str
     result = subprocess.run(
         [sys.executable, str(observer_path)],
         cwd=_repo_root(),
         capture_output=True,
         text=True,
         check=False,
+        env=env,
     )
 
     if result.returncode != 0:
@@ -181,6 +188,8 @@ def _update_latest(daily_dir: Path) -> None:
     latest_dir = _repo_root() / "data" / "latest"
     latest_dir.mkdir(parents=True, exist_ok=True)
     for path in daily_dir.glob("*.json"):
+        if path.name == "summary.json":
+            continue
         shutil.copy2(path, latest_dir / path.name)
 
 

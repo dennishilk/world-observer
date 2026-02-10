@@ -1,34 +1,37 @@
 # area51-reachability
 
-## Purpose
-This observer exists to contrast the **myth** surrounding Area 51 with the **public
-reality** around Groom Lake: the only data we can ethically and legally measure are
-boring, repeatable signals that behave like ordinary internet and aviation noise.
-If the results look flat, that is the point.
+## Scope
+This observer tracks **aggregated airspace activity units (AU)** in a configurable Area 51 region bounding box.
 
-## What this observer measures (only aggregated outcomes)
-- **Network reachability**: ICMP ping and a TCP handshake on port 443, recorded as
-  boolean outcomes only.
-- **DNS behavior**: A/AAAA lookups recorded only as `answer`, `timeout`, or `NXDOMAIN`.
-- **Traceroute behavior**: maximum hop reached and a coarse classification for where
-  it stops (for example, `public_transit`).
-- **Flight activity**: daily **aggregated** ADS-B counts for known civilian charter
-  flights commonly called “JANET flights,” plus other visible ADS-B flights in the
-  region. No callsigns, routes, timestamps, or aircraft identifiers are kept.
+It does **not** identify flights, aircraft, routes, callsigns, or individuals in tracked outputs.
 
-## Ethical and legal boundaries
-- We do **not** track individuals.
-- We do **not** store sensitive data.
-- We do **not** attempt to bypass restrictions.
-- We do **not** use or infer classified or private information.
+## Measurement model
+- UTC day divided into `15` minute buckets (configurable).
+- For each bucket:
+  - `au_total`: moving transponder segments in the bbox.
+  - `au_janet_like`: subset matching JANET-like kinematic activity class (speed/altitude/heading/time-window patterns only).
+  - `au_other`: `au_total - au_janet_like`.
+- Daily totals are sums over available buckets.
 
-These measurements are intentionally limited to what is publicly visible and
-ethically defensible.
+## Privacy and safety boundaries
+- Classification uses only anonymous numeric movement properties (e.g., speed, altitude, heading, bucket time).
+- Callsigns, ICAO hex addresses, tail numbers, aircraft types, and operator identifiers are not accessed for classification (including in-memory pattern checks).
+- Raw bucket cache is local state under `state/area51-reachability/` and is not part of tracked output contract.
 
-## What conclusions cannot be drawn
-- This observer **cannot** reveal secret activity.
-- It **cannot** confirm military operations or infer classified behavior.
-- It **cannot** attribute outages or anomalies to specific causes.
+## Output contract
+Daily output (`data/daily/YYYY-MM-DD/area51-reachability.json`):
+- `observer`, `date_utc`, `data_status`, `bucket_minutes`, `bbox`, `bucket_count`
+- `au.{janet_like,other,total}`
+- `baseline_30d` with `mean` and `std` for each class
+- `significance` with `sigma_mult`, per-class significance + z-score, and `any_significant`
 
-If the outputs remain steady or empty, that is expected and consistent with
-routine, public internet and aviation behavior.
+Latest output (`data/latest/summary.json`):
+- `last_run_utc`, `latest_date_utc`
+- `last_7_days` mini summary
+- `chart_path` (set only when significance chart exists)
+
+## Significance
+Default threshold is `observed > mean + (2.0 * stddev)` using rolling 30-day baseline for each AU class.
+
+## Chart behavior
+`data/latest/chart.png` is generated only if `significance.any_significant == true`.
