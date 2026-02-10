@@ -155,3 +155,78 @@ The `ipv6-global-compare` observer derives a daily global IPv6 rate from
 It computes per-country `delta_vs_global`, 30-day baseline z-scores, and a
 trend divergence signal (country flat/down while global rises). It writes
 `data/latest/chart.png` only when significance is detected.
+
+## Fresh Clone and Merge-Resilient Workflow
+1. Clone as the observer user and switch to the repository directory.
+2. Run setup as root:
+   ```sh
+   sudo ./setup_world_observer.sh
+   ```
+3. Setup auto-configures:
+   - `origin` to SSH (when currently GitHub HTTPS),
+   - repository-local `core.sshCommand` with the deploy key,
+   - idempotent cron jobs that always execute inside `.venv`.
+4. Re-run setup after merges/pulls to safely re-apply system dependencies and cron entries.
+
+## Deploy Key Setup (GitHub)
+1. Generate a key (or let setup generate it):
+   ```sh
+   ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519_world_observer -C "world-observer-deploy-key"
+   ```
+2. Add the **public** key to GitHub repo **Deploy keys** with **Allow write access**.
+3. Confirm non-interactive SSH auth:
+   ```sh
+   ssh -o BatchMode=yes -T git@github.com
+   ```
+4. Confirm git is SSH-only:
+   ```sh
+   git remote -v
+   git config --local --get core.sshCommand
+   ```
+
+## Cron Schedule Contract
+Installed by `setup_world_observer.sh`:
+- Hourly heartbeat (minute `0`): `scripts/heartbeat_push.py`
+- Daily run (UTC `02:05`): `scripts/run_daily.py`, `visualizations/generate_significance_png.py`, then `scripts/git_publish.sh`
+- Shared logs: `logs/cron.log`
+
+Example validation:
+```sh
+crontab -l
+ tail -n 100 logs/cron.log
+```
+
+## High-Level Verification Script
+Run repository-level checks with:
+```sh
+python scripts/verify_repository_health.py
+```
+Optional push-path validation:
+```sh
+python scripts/verify_repository_health.py --check-push
+```
+
+Checks performed:
+- heartbeat execution (idempotent commit behavior, optional push),
+- daily runner output generation for all configured observers,
+- daily JSON presence + minimal schema contract checks,
+- restricted identifier-key scan (IP/domain/cert/raw-route style keys),
+- significance behavior simulation (`tls-fingerprint-change`) including PNG creation on forced significance.
+
+## Manual Recovery Steps
+- If cron appears idle: check `systemctl status cron`, `crontab -l`, and `logs/cron.log`.
+- If push fails: verify deploy key in GitHub and local `core.sshCommand`.
+- If observer output is missing: run `python scripts/run_daily.py --date YYYY-MM-DD` manually and inspect stderr in generated error JSON.
+- If PNG behavior is unexpected: run the high-level verification script and inspect `data/latest/chart.png` lifecycle.
+
+## Python Environment and Dependencies
+- Python runtime is pinned via `.python-version` (`3.12.12`).
+- Create and activate venv:
+  ```sh
+  python3 -m venv .venv
+  . .venv/bin/activate
+  ```
+- Install dependencies:
+  ```sh
+  pip install -r requirements.txt
+  ```
