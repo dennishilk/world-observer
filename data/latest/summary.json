@@ -1,17 +1,23 @@
 {
-  "observer": "area51-reachability",
-  "last_run_utc": "2026-02-10T09:35:14.859166+00:00",
-  "latest_date_utc": "2026-02-10",
+  "observer": "north-korea-connectivity",
+  "last_run_utc": "2026-02-10T10:10:24.229640+00:00",
+  "latest_date_utc": "2026-02-11",
   "last_7_days": [
     {
-      "date_utc": "2026-02-10",
-      "au": {
-        "janet_like": 0,
-        "other": 0,
-        "total": 0
-      },
+      "date_utc": "2026-02-08",
+      "state": "unknown",
       "any_significant": false
+    },
+    {
+      "date_utc": "2026-02-09",
+      "state": "unknown",
+      "any_significant": false
+    },
+    {
+      "date_utc": "2026-02-11",
+      "state": "silent",
+      "any_significant": true
     }
   ],
-  "chart_path": null
+  "chart_path": "data/latest/chart.png"
 }

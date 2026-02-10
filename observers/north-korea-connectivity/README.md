@@ -52,12 +52,19 @@ Significance is true if either:
 1. A metric exceeds the sigma threshold (`sigma_mult`, default `2.0`).
 2. A rare state transition is observed versus recent state history.
 
+Rare transitions include explicit high-signal jumps (for example
+`silent→partial`, `controlled→anomalous`) and also state shifts into a state
+that appears in <10% of the prior 30-day history.
+
 ## PNG policy (intentionally rare)
 `data/latest/chart.png` is generated **only** when
 `significance.any_significant == true`.
 
 This intentionally keeps chart events sparse in Git history and avoids noisy,
 daily visual artifacts. On normal days, no new PNG is generated.
+
+When significance is true, the observer overwrites only
+`data/latest/chart.png`.
 
 ## Outputs
 Tracked outputs for this observer:
