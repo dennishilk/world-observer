@@ -1,4 +1,29 @@
 {
-  "status": "placeholder",
-  "notes": "Document passive, publicly observable data sources here."
+  "source_observers": [
+    "north-korea-connectivity",
+    "iran-dns-behavior",
+    "cuba-internet-weather",
+    "internet-shrinkage-index",
+    "global-reachability-score",
+    "ipv6-adoption-locked-states"
+  ],
+  "weights": {
+    "hard_silence": 0.55,
+    "low_reachability": 0.2,
+    "dns_anomaly": 0.15,
+    "time_to_silence": 0.05,
+    "ipv6_absence": 0.05
+  },
+  "thresholds": {
+    "degrading": 0.35,
+    "silent": 0.7,
+    "persistently_silent": 0.7,
+    "persistent_days": 3,
+    "recovering_delta": -0.1,
+    "anomaly_jump": 0.35,
+    "low_reachability_percent": 40.0,
+    "sigma_threshold": 2.0,
+    "mass_event_class_changes": 3
+  },
+  "top_n": 10
 }
