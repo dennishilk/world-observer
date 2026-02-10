@@ -12,3 +12,6 @@ observers/asn-visibility-by-country/.cache/
 
 # Local raw DNS TTA probe artifacts
 state/dns-tta-stress-index/
+
+# Local raw MX probe artifacts
+state/mx-presence-per-country/
