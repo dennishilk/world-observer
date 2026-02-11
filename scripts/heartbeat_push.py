@@ -1,143 +1,165 @@
 #!/usr/bin/env python3
-"""Create and push hourly heartbeat files.
-
-Designed for unattended cron usage:
-- idempotent staging/commit behavior
-- optional dry-run and no-push modes for verification
-- non-interactive SSH push behavior
-"""
+"""Cron-safe heartbeat writer + git publisher."""
 
 from __future__ import annotations
 
-import argparse
 import json
+import logging
 import os
+import socket
 import subprocess
+import sys
+from contextlib import contextmanager
 from datetime import datetime, timezone
+from logging.handlers import TimedRotatingFileHandler
 from pathlib import Path
-from typing import List, Sequence
+from typing import Sequence
+
+import fcntl
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+HEARTBEAT_DIR = REPO_ROOT / "state" / "heartbeat"
+LOG_FILE = REPO_ROOT / "logs" / "heartbeat.log"
+LOCK_FILE = REPO_ROOT / "state" / "heartbeat_push.lock"
+DEPLOY_KEY = Path("/home/nebu/.ssh/deploy_key")
+KEEP_FILES = 12
 
 
-DEFAULT_DEPLOY_KEY = Path.home() / ".ssh" / "id_ed25519_world_observer"
+def _logger() -> logging.Logger:
+    logger = logging.getLogger("heartbeat_push")
+    if logger.handlers:
+        return logger
+
+    LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
+    logger.setLevel(logging.INFO)
+    formatter = logging.Formatter("%(asctime)s %(levelname)s %(message)s")
+
+    file_handler = TimedRotatingFileHandler(
+        LOG_FILE,
+        when="midnight",
+        interval=1,
+        backupCount=14,
+        encoding="utf-8",
+        utc=True,
+    )
+    file_handler.setFormatter(formatter)
+    logger.addHandler(file_handler)
+
+    stream_handler = logging.StreamHandler(sys.stdout)
+    stream_handler.setFormatter(formatter)
+    logger.addHandler(stream_handler)
+
+    return logger
 
 
-def _repo_root() -> Path:
-    return Path(__file__).resolve().parents[1]
-
-
-def _heartbeat_timestamp() -> datetime:
-    now = datetime.now(timezone.utc)
-    return now.replace(minute=0, second=0, microsecond=0)
-
-
-def _heartbeat_payload(timestamp: datetime) -> dict:
-    return {
-        "timestamp_utc": timestamp.strftime("%Y-%m-%dT%H:00:00Z"),
-        "status": "alive",
-        "note": "Periodic heartbeat. No observation results included.",
-    }
-
-
-def _write_if_changed(path: Path, payload: dict) -> bool:
-    content = json.dumps(payload, ensure_ascii=False, indent=2) + "\n"
-    if path.exists() and path.read_text(encoding="utf-8") == content:
-        return False
-    path.write_text(content, encoding="utf-8")
-    return True
-
-
-def _apply_retention(heartbeat_dir: Path, keep: int = 12) -> List[Path]:
-    heartbeat_files = sorted(path for path in heartbeat_dir.glob("*.json"))
-    if len(heartbeat_files) <= keep:
-        return []
-    to_delete = heartbeat_files[: len(heartbeat_files) - keep]
-    for path in to_delete:
-        path.unlink(missing_ok=True)
-    return to_delete
-
-
-def _build_git_env(repo_root: Path) -> dict:
+def _git_env() -> dict[str, str]:
     env = os.environ.copy()
-    config_cmd = subprocess.run(
-        ["git", "config", "--local", "--get", "core.sshCommand"],
-        cwd=repo_root,
+    env["GIT_SSH_COMMAND"] = (
+        f"ssh -i {DEPLOY_KEY} -o IdentitiesOnly=yes -o BatchMode=yes "
+        "-o StrictHostKeyChecking=accept-new"
+    )
+    return env
+
+
+def _run_command(args: Sequence[str], *, env: dict[str, str] | None = None) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        list(args),
+        cwd=REPO_ROOT,
+        env=env,
         capture_output=True,
         text=True,
         check=False,
     )
-    if config_cmd.returncode == 0 and config_cmd.stdout.strip():
-        env["GIT_SSH_COMMAND"] = config_cmd.stdout.strip()
-        return env
-
-    if DEFAULT_DEPLOY_KEY.exists():
-        env["GIT_SSH_COMMAND"] = (
-            f"ssh -i {DEFAULT_DEPLOY_KEY} -o BatchMode=yes "
-            "-o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new"
-        )
-    return env
 
 
-def _git(args: Sequence[str], repo_root: Path, env: dict, check: bool = True) -> subprocess.CompletedProcess:
-    return subprocess.run(list(args), cwd=repo_root, env=env, capture_output=True, text=True, check=check)
+@contextmanager
+def _lock_execution(path: Path):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w", encoding="utf-8") as handle:
+        try:
+            fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            raise SystemExit("heartbeat runner already active")
+        yield
 
 
-def _parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Create/push hourly heartbeat file")
-    parser.add_argument("--no-push", action="store_true", help="Create/commit heartbeat without pushing")
-    parser.add_argument("--dry-run", action="store_true", help="Print actions without writing git state")
-    return parser.parse_args()
+def _current_hour() -> datetime:
+    now = datetime.now(timezone.utc)
+    return now.replace(minute=0, second=0, microsecond=0)
 
 
-def main() -> None:
-    args = _parse_args()
-    repo_root = _repo_root()
-    env = _build_git_env(repo_root)
+def _heartbeat_payload(stamp: datetime) -> dict[str, object]:
+    return {
+        "timestamp_utc": stamp.strftime("%Y-%m-%dT%H:00:00Z"),
+        "epoch": int(stamp.timestamp()),
+        "hostname": socket.gethostname(),
+        "status": "alive",
+    }
 
-    heartbeat_dir = repo_root / "state" / "heartbeat"
-    heartbeat_dir.mkdir(parents=True, exist_ok=True)
 
-    timestamp = _heartbeat_timestamp()
-    filename = timestamp.strftime("%Y-%m-%dT%HZ.json")
-    heartbeat_path = heartbeat_dir / filename
+def _write_heartbeat(stamp: datetime, logger: logging.Logger) -> Path:
+    HEARTBEAT_DIR.mkdir(parents=True, exist_ok=True)
+    path = HEARTBEAT_DIR / f"{stamp:%Y-%m-%dT%HZ}.json"
+    payload = _heartbeat_payload(stamp)
+    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    logger.info("new heartbeat file created: %s", path)
+    return path
 
-    changed = _write_if_changed(heartbeat_path, _heartbeat_payload(timestamp))
-    removed = _apply_retention(heartbeat_dir, keep=12)
 
-    if args.dry_run:
-        print(f"[dry-run] heartbeat_file={heartbeat_path} changed={changed} removed={len(removed)}")
+def _apply_retention(logger: logging.Logger) -> list[Path]:
+    files = sorted(HEARTBEAT_DIR.glob("*.json"))
+    if len(files) <= KEEP_FILES:
+        return []
+    deleted = files[: len(files) - KEEP_FILES]
+    for path in deleted:
+        path.unlink(missing_ok=True)
+    logger.info("deleted %s old heartbeat files: %s", len(deleted), ", ".join(p.name for p in deleted))
+    return deleted
+
+
+def _git_commit_and_push(stamp: datetime, logger: logging.Logger) -> None:
+    env = _git_env()
+
+    add = _run_command(["/usr/bin/git", "add", "--", "state/heartbeat"], env=env)
+    if add.returncode != 0:
+        raise RuntimeError(add.stderr.strip() or add.stdout.strip() or "git add failed")
+
+    diff = _run_command(["/usr/bin/git", "diff", "--cached", "--quiet", "--", "state/heartbeat"], env=env)
+    if diff.returncode == 0:
+        logger.info("no staged heartbeat changes; skipping commit/push")
         return
+    if diff.returncode not in (0, 1):
+        raise RuntimeError(diff.stderr.strip() or diff.stdout.strip() or "git diff --cached failed")
 
-    _git(["git", "add", "--", "state/heartbeat"], repo_root, env)
-
-    diff_check = _git(
-        ["git", "diff", "--cached", "--quiet", "--", "state/heartbeat"],
-        repo_root,
-        env,
-        check=False,
-    )
-    if diff_check.returncode == 0:
-        print("[heartbeat] no staged changes")
-        return
-
-    commit_message = f"heartbeat: system alive (UTC {timestamp:%H}:00)"
-    commit = _git(["git", "commit", "-m", commit_message, "--", "state/heartbeat"], repo_root, env, check=False)
+    message = f"heartbeat: alive {stamp:%Y-%m-%d %H}:00 UTC"
+    commit = _run_command(["/usr/bin/git", "commit", "-m", message, "--", "state/heartbeat"], env=env)
     if commit.returncode != 0:
-        # Handle rare races where another process committed first.
-        print(commit.stderr.strip() or commit.stdout.strip())
-        return
+        raise RuntimeError(commit.stderr.strip() or commit.stdout.strip() or "git commit failed")
 
-    print(commit.stdout.strip())
+    commit_hash = _run_command(["/usr/bin/git", "rev-parse", "--short", "HEAD"], env=env)
+    if commit_hash.returncode == 0:
+        logger.info("commit made: %s", commit_hash.stdout.strip())
 
-    if args.no_push:
-        print("[heartbeat] push skipped (--no-push)")
-        return
-
-    push = _git(["git", "push"], repo_root, env, check=False)
+    push = _run_command(["/usr/bin/git", "push", "origin", "HEAD"], env=env)
     if push.returncode != 0:
-        print(push.stderr.strip() or push.stdout.strip())
-        raise SystemExit(push.returncode)
-    print(push.stdout.strip())
+        raise RuntimeError(push.stderr.strip() or push.stdout.strip() or "git push failed")
+    logger.info("push status: success")
+
+
+def main() -> int:
+    logger = _logger()
+    try:
+        with _lock_execution(LOCK_FILE):
+            stamp = _current_hour()
+            _write_heartbeat(stamp, logger)
+            _apply_retention(logger)
+            _git_commit_and_push(stamp, logger)
+            logger.info("heartbeat run completed")
+    except Exception as exc:  # noqa: BLE001
+        logger.exception("heartbeat run failed: %s", exc)
+        return 1
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())
