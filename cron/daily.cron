@@ -1,10 +1,7 @@
-# world-observer daily automation (example)
-#
-# Run from the repository root with virtualenv activated.
-# Logs append to logs/cron.log.
-#
-# Hourly heartbeat (UTC):
-# 0 * * * * /bin/bash -lc 'cd /workspace/world-observer && . .venv/bin/activate && python scripts/heartbeat_push.py >> logs/cron.log 2>&1'
-#
-# Daily run once per UTC day at 02:05:
-# 5 2 * * * /bin/bash -lc 'cd /workspace/world-observer && . .venv/bin/activate && python scripts/run_daily.py >> logs/cron.log 2>&1 && python visualizations/generate_significance_png.py >> logs/cron.log 2>&1 && scripts/git_publish.sh >> logs/cron.log 2>&1'
+# world-observer daily automation (user: nebu)
+
+# Heartbeat: hourly
+0 * * * * /bin/bash -lc 'cd /home/nebu/world-observer && source .venv/bin/activate && python scripts/heartbeat_push.py >> /home/nebu/world-observer/logs/heartbeat.log 2>&1'
+
+# Daily observer run: at 02:00 UTC
+0 2 * * * /bin/bash -lc 'cd /home/nebu/world-observer && source .venv/bin/activate && python scripts/run_daily_cron.py >> /home/nebu/world-observer/logs/daily.log 2>&1'
