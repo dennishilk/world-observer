@@ -43,7 +43,7 @@ avoids alert framing.
 | `mx-presence-by-country` | Country-level presence of MX records from passive sources (placeholder until sources are approved). | A future passive MX presence signal deviates from its long-term baseline once populated. |
 | `north-korea-connectivity` | Success rate of basic ping/TCP/DNS checks across selected targets. | The success rate moves outside its long-term baseline range. |
 | `silent-countries-list` | Count of countries with no successful basic signals in the daily run. | The number of silent countries is unusually high compared with its baseline. |
-| `tls-fingerprint-change-watcher` | Count of TLS certificate fingerprint changes among configured targets. | The number of fingerprint changes exceeds its long-term baseline range. |
+| `tls-fingerprint-change` | Count of TLS certificate fingerprint changes among configured targets. | The number of fingerprint changes exceeds its long-term baseline range. |
 | `traceroute-to-nowhere` | Typical hop count reached and termination categories (without hop details). | The distribution of hop counts or termination categories shifts from baseline. |
 | `undersea-cable-dependency` | Daily reachability checks for targets in countries with higher structural cable dependency. | The reachability outcomes change materially versus the observer’s baseline. |
 | `world-observer-meta` | Daily completeness of observer outputs and high-level highlights. | The count of missing observer outputs is unusually high for the day. |
