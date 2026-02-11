@@ -4,6 +4,9 @@ data/*-connectivity/
 data/*-weather/
 data/*-trace/
 
+# Local logs (cron/stdout)
+logs/
+
 # Local APNIC raw cache
 observers/ipv6-locked-states/.cache/
 
