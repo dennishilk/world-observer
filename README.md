@@ -85,6 +85,8 @@ without bloating repository history.
 ### Heartbeat and Cron Schedule
 The automation layer installs two cron jobs for the observer user:
 
+Daily observer execution time is **02:00 UTC** and considered contractual.
+
 - **Hourly heartbeat at minute 0**
   - Runs `python scripts/heartbeat_push.py`.
   - Appends output to `logs/cron.log`.
@@ -187,7 +189,7 @@ trend divergence signal (country flat/down while global rises). It writes
 ## Cron Schedule Contract
 Installed by `setup_world_observer.sh`:
 - Hourly heartbeat (minute `0`): `scripts/heartbeat_push.py`
-- Daily run (UTC `02:05`): `scripts/run_daily.py`, `visualizations/generate_significance_png.py`, then `scripts/git_publish.sh`
+- Daily run (UTC `02:00`): `scripts/run_daily.py`, `visualizations/generate_significance_png.py`, then `scripts/git_publish.sh`
 - Shared logs: `logs/cron.log`
 
 Example validation:

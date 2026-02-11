@@ -94,8 +94,8 @@ def verify_png_policy() -> None:
 
     env = os.environ.copy()
     env["WORLD_OBSERVER_DATE_UTC"] = low_date
-    run([sys.executable, str(observer)], env=env)
-    low_payload = json.loads(run([sys.executable, str(observer)], env=env).stdout)
+    low_result = run([sys.executable, str(observer)], env=env)
+    low_payload = json.loads(low_result.stdout)
 
     low_sig = bool(low_payload.get("significance", {}).get("any_significant", False))
     if low_sig:

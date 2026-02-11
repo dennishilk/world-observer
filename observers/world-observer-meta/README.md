@@ -32,7 +32,7 @@ The meta observer writes its summary into the daily directory:
   "observer": "world-observer-meta",
   "date": "YYYY-MM-DD",
   "observers_run": ["area51-reachability"],
-  "observers_missing": ["tls-fingerprint-change-watcher"],
+  "observers_missing": ["tls-fingerprint-change"],
   "highlights": {
     "internet_shrinkage_index": 0.98,
     "global_reachability_score": null,
@@ -52,5 +52,8 @@ The meta observer writes its summary into the daily directory:
 The module exposes `run(date=None)`:
 - `date=None` uses the current UTC date.
 - `date="YYYY-MM-DD"` aggregates that specific day.
+
+`observers_missing` entries always refer to concrete daily artifact filenames in
+`data/daily/<date>/`, i.e., each value maps directly to `<observer>.json`.
 
 The module is intentionally minimal and defensive by design.
