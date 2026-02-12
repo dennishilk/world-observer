@@ -1,0 +1,147 @@
+{
+  "observer": "mx-presence-per-country",
+  "date_utc": "2026-02-11",
+  "data_status": "ok",
+  "countries": [
+    {
+      "country": "BR",
+      "sample_size": 3,
+      "mx_present_rate": 0.333333,
+      "mx_absent_rate": 0.666667,
+      "mx_unreachable_rate": 0.0,
+      "mx_timeout_rate": 0.0,
+      "data_completeness": 1.0,
+      "mx_present_count": 1,
+      "mx_unreachable_count": 0,
+      "baseline_30d": {
+        "mx_present_rate": {
+          "mean": 0.0,
+          "std": 0.0
+        },
+        "mx_unreachable_rate": {
+          "mean": 0.0,
+          "std": 0.0
+        }
+      },
+      "z": {
+        "mx_present_rate": 0.0,
+        "mx_unreachable_rate": 0.0
+      },
+      "is_significant": false
+    },
+    {
+      "country": "DE",
+      "sample_size": 3,
+      "mx_present_rate": 0.666667,
+      "mx_absent_rate": 0.333333,
+      "mx_unreachable_rate": 0.0,
+      "mx_timeout_rate": 0.0,
+      "data_completeness": 1.0,
+      "mx_present_count": 2,
+      "mx_unreachable_count": 0,
+      "baseline_30d": {
+        "mx_present_rate": {
+          "mean": 0.0,
+          "std": 0.0
+        },
+        "mx_unreachable_rate": {
+          "mean": 0.0,
+          "std": 0.0
+        }
+      },
+      "z": {
+        "mx_present_rate": 0.0,
+        "mx_unreachable_rate": 0.0
+      },
+      "is_significant": false
+    },
+    {
+      "country": "IN",
+      "sample_size": 3,
+      "mx_present_rate": 0.666667,
+      "mx_absent_rate": 0.333333,
+      "mx_unreachable_rate": 0.0,
+      "mx_timeout_rate": 0.0,
+      "data_completeness": 1.0,
+      "mx_present_count": 2,
+      "mx_unreachable_count": 0,
+      "baseline_30d": {
+        "mx_present_rate": {
+          "mean": 0.0,
+          "std": 0.0
+        },
+        "mx_unreachable_rate": {
+          "mean": 0.0,
+          "std": 0.0
+        }
+      },
+      "z": {
+        "mx_present_rate": 0.0,
+        "mx_unreachable_rate": 0.0
+      },
+      "is_significant": false
+    },
+    {
+      "country": "JP",
+      "sample_size": 3,
+      "mx_present_rate": 0.333333,
+      "mx_absent_rate": 0.666667,
+      "mx_unreachable_rate": 0.0,
+      "mx_timeout_rate": 0.0,
+      "data_completeness": 1.0,
+      "mx_present_count": 1,
+      "mx_unreachable_count": 0,
+      "baseline_30d": {
+        "mx_present_rate": {
+          "mean": 0.0,
+          "std": 0.0
+        },
+        "mx_unreachable_rate": {
+          "mean": 0.0,
+          "std": 0.0
+        }
+      },
+      "z": {
+        "mx_present_rate": 0.0,
+        "mx_unreachable_rate": 0.0
+      },
+      "is_significant": false
+    },
+    {
+      "country": "US",
+      "sample_size": 3,
+      "mx_present_rate": 0.333333,
+      "mx_absent_rate": 0.666667,
+      "mx_unreachable_rate": 0.0,
+      "mx_timeout_rate": 0.0,
+      "data_completeness": 1.0,
+      "mx_present_count": 1,
+      "mx_unreachable_count": 0,
+      "baseline_30d": {
+        "mx_present_rate": {
+          "mean": 0.0,
+          "std": 0.0
+        },
+        "mx_unreachable_rate": {
+          "mean": 0.0,
+          "std": 0.0
+        }
+      },
+      "z": {
+        "mx_present_rate": 0.0,
+        "mx_unreachable_rate": 0.0
+      },
+      "is_significant": false
+    }
+  ],
+  "summary_stats": {
+    "countries_evaluated": 5,
+    "significant_count": 0,
+    "mass_event": false
+  },
+  "significance": {
+    "sigma_mult": 2.0,
+    "any_significant": false,
+    "triggers": []
+  }
+}

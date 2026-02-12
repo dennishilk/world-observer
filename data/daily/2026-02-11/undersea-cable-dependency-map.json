@@ -1,0 +1,44 @@
+{
+  "observer": "undersea-cable-dependency-map",
+  "date_utc": "2026-02-11",
+  "data_status": "ok",
+  "dataset": {
+    "name": "Greg's Cable Map derivative (open license)",
+    "dataset_hash": "ee081c1f6c99737aaaa1019bd18287b23a38af1103542eda36083e69bc4df3ca",
+    "last_updated_hint": ""
+  },
+  "countries": [
+    {
+      "country": "BR",
+      "landing_count": 2,
+      "cable_count": 2,
+      "unique_partner_countries": 0,
+      "redundancy_score": 0.444444,
+      "dependency_score": 0.555556
+    },
+    {
+      "country": "US",
+      "landing_count": 3,
+      "cable_count": 3,
+      "unique_partner_countries": 0,
+      "redundancy_score": 0.666667,
+      "dependency_score": 0.333333
+    },
+    {
+      "country": "ZA",
+      "landing_count": 2,
+      "cable_count": 2,
+      "unique_partner_countries": 0,
+      "redundancy_score": 0.444444,
+      "dependency_score": 0.555556
+    }
+  ],
+  "summary_stats": {
+    "countries_evaluated": 3,
+    "any_significant": false
+  },
+  "significance": {
+    "any_significant": false,
+    "triggers": []
+  }
+}

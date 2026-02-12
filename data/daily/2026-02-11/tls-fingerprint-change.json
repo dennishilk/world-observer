@@ -1,0 +1,192 @@
+{
+  "observer": "tls-fingerprint-change",
+  "date_utc": "2026-02-11",
+  "data_status": "ok",
+  "countries": [
+    {
+      "country": "US",
+      "tls_success_rate": 1.0,
+      "handshake_abort_rate": 0.0,
+      "tls_version_distribution": {
+        "TLS1.0": 0.0,
+        "TLS1.1": 0.0,
+        "TLS1.2": 0.0,
+        "TLS1.3": 1.0,
+        "OTHER": 0.0
+      },
+      "cipher_class_distribution": {
+        "CHACHA20": 0.0,
+        "AES_128": 0.0,
+        "AES_256": 1.0,
+        "AES_OTHER": 0.0,
+        "OTHER": 0.0
+      },
+      "alpn_presence_rate": 0.0,
+      "sample_size": 4,
+      "data_completeness": 1.0,
+      "tls_change_score": 0.325,
+      "baseline_30d": {
+        "mean": 0.0,
+        "std": 0.0
+      },
+      "z": 0.0,
+      "is_significant": false
+    },
+    {
+      "country": "DE",
+      "tls_success_rate": 1.0,
+      "handshake_abort_rate": 0.0,
+      "tls_version_distribution": {
+        "TLS1.0": 0.0,
+        "TLS1.1": 0.0,
+        "TLS1.2": 0.0,
+        "TLS1.3": 1.0,
+        "OTHER": 0.0
+      },
+      "cipher_class_distribution": {
+        "CHACHA20": 0.0,
+        "AES_128": 0.0,
+        "AES_256": 1.0,
+        "AES_OTHER": 0.0,
+        "OTHER": 0.0
+      },
+      "alpn_presence_rate": 0.0,
+      "sample_size": 4,
+      "data_completeness": 1.0,
+      "tls_change_score": 0.325,
+      "baseline_30d": {
+        "mean": 0.0,
+        "std": 0.0
+      },
+      "z": 0.0,
+      "is_significant": false
+    },
+    {
+      "country": "IN",
+      "tls_success_rate": 1.0,
+      "handshake_abort_rate": 0.0,
+      "tls_version_distribution": {
+        "TLS1.0": 0.0,
+        "TLS1.1": 0.0,
+        "TLS1.2": 0.0,
+        "TLS1.3": 1.0,
+        "OTHER": 0.0
+      },
+      "cipher_class_distribution": {
+        "CHACHA20": 0.0,
+        "AES_128": 0.0,
+        "AES_256": 1.0,
+        "AES_OTHER": 0.0,
+        "OTHER": 0.0
+      },
+      "alpn_presence_rate": 0.0,
+      "sample_size": 4,
+      "data_completeness": 1.0,
+      "tls_change_score": 0.325,
+      "baseline_30d": {
+        "mean": 0.0,
+        "std": 0.0
+      },
+      "z": 0.0,
+      "is_significant": false
+    },
+    {
+      "country": "BR",
+      "tls_success_rate": 1.0,
+      "handshake_abort_rate": 0.0,
+      "tls_version_distribution": {
+        "TLS1.0": 0.0,
+        "TLS1.1": 0.0,
+        "TLS1.2": 0.0,
+        "TLS1.3": 1.0,
+        "OTHER": 0.0
+      },
+      "cipher_class_distribution": {
+        "CHACHA20": 0.0,
+        "AES_128": 0.0,
+        "AES_256": 1.0,
+        "AES_OTHER": 0.0,
+        "OTHER": 0.0
+      },
+      "alpn_presence_rate": 0.0,
+      "sample_size": 4,
+      "data_completeness": 1.0,
+      "tls_change_score": 0.325,
+      "baseline_30d": {
+        "mean": 0.0,
+        "std": 0.0
+      },
+      "z": 0.0,
+      "is_significant": false
+    },
+    {
+      "country": "JP",
+      "tls_success_rate": 1.0,
+      "handshake_abort_rate": 0.0,
+      "tls_version_distribution": {
+        "TLS1.0": 0.0,
+        "TLS1.1": 0.0,
+        "TLS1.2": 0.0,
+        "TLS1.3": 1.0,
+        "OTHER": 0.0
+      },
+      "cipher_class_distribution": {
+        "CHACHA20": 0.0,
+        "AES_128": 0.0,
+        "AES_256": 1.0,
+        "AES_OTHER": 0.0,
+        "OTHER": 0.0
+      },
+      "alpn_presence_rate": 0.0,
+      "sample_size": 4,
+      "data_completeness": 1.0,
+      "tls_change_score": 0.325,
+      "baseline_30d": {
+        "mean": 0.0,
+        "std": 0.0
+      },
+      "z": 0.0,
+      "is_significant": false
+    },
+    {
+      "country": "ZA",
+      "tls_success_rate": 1.0,
+      "handshake_abort_rate": 0.0,
+      "tls_version_distribution": {
+        "TLS1.0": 0.0,
+        "TLS1.1": 0.0,
+        "TLS1.2": 0.0,
+        "TLS1.3": 1.0,
+        "OTHER": 0.0
+      },
+      "cipher_class_distribution": {
+        "CHACHA20": 0.0,
+        "AES_128": 0.0,
+        "AES_256": 1.0,
+        "AES_OTHER": 0.0,
+        "OTHER": 0.0
+      },
+      "alpn_presence_rate": 0.0,
+      "sample_size": 4,
+      "data_completeness": 1.0,
+      "tls_change_score": 0.325,
+      "baseline_30d": {
+        "mean": 0.0,
+        "std": 0.0
+      },
+      "z": 0.0,
+      "is_significant": false
+    }
+  ],
+  "summary_stats": {
+    "countries_evaluated": 6,
+    "significant_count": 0,
+    "mass_event": false
+  },
+  "significance": {
+    "sigma_mult": 2.0,
+    "any_significant": false,
+    "triggers": [],
+    "method": "tls_change_score = weighted(0.5*L1(version_dist_delta), 0.5*L1(cipher_dist_delta), positive_abort_rate_delta, abs(alpn_rate_delta)); each component clipped to [0,1]."
+  }
+}

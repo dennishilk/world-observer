@@ -1,0 +1,61 @@
+{
+  "observer": "ipv6-locked-states",
+  "date_utc": "2026-02-11",
+  "data_status": "unavailable",
+  "countries": [
+    {
+      "country": "KP",
+      "ipv6_capable_rate": 0.0,
+      "sample_size": null,
+      "baseline_30d": {
+        "mean": 0.0,
+        "std": 0.0
+      },
+      "delta_pp": 0.0,
+      "z": 0.0,
+      "is_significant": false,
+      "data_status": "unavailable"
+    },
+    {
+      "country": "IR",
+      "ipv6_capable_rate": 0.0,
+      "sample_size": null,
+      "baseline_30d": {
+        "mean": 0.0,
+        "std": 0.0
+      },
+      "delta_pp": 0.0,
+      "z": 0.0,
+      "is_significant": false,
+      "data_status": "unavailable"
+    },
+    {
+      "country": "CU",
+      "ipv6_capable_rate": 0.0,
+      "sample_size": null,
+      "baseline_30d": {
+        "mean": 0.0,
+        "std": 0.0
+      },
+      "delta_pp": 0.0,
+      "z": 0.0,
+      "is_significant": false,
+      "data_status": "unavailable"
+    }
+  ],
+  "summary_stats": {
+    "countries_evaluated": 3,
+    "significant_count": 0,
+    "mass_event": false
+  },
+  "significance": {
+    "sigma_mult": 2.0,
+    "step_threshold_pp": 5.0,
+    "any_significant": false,
+    "triggers": []
+  },
+  "source": {
+    "provider": "APNIC Labs",
+    "references": []
+  }
+}

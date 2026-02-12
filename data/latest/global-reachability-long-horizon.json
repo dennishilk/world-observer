@@ -1,0 +1,46 @@
+{
+  "observer": "global-reachability-long-horizon",
+  "date_utc": "2026-02-11",
+  "data_status": "partial",
+  "countries": [
+    {
+      "country": "DE",
+      "score_today": 100.0,
+      "mean_90d": 100.0,
+      "mean_180d": 100.0,
+      "slope_90d": 0.0,
+      "slope_180d": 0.0,
+      "drawdown_180d": 0.0,
+      "is_new_180d_low": true,
+      "is_new_180d_high": true
+    },
+    {
+      "country": "US",
+      "score_today": 100.0,
+      "mean_90d": 100.0,
+      "mean_180d": 100.0,
+      "slope_90d": 0.0,
+      "slope_180d": 0.0,
+      "drawdown_180d": 0.0,
+      "is_new_180d_low": true,
+      "is_new_180d_high": true
+    }
+  ],
+  "global": {
+    "avg_score_today": 100.0,
+    "avg_mean_180d": 100.0,
+    "is_new_180d_low": true,
+    "is_new_180d_high": true
+  },
+  "summary_stats": {
+    "countries_evaluated": 2,
+    "new_180d_low_count": 2
+  },
+  "significance": {
+    "any_significant": true,
+    "triggers": [
+      "new_global_180d_low",
+      "new_global_180d_high"
+    ]
+  }
+}

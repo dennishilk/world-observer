@@ -1,0 +1,59 @@
+{
+  "observer": "ipv6-global-compare",
+  "date_utc": "2026-02-11",
+  "data_status": "unavailable",
+  "countries": [
+    {
+      "country": "CU",
+      "ipv6_rate": 0.0,
+      "global_ipv6_rate": 0.0,
+      "delta_vs_global": 0.0,
+      "trend_delta": 0.0,
+      "percentile_position": 1.0,
+      "baseline_30d": {
+        "mean": 0.0,
+        "std": 0.0
+      },
+      "z": 0.0,
+      "is_significant": false
+    },
+    {
+      "country": "IR",
+      "ipv6_rate": 0.0,
+      "global_ipv6_rate": 0.0,
+      "delta_vs_global": 0.0,
+      "trend_delta": 0.0,
+      "percentile_position": 1.0,
+      "baseline_30d": {
+        "mean": 0.0,
+        "std": 0.0
+      },
+      "z": 0.0,
+      "is_significant": false
+    },
+    {
+      "country": "KP",
+      "ipv6_rate": 0.0,
+      "global_ipv6_rate": 0.0,
+      "delta_vs_global": 0.0,
+      "trend_delta": 0.0,
+      "percentile_position": 1.0,
+      "baseline_30d": {
+        "mean": 0.0,
+        "std": 0.0
+      },
+      "z": 0.0,
+      "is_significant": false
+    }
+  ],
+  "summary_stats": {
+    "countries_evaluated": 3,
+    "significant_count": 0,
+    "mass_event": false
+  },
+  "significance": {
+    "sigma_mult": 2.0,
+    "any_significant": false,
+    "triggers": []
+  }
+}

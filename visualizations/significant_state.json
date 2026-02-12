@@ -20,7 +20,7 @@
     "_comment_outage_start_date": "Stores the start date of an offline stretch to measure duration.",
     "outage_start_date": null,
     "_comment_last_classification": "Stores the most recent classification for continuity checks.",
-    "last_classification": null
+    "last_classification": "degraded"
   },
   "_comment_tls_fingerprints": "Baseline memory for TLS fingerprints to detect rare long-term changes.",
   "tls_fingerprints": {
@@ -35,8 +35,8 @@
   "_comment_global_reachability": "Baseline memory for global reachability to detect new record lows.",
   "global_reachability": {
     "_comment_lowest_score": "Stores the lowest observed score for historical comparison.",
-    "lowest_score": null,
+    "lowest_score": 100.0,
     "_comment_date": "Stores the date when the lowest score was observed.",
-    "date": null
+    "date": "2026-02-11"
   }
 }
