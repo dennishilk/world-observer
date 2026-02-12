@@ -88,6 +88,13 @@ def _run(args: Sequence[str], *, env: dict[str, str] | None = None) -> subproces
     )
 
 
+def _log_subprocess_result(result: subprocess.CompletedProcess[str], logger: logging.Logger, label: str) -> None:
+    if result.stdout.strip():
+        logger.info("%s stdout:\n%s", label, result.stdout.strip())
+    if result.stderr.strip():
+        logger.info("%s stderr:\n%s", label, result.stderr.strip())
+
+
 @contextmanager
 def _lock_execution(path: Path):
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -101,13 +108,12 @@ def _lock_execution(path: Path):
 
 def _run_python_script(script: Path, extra_args: Sequence[str], logger: logging.Logger) -> None:
     cmd = [sys.executable, str(script), *extra_args]
+    logger.info("running script: %s", " ".join(cmd))
     result = _run(cmd)
-    if result.stdout.strip():
-        logger.info(result.stdout.strip())
-    if result.stderr.strip():
-        logger.info(result.stderr.strip())
+    _log_subprocess_result(result, logger, script.name)
     if result.returncode != 0:
         raise RuntimeError(f"command failed ({result.returncode}): {' '.join(cmd)}")
+    logger.info("script succeeded: %s", script.name)
 
 
 def _copy_significance_pngs(date_str: str, logger: logging.Logger) -> list[Path]:
@@ -115,6 +121,7 @@ def _copy_significance_pngs(date_str: str, logger: logging.Logger) -> list[Path]
     target_dir = DATA_DAILY_DIR / date_str
     target_dir.mkdir(parents=True, exist_ok=True)
     if not SIGNIFICANT_DIR.exists():
+        logger.info("skipping PNG copy: optional directory missing: %s", SIGNIFICANT_DIR)
         return copied
 
     for png in sorted(SIGNIFICANT_DIR.glob(f"{date_str}-*.png")):
@@ -127,6 +134,14 @@ def _copy_significance_pngs(date_str: str, logger: logging.Logger) -> list[Path]
     else:
         logger.info("no significance PNGs for %s", date_str)
     return copied
+
+
+def _safe_git_add_all(logger: logging.Logger, env: dict[str, str]) -> None:
+    logger.info("git staging: git add -A")
+    add = _run(["/usr/bin/git", "add", "-A"], env=env)
+    _log_subprocess_result(add, logger, "git add -A")
+    if add.returncode != 0:
+        raise RuntimeError(add.stderr.strip() or add.stdout.strip() or "git add -A failed")
 
 
 def _update_latest_summary(date_str: str, logger: logging.Logger) -> None:
@@ -151,36 +166,31 @@ def _update_latest_summary(date_str: str, logger: logging.Logger) -> None:
 
 def _git_commit_and_push(date_str: str, logger: logging.Logger) -> None:
     env = _git_env()
-
-    add_targets = [
-        "data/daily",
-        "data/latest",
-        "visualizations/significant",
-    ]
-    add = _run(["/usr/bin/git", "add", "--", *add_targets], env=env)
-    if add.returncode != 0:
-        raise RuntimeError(add.stderr.strip() or add.stdout.strip() or "git add failed")
+    _safe_git_add_all(logger, env)
 
     diff = _run(["/usr/bin/git", "diff", "--cached", "--quiet"], env=env)
+    _log_subprocess_result(diff, logger, "git diff --cached --quiet")
     if diff.returncode == 0:
-        logger.info("no staged daily changes; skipping commit/push")
+        logger.info("commit outcome: no staged changes, skipping commit and push")
         return
     if diff.returncode not in (0, 1):
         raise RuntimeError(diff.stderr.strip() or diff.stdout.strip() or "git diff --cached failed")
 
-    message = f"daily: observer outputs {date_str}"
+    message = f"daily update {date_str}"
     commit = _run(["/usr/bin/git", "commit", "-m", message], env=env)
+    _log_subprocess_result(commit, logger, "git commit")
     if commit.returncode != 0:
         raise RuntimeError(commit.stderr.strip() or commit.stdout.strip() or "git commit failed")
 
     commit_hash = _run(["/usr/bin/git", "rev-parse", "--short", "HEAD"], env=env)
     if commit_hash.returncode == 0:
-        logger.info("commit made: %s", commit_hash.stdout.strip())
+        logger.info("commit outcome: created commit %s", commit_hash.stdout.strip())
 
     push = _run(["/usr/bin/git", "push", "origin", "HEAD"], env=env)
+    _log_subprocess_result(push, logger, "git push")
     if push.returncode != 0:
         raise RuntimeError(push.stderr.strip() or push.stdout.strip() or "git push failed")
-    logger.info("push status: success")
+    logger.info("push outcome: success")
 
 
 def main() -> int:
@@ -192,9 +202,15 @@ def main() -> int:
         with _lock_execution(LOCK_FILE):
             logger.info("starting daily run for date %s", date_str)
             _run_python_script(RUN_DAILY_SCRIPT, ["--date", date_str], logger)
+            logger.info("observer results: daily observer run completed for %s", date_str)
             _run_python_script(SIGNIFICANCE_SCRIPT, ["--date", date_str], logger)
-            _copy_significance_pngs(date_str, logger)
+            copied_pngs = _copy_significance_pngs(date_str, logger)
+            if copied_pngs:
+                logger.info("PNGs generated/copied: %d", len(copied_pngs))
+            else:
+                logger.info("PNGs skipped or none significant for %s", date_str)
             _update_latest_summary(date_str, logger)
+            logger.info("summary update completed for %s", date_str)
             _git_commit_and_push(date_str, logger)
             logger.info("daily run completed")
     except Exception as exc:  # noqa: BLE001
