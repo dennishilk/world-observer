@@ -3,10 +3,10 @@
   "baseline_window": 30,
   "sigma_mult": 2.0,
   "bbox": {
-    "min_lat": 36.2,
-    "max_lat": 37.4,
-    "min_lon": -116.2,
-    "max_lon": -114.6
+    "min_lat": 35.0,
+    "max_lat": 39.0,
+    "min_lon": -118.5,
+    "max_lon": -112.5
   },
   "source": {
     "name": "adsb_lol_public_feed",
