@@ -121,6 +121,32 @@ crontab -l
 ```
 
 ## Observers
+Canonical daily observers executed by `scripts/run_daily.py`:
+
+- `area51-reachability`
+- `asn-visibility-by-country`
+- `cuba-internet-weather`
+- `dns-time-to-answer-index`
+- `dns-tta-stress-index`
+- `global-reachability-long-horizon`
+- `global-reachability-score`
+- `internet-shrinkage-index`
+- `ipv6-adoption-locked-states`
+- `ipv6-global-compare`
+- `ipv6-locked-states`
+- `iran-dns-behavior`
+- `mx-presence-by-country`
+- `mx-presence-per-country`
+- `north-korea-connectivity`
+- `silent-countries-list`
+- `tls-fingerprint-change`
+- `traceroute-to-nowhere`
+- `undersea-cable-dependency`
+- `undersea-cable-dependency-map`
+
+`world-observer-meta` is intentionally excluded from the daily observer list and
+is executed separately to generate `summary.json` and `summary.md`.
+
 ### Area 51 Reachability
 The Area 51 observer uses a bounded airspace aggregation model with 15-minute
 UTC buckets and daily Activity Unit (AU) totals:
