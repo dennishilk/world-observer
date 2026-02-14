@@ -19,22 +19,25 @@ from typing import Any, Dict, List, Tuple
 
 OBSERVERS: List[str] = [
     "area51-reachability",
-    "north-korea-connectivity",
-    "cuba-internet-weather",
-    "iran-dns-behavior",
-    "traceroute-to-nowhere",
-    "internet-shrinkage-index",
     "asn-visibility-by-country",
-    "tls-fingerprint-change",
-    "silent-countries-list",
-    "ipv6-locked-states",
-    "ipv6-global-compare",
-    "global-reachability-score",
-    "global-reachability-long-horizon",
-    "undersea-cable-dependency-map",
+    "cuba-internet-weather",
     "dns-time-to-answer-index",
     "dns-tta-stress-index",
+    "global-reachability-long-horizon",
+    "global-reachability-score",
+    "internet-shrinkage-index",
+    "ipv6-adoption-locked-states",
+    "ipv6-global-compare",
+    "ipv6-locked-states",
+    "iran-dns-behavior",
+    "mx-presence-by-country",
     "mx-presence-per-country",
+    "north-korea-connectivity",
+    "silent-countries-list",
+    "tls-fingerprint-change",
+    "traceroute-to-nowhere",
+    "undersea-cable-dependency",
+    "undersea-cable-dependency-map",
 ]
 
 META_OBSERVER = "world-observer-meta"
@@ -196,6 +199,13 @@ def _update_latest(daily_dir: Path) -> None:
         shutil.copy2(path, latest_dir / path.name)
 
 
+def _has_complete_daily_outputs(daily_dir: Path) -> bool:
+    expected_files = {f"{observer}.json" for observer in OBSERVERS}
+    required_files = expected_files | {"summary.json", "summary.md"}
+    present_files = {path.name for path in daily_dir.glob("*") if path.is_file()}
+    return required_files.issubset(present_files)
+
+
 def main() -> None:
     args = _parse_args()
     if args.date:
@@ -205,7 +215,7 @@ def main() -> None:
     else:
         date_str = _yesterday_utc()
         daily_dir = _repo_root() / "data" / "daily" / date_str
-        if daily_dir.exists() and any(daily_dir.iterdir()):
+        if daily_dir.exists() and _has_complete_daily_outputs(daily_dir):
             return
         daily_dir.mkdir(parents=True, exist_ok=True)
 
