@@ -1,7 +1,7 @@
 # area51-reachability
 
 ## Scope
-This observer tracks **aggregated airspace activity units (AU)** in a configurable Area 51 region bounding box.
+This observer tracks **aggregated airspace activity units (AU)** in the **Southern Nevada Military & Transit Corridor** bounding box.
 
 It does **not** identify flights, aircraft, routes, callsigns, or individuals in tracked outputs.
 
