@@ -152,8 +152,62 @@ def _run_meta_observer(date_str: str, daily_dir: Path) -> Tuple[bool, str]:
     if result.returncode != 0:
         return False, f"exit {result.returncode}"
 
-    if not summary_json.exists() or not summary_md.exists():
-        return False, "summary output missing"
+    try:
+        payload = json.loads(result.stdout)
+    except json.JSONDecodeError:
+        return False, "invalid JSON"
+
+    if not isinstance(payload, dict):
+        return False, "non-object JSON"
+
+    _write_json(summary_json, payload)
+
+    highlights = payload.get("highlights")
+    if not isinstance(highlights, dict):
+        highlights = {}
+
+    observers_run = payload.get("observers_run")
+    if not isinstance(observers_run, list):
+        observers_run = []
+
+    observers_missing = payload.get("observers_missing")
+    if not isinstance(observers_missing, list):
+        observers_missing = []
+
+    notes = payload.get("notes")
+    if not isinstance(notes, str):
+        notes = ""
+
+    lines = [f"# world-observer-meta daily summary ({date_str})", ""]
+    lines.append("## observers run")
+    if observers_run:
+        for observer in observers_run:
+            lines.append(f"- {observer}")
+    else:
+        lines.append("- none")
+    lines.append("")
+
+    lines.append("## observers missing")
+    if observers_missing:
+        for observer in observers_missing:
+            lines.append(f"- {observer}")
+    else:
+        lines.append("- none")
+    lines.append("")
+
+    lines.append("## highlights")
+    if highlights:
+        for key in sorted(highlights):
+            lines.append(f"- {key}: {highlights[key]}")
+    else:
+        lines.append("- none")
+    lines.append("")
+
+    lines.append("## notes")
+    lines.append(f"- {notes}" if notes else "- none")
+    lines.append("")
+
+    summary_md.write_text("\n".join(lines), encoding="utf-8")
 
     return True, "ok"
 
