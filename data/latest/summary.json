@@ -1,7 +1,7 @@
 {
   "observer": "mx-presence-per-country",
-  "last_run_utc": "2026-02-13T02:16:16.064105+00:00",
-  "latest_date_utc": "2026-02-12",
+  "last_run_utc": "2026-02-14T02:15:10.855740+00:00",
+  "latest_date_utc": "2026-02-13",
   "last_7_days": [
     {
       "date_utc": "2026-02-11",
@@ -12,9 +12,14 @@
       "date_utc": "2026-02-12",
       "significant_count": 0,
       "mass_event": false
+    },
+    {
+      "date_utc": "2026-02-13",
+      "significant_count": 0,
+      "mass_event": false
     }
   ],
-  "last_daily_run_utc": "2026-02-13T02:16:16Z",
-  "run_date_utc": "2026-02-12",
+  "last_daily_run_utc": "2026-02-14T02:15:11Z",
+  "run_date_utc": "2026-02-13",
   "runner": "scripts/run_daily_cron.py"
 }
