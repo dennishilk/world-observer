@@ -133,13 +133,13 @@ def _run_observer(observer: str, date_str: str, daily_dir: Path) -> Tuple[bool, 
 def _run_meta_observer(date_str: str, daily_dir: Path) -> Tuple[bool, str]:
     observer_path = _repo_root() / "observers" / META_OBSERVER / "observer.py"
     summary_json = daily_dir / "summary.json"
-    summary_md = daily_dir / "summary.md"
 
     if not observer_path.exists():
         return False, "observer.py not found"
 
     env = os.environ.copy()
     env["WORLD_OBSERVER_DATE_UTC"] = date_str
+    env["WORLD_OBSERVER_DAILY_DIR"] = str(daily_dir)
     result = subprocess.run(
         [sys.executable, str(observer_path)],
         cwd=_repo_root(),
@@ -161,6 +161,8 @@ def _run_meta_observer(date_str: str, daily_dir: Path) -> Tuple[bool, str]:
         return False, "non-object JSON"
 
     _write_json(summary_json, payload)
+
+    summary_md = daily_dir / "summary.md"
 
     highlights = payload.get("highlights")
     if not isinstance(highlights, dict):

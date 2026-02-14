@@ -121,7 +121,7 @@ crontab -l
 ```
 
 ## Observers
-Canonical daily observers executed by `scripts/run_daily.py`:
+Canonical daily observers executed by `scripts/run_daily.py` (authoritative `OBSERVERS` list):
 
 - `area51-reachability`
 - `asn-visibility-by-country`
@@ -144,8 +144,54 @@ Canonical daily observers executed by `scripts/run_daily.py`:
 - `undersea-cable-dependency`
 - `undersea-cable-dependency-map`
 
-`world-observer-meta` is intentionally excluded from the daily observer list and
-is executed separately to generate `summary.json` and `summary.md`.
+`world-observer-meta` is intentionally excluded from the `OBSERVERS` list. It is
+invoked after all daily observers complete.
+
+### Daily Directory Contract
+For a run date `YYYY-MM-DD`, the runner uses `data/daily/YYYY-MM-DD/` as the
+canonical daily directory.
+
+- Each observer in `OBSERVERS` must emit one JSON object on stdout.
+- `scripts/run_daily.py` writes each observer payload to
+  `data/daily/YYYY-MM-DD/<observer>.json`.
+- `scripts/run_daily.py` then runs `world-observer-meta` with
+  `WORLD_OBSERVER_DAILY_DIR` set to that same daily directory.
+- `world-observer-meta` reads per-observer JSON files from
+  `WORLD_OBSERVER_DAILY_DIR`, prints a single JSON summary object to stdout, and
+  does not write files directly.
+- The runner persists meta stdout as `data/daily/YYYY-MM-DD/summary.json` and
+  also renders `summary.md` from that summary payload.
+
+There is intentionally no `world-observer-meta.json` artifact.
+
+### Meta Observer Behavior
+`world-observer-meta` determines observer success using the per-observer output
+contract:
+
+- success: file exists, JSON root is an object, and top-level `status` is not
+  `"error"`.
+- missing: file is absent, root JSON is non-object, parse/read fails, or
+  top-level `status` is `"error"`.
+
+Observers without explicit `status: "ok"` are still treated as successful as
+long as they meet the success criteria above.
+
+Example `summary.json` shape:
+
+```json
+{
+  "observer": "world-observer-meta",
+  "date": "2026-02-14",
+  "observers_run": ["..."],
+  "observers_missing": [],
+  "highlights": {
+    "internet_shrinkage_index": 0.12,
+    "global_reachability_score": 0.98,
+    "silent_countries_count": 3
+  },
+  "notes": ""
+}
+```
 
 ### Area 51 Reachability
 The Area 51 observer uses a bounded airspace aggregation model with 15-minute
