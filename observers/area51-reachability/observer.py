@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import math
 import os
+import time
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta, timezone
 from pathlib import Path
@@ -72,21 +73,39 @@ def _save_raw_day(path: Path, payload: Dict[str, Any]) -> None:
 
 
 def _fetch_aircraft(url: str, timeout_s: int) -> Optional[List[Dict[str, Any]]]:
-    try:
-        with urlopen(url, timeout=timeout_s) as response:  # nosec - public data API
-            payload = json.loads(response.read().decode("utf-8"))
-    except (URLError, TimeoutError, UnicodeDecodeError, json.JSONDecodeError):
-        return None
+    max_attempts = 3
+    backoff_delays_s = (1, 2)
 
-    aircraft = payload.get("ac") if isinstance(payload, dict) else None
-    if not isinstance(aircraft, list):
-        return None
+    for attempt in range(max_attempts):
+        try:
+            with urlopen(url, timeout=timeout_s) as response:  # nosec - public data API
+                payload = json.loads(response.read().decode("utf-8"))
+        except (URLError, TimeoutError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+            if attempt < max_attempts - 1:
+                delay = backoff_delays_s[attempt]
+                print(
+                    f"[{OBSERVER_NAME}] fetch attempt {attempt + 1}/{max_attempts} failed ({exc}); retrying in {delay}s"
+                )
+                time.sleep(delay)
+                continue
+            return None
 
-    filtered: List[Dict[str, Any]] = []
-    for item in aircraft:
-        if isinstance(item, dict):
-            filtered.append(item)
-    return filtered
+        aircraft = payload.get("ac") if isinstance(payload, dict) else None
+        if isinstance(aircraft, list):
+            filtered: List[Dict[str, Any]] = []
+            for item in aircraft:
+                if isinstance(item, dict):
+                    filtered.append(item)
+            return filtered
+
+        if attempt < max_attempts - 1:
+            delay = backoff_delays_s[attempt]
+            print(
+                f"[{OBSERVER_NAME}] fetch attempt {attempt + 1}/{max_attempts} returned null/invalid aircraft data; retrying in {delay}s"
+            )
+            time.sleep(delay)
+
+    return None
 
 
 def _in_bbox(item: Dict[str, Any], bbox: Dict[str, float]) -> bool:
