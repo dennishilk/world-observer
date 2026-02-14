@@ -136,15 +136,6 @@ def _run_meta_observer(date_str: str, daily_dir: Path) -> Tuple[bool, str]:
     summary_md = daily_dir / "summary.md"
 
     if not observer_path.exists():
-        _write_json(
-            summary_json,
-            _error_payload(META_OBSERVER, date_str, "observer.py not found"),
-        )
-        summary_md.write_text(
-            f"# {META_OBSERVER} daily summary ({date_str})\n\n"
-            "Status: observer.py not found.\n",
-            encoding="utf-8",
-        )
         return False, "observer.py not found"
 
     env = os.environ.copy()
@@ -159,32 +150,9 @@ def _run_meta_observer(date_str: str, daily_dir: Path) -> Tuple[bool, str]:
     )
 
     if result.returncode != 0:
-        _write_json(
-            summary_json,
-            _error_payload(
-                META_OBSERVER,
-                date_str,
-                f"observer exited with status {result.returncode}",
-                result.stderr,
-            ),
-        )
-        summary_md.write_text(
-            f"# {META_OBSERVER} daily summary ({date_str})\n\n"
-            "Status: meta observer failed.\n",
-            encoding="utf-8",
-        )
         return False, f"exit {result.returncode}"
 
     if not summary_json.exists() or not summary_md.exists():
-        _write_json(
-            summary_json,
-            _error_payload(META_OBSERVER, date_str, "summary output missing"),
-        )
-        summary_md.write_text(
-            f"# {META_OBSERVER} daily summary ({date_str})\n\n"
-            "Status: summary output missing.\n",
-            encoding="utf-8",
-        )
         return False, "summary output missing"
 
     return True, "ok"
