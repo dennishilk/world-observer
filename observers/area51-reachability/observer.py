@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
+from urllib.parse import urlencode
 from urllib.error import URLError
 from urllib.request import urlopen
 
@@ -36,7 +37,7 @@ def _load_config() -> Config:
         sigma_mult=float(payload.get("sigma_mult", 2.0)),
         baseline_window=int(payload.get("baseline_window", 30)),
         bbox=dict(payload.get("bbox", {})),
-        source_url=str(payload.get("source", {}).get("url", "https://api.adsb.lol/v2/aircraft")),
+        source_url=str(payload.get("source", {}).get("url", "https://opensky-network.org/api/states/all")),
         request_timeout_s=int(payload.get("source", {}).get("timeout_s", 15)),
     )
 
@@ -90,13 +91,32 @@ def _fetch_aircraft(url: str, timeout_s: int) -> Optional[List[Dict[str, Any]]]:
                 continue
             return None
 
-        aircraft = payload.get("ac") if isinstance(payload, dict) else None
-        if isinstance(aircraft, list):
-            filtered: List[Dict[str, Any]] = []
-            for item in aircraft:
-                if isinstance(item, dict):
-                    filtered.append(item)
-            return filtered
+        if isinstance(payload, dict):
+            aircraft = payload.get("ac")
+            if isinstance(aircraft, list):
+                filtered: List[Dict[str, Any]] = []
+                for item in aircraft:
+                    if isinstance(item, dict):
+                        filtered.append(item)
+                return filtered
+
+            states = payload.get("states")
+            if isinstance(states, list):
+                normalized: List[Dict[str, Any]] = []
+                for state in states:
+                    if not isinstance(state, list) or len(state) < 14:
+                        continue
+                    normalized.append(
+                        {
+                            "lon": state[5],
+                            "lat": state[6],
+                            "alt_baro": state[7],
+                            "gs": state[9],
+                            "track": state[10],
+                            "alt_geom": state[13],
+                        }
+                    )
+                return normalized
 
         if attempt < max_attempts - 1:
             delay = backoff_delays_s[attempt]
@@ -187,7 +207,17 @@ def _collect_day_activity(config: Config, target_day: date) -> Tuple[Dict[str, A
 
     bucket_start = _current_bucket_start(target_day, config.bucket_minutes)
     key = bucket_start.strftime("%H:%M")
-    fetched = _fetch_aircraft(config.source_url, config.request_timeout_s)
+    query = urlencode(
+        {
+            "lamin": config.bbox["min_lat"],
+            "lamax": config.bbox["max_lat"],
+            "lomin": config.bbox["min_lon"],
+            "lomax": config.bbox["max_lon"],
+        }
+    )
+    separator = "&" if "?" in config.source_url else "?"
+    source_url = f"{config.source_url}{separator}{query}"
+    fetched = _fetch_aircraft(source_url, config.request_timeout_s)
 
     status = "ok"
     if fetched is None:

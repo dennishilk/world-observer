@@ -9,8 +9,8 @@
     "max_lon": -112.5
   },
   "source": {
-    "name": "adsb_lol_public_feed",
-    "url": "https://api.adsb.lol/v2/aircraft",
+    "name": "opensky_public_feed",
+    "url": "https://opensky-network.org/api/states/all",
     "timeout_s": 15
   }
 }
