@@ -65,35 +65,26 @@ def _load_json(path: Path) -> Tuple[Optional[Dict[str, Any]], Optional[str]]:
 
 def _collect_observations(
     daily_dir: Path,
-) -> Tuple[Dict[str, Dict[str, Any]], List[str], List[str]]:
+    expected_observers: Iterable[str],
+) -> Tuple[Dict[str, Dict[str, Any]], List[str]]:
     observations: Dict[str, Dict[str, Any]] = {}
     failed_inputs: List[str] = []
-    duplicates: List[str] = []
 
-    if not daily_dir.exists():
-        return observations, failed_inputs, duplicates
-
-    json_files = sorted(
-        [path for path in daily_dir.iterdir() if path.suffix == ".json"],
-        key=lambda path: path.name,
-    )
-
-    for path in json_files:
-        if path.name == SUMMARY_JSON:
+    for observer_name in sorted(expected_observers):
+        path = daily_dir / f"{observer_name}.json"
+        if not path.exists():
+            failed_inputs.append(f"{path.name}: file does not exist")
             continue
         payload, error = _load_json(path)
         if error:
             failed_inputs.append(error)
             continue
-        observer_name = payload.get("observer")
-        if not isinstance(observer_name, str) or not observer_name:
-            failed_inputs.append(f"{path.name}: missing 'observer' field")
+        if payload.get("status") == "error":
+            failed_inputs.append(f"{path.name}: status is error")
             continue
-        if observer_name in observations:
-            duplicates.append(observer_name)
         observations[observer_name] = payload
 
-    return observations, failed_inputs, duplicates
+    return observations, failed_inputs
 
 
 def _safe_number(value: Any) -> Optional[float]:
@@ -184,16 +175,10 @@ def run(date_value: Optional[object] = None) -> Dict[str, Any]:
     daily_dir = _repo_root() / "data" / "daily" / date_str
     expected = _expected_observers()
 
-    observations, failed_inputs, duplicates = _collect_observations(daily_dir)
+    observations, failed_inputs = _collect_observations(daily_dir, expected)
 
     observers_run = sorted(observations.keys())
     missing = sorted(set(expected) - set(observers_run))
-
-    if duplicates:
-        failed_inputs.append(
-            "duplicate observer outputs found; most recent file used: "
-            + ", ".join(sorted(set(duplicates)))
-        )
 
     highlights = _extract_highlights(observations)
 
