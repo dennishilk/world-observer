@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import math
 import os
-import time
+import time as time_module
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta, timezone
 from pathlib import Path
@@ -86,7 +86,7 @@ def _fetch_aircraft(url: str, timeout_s: int) -> Optional[List[Dict[str, Any]]]:
                 print(
                     f"[{OBSERVER_NAME}] fetch attempt {attempt + 1}/{max_attempts} failed ({exc}); retrying in {delay}s"
                 )
-                time.sleep(delay)
+                time_module.sleep(delay)
                 continue
             return None
 
@@ -103,7 +103,7 @@ def _fetch_aircraft(url: str, timeout_s: int) -> Optional[List[Dict[str, Any]]]:
             print(
                 f"[{OBSERVER_NAME}] fetch attempt {attempt + 1}/{max_attempts} returned null/invalid aircraft data; retrying in {delay}s"
             )
-            time.sleep(delay)
+            time_module.sleep(delay)
 
     return None
 
