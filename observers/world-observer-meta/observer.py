@@ -3,13 +3,13 @@
 from __future__ import annotations
 
 import json
+import os
 from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 OBSERVER_NAME = "world-observer-meta"
-SUMMARY_JSON = "summary.json"
-SUMMARY_MD = "summary.md"
+DAILY_DIR_ENV = "WORLD_OBSERVER_DAILY_DIR"
 
 
 def _today_utc() -> str:
@@ -37,20 +37,39 @@ def _coerce_date(date_value: Optional[object]) -> Tuple[str, List[str]]:
     return _today_utc(), warnings
 
 
-def _repo_root() -> Path:
-    return Path(__file__).resolve().parents[2]
+def _expected_observers(daily_dir: Optional[Path]) -> Tuple[List[str], List[str]]:
+    warnings: List[str] = []
+    if daily_dir is None:
+        return [], warnings
 
-
-def _expected_observers() -> List[str]:
-    observers_dir = _repo_root() / "observers"
+    repo_root = daily_dir.parent.parent.parent
+    observers_dir = repo_root / "observers"
     if not observers_dir.exists():
-        return []
-    names = [
+        warnings.append(f"observers directory not found at {observers_dir}")
+        return [], warnings
+
+    names = sorted(
         path.name
         for path in observers_dir.iterdir()
-        if path.is_dir() and path.name != OBSERVER_NAME
-    ]
-    return sorted(names)
+        if path.is_dir() and path.name != OBSERVER_NAME and (path / "observer.py").exists()
+    )
+    return names, warnings
+
+
+def _daily_dir_from_env(date_str: str) -> Tuple[Optional[Path], List[str]]:
+    warnings: List[str] = []
+    daily_dir_value = os.environ.get(DAILY_DIR_ENV, "").strip()
+    if not daily_dir_value:
+        warnings.append(f"{DAILY_DIR_ENV} not set; cannot scan daily observer outputs.")
+        return None, warnings
+
+    daily_dir = Path(daily_dir_value)
+    expected_suffix = Path("data") / "daily" / date_str
+    if daily_dir.name != date_str:
+        warnings.append(
+            f"{DAILY_DIR_ENV} points to '{daily_dir}', which does not end with '{expected_suffix}'."
+        )
+    return daily_dir, warnings
 
 
 def _load_json(path: Path) -> Tuple[Optional[Dict[str, Any]], Optional[str]]:
@@ -66,14 +85,15 @@ def _load_json(path: Path) -> Tuple[Optional[Dict[str, Any]], Optional[str]]:
 def _collect_observations(
     daily_dir: Path,
     expected_observers: Iterable[str],
-) -> Tuple[Dict[str, Dict[str, Any]], List[str]]:
+) -> Tuple[Dict[str, Dict[str, Any]], List[str], List[str]]:
     observations: Dict[str, Dict[str, Any]] = {}
+    missing_inputs: List[str] = []
     failed_inputs: List[str] = []
 
     for observer_name in sorted(expected_observers):
         path = daily_dir / f"{observer_name}.json"
         if not path.exists():
-            failed_inputs.append(f"{path.name}: file does not exist")
+            missing_inputs.append(observer_name)
             continue
         payload, error = _load_json(path)
         if error:
@@ -84,7 +104,7 @@ def _collect_observations(
             continue
         observations[observer_name] = payload
 
-    return observations, failed_inputs
+    return observations, missing_inputs, failed_inputs
 
 
 def _safe_number(value: Any) -> Optional[float]:
@@ -119,66 +139,29 @@ def _extract_highlights(observations: Dict[str, Dict[str, Any]]) -> Dict[str, Op
     return highlights
 
 
-def _format_summary_md(
-    date_str: str,
-    expected: Iterable[str],
-    observations: Dict[str, Dict[str, Any]],
-    missing: Iterable[str],
-    failed: Iterable[str],
-    highlights: Dict[str, Optional[float]],
-) -> str:
-    missing_set = set(missing)
-    failed_names = {item.split(":", 1)[0] for item in failed}
-
-    lines = [f"# world-observer-meta daily summary ({date_str})", ""]
-
-    highlight_map = {
-        "internet-shrinkage-index": "internet_shrinkage_index",
-        "global-reachability-score": "global_reachability_score",
-        "silent-countries-list": "silent_countries_count",
-    }
-
-    for observer_name in expected:
-        lines.append(f"## {observer_name}")
-        if observer_name in observations:
-            lines.append("- Status: output present")
-            highlight_key = highlight_map.get(observer_name)
-            if highlight_key:
-                value = highlights.get(highlight_key)
-                if value is None:
-                    lines.append("- Highlight: not reported in output")
-                else:
-                    lines.append(f"- Highlight ({highlight_key}): {value}")
-            else:
-                lines.append("- Highlight: none extracted")
-        elif observer_name in missing_set:
-            lines.append("- Status: missing output")
-        elif observer_name in failed_names:
-            lines.append("- Status: output unreadable or malformed")
-        else:
-            lines.append("- Status: missing output")
-        lines.append("")
-
-    if failed:
-        lines.append("## failed inputs")
-        for item in failed:
-            lines.append(f"- {item}")
-        lines.append("")
-
-    return "\n".join(lines).rstrip() + "\n"
-
-
 def run(date_value: Optional[object] = None) -> Dict[str, Any]:
     """Aggregate daily observer outputs into a neutral summary."""
 
     date_str, warnings = _coerce_date(date_value)
-    daily_dir = _repo_root() / "data" / "daily" / date_str
-    expected = _expected_observers()
+    daily_dir, daily_dir_warnings = _daily_dir_from_env(date_str)
+    warnings.extend(daily_dir_warnings)
+    expected, expected_warnings = _expected_observers(daily_dir)
+    warnings.extend(expected_warnings)
 
-    observations, failed_inputs = _collect_observations(daily_dir, expected)
+    observations: Dict[str, Dict[str, Any]] = {}
+    missing: List[str] = sorted(expected)
+    failed_inputs: List[str] = []
+    if daily_dir is not None:
+        observations, missing_inputs, failed_inputs = _collect_observations(daily_dir, expected)
+        observers_run = sorted(observations.keys())
+        missing = sorted(set(missing_inputs) | (set(expected) - set(observers_run)))
+    else:
+        observers_run = []
 
-    observers_run = sorted(observations.keys())
-    missing = sorted(set(expected) - set(observers_run))
+    if daily_dir is not None and not daily_dir.exists():
+        missing = sorted(expected)
+        observers_run = []
+        failed_inputs.append(f"{daily_dir}: directory does not exist")
 
     highlights = _extract_highlights(observations)
 
@@ -199,20 +182,6 @@ def run(date_value: Optional[object] = None) -> Dict[str, Any]:
         "highlights": highlights,
         "notes": notes,
     }
-
-    daily_dir.mkdir(parents=True, exist_ok=True)
-    summary_path = daily_dir / SUMMARY_JSON
-    summary_path.write_text(json.dumps(summary, ensure_ascii=False, indent=2) + "\n")
-
-    summary_md = _format_summary_md(
-        date_str,
-        expected,
-        observations,
-        missing,
-        failed_inputs,
-        highlights,
-    )
-    (daily_dir / SUMMARY_MD).write_text(summary_md, encoding="utf-8")
 
     return summary
 
