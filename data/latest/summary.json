@@ -1,25 +1,34 @@
 {
-  "observer": "mx-presence-per-country",
-  "last_run_utc": "2026-02-14T02:15:10.855740+00:00",
-  "latest_date_utc": "2026-02-13",
+  "last_run_utc": "2026-02-15T02:15:00.823650+00:00",
+  "latest_date_utc": "2026-02-14",
   "last_7_days": [
     {
+      "date_utc": "2026-02-08",
+      "any_significant": false
+    },
+    {
+      "date_utc": "2026-02-09",
+      "any_significant": false
+    },
+    {
+      "date_utc": "2026-02-10",
+      "any_significant": false
+    },
+    {
       "date_utc": "2026-02-11",
-      "significant_count": 0,
-      "mass_event": false
+      "any_significant": false
     },
     {
       "date_utc": "2026-02-12",
-      "significant_count": 0,
-      "mass_event": false
+      "any_significant": false
     },
     {
       "date_utc": "2026-02-13",
-      "significant_count": 0,
-      "mass_event": false
+      "any_significant": false
+    },
+    {
+      "date_utc": "2026-02-14",
+      "any_significant": false
     }
-  ],
-  "last_daily_run_utc": "2026-02-14T02:15:11Z",
-  "run_date_utc": "2026-02-13",
-  "runner": "scripts/run_daily_cron.py"
+  ]
 }

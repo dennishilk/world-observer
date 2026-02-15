@@ -1,61 +1,34 @@
 # world-observer-meta daily summary (2026-02-14)
 
-## area51-reachability
-- Status: missing output
+## observers run
+- area51-reachability
+- asn-visibility-by-country
+- cuba-internet-weather
+- dns-time-to-answer-index
+- dns-tta-stress-index
+- global-reachability-long-horizon
+- global-reachability-score
+- internet-shrinkage-index
+- ipv6-adoption-locked-states
+- ipv6-global-compare
+- ipv6-locked-states
+- iran-dns-behavior
+- mx-presence-by-country
+- mx-presence-per-country
+- north-korea-connectivity
+- silent-countries-list
+- tls-fingerprint-change
+- traceroute-to-nowhere
+- undersea-cable-dependency
+- undersea-cable-dependency-map
 
-## asn-visibility-by-country
-- Status: missing output
+## observers missing
+- none
 
-## cuba-internet-weather
-- Status: missing output
+## highlights
+- global_reachability_score: None
+- internet_shrinkage_index: None
+- silent_countries_count: None
 
-## dns-time-to-answer-index
-- Status: missing output
-
-## dns-tta-stress-index
-- Status: missing output
-
-## global-reachability-long-horizon
-- Status: missing output
-
-## global-reachability-score
-- Status: missing output
-
-## internet-shrinkage-index
-- Status: missing output
-
-## ipv6-adoption-locked-states
-- Status: missing output
-
-## ipv6-global-compare
-- Status: missing output
-
-## ipv6-locked-states
-- Status: missing output
-
-## iran-dns-behavior
-- Status: missing output
-
-## mx-presence-by-country
-- Status: missing output
-
-## mx-presence-per-country
-- Status: missing output
-
-## north-korea-connectivity
-- Status: missing output
-
-## silent-countries-list
-- Status: missing output
-
-## tls-fingerprint-change
-- Status: missing output
-
-## traceroute-to-nowhere
-- Status: missing output
-
-## undersea-cable-dependency
-- Status: missing output
-
-## undersea-cable-dependency-map
-- Status: missing output
+## notes
+- WORLD_OBSERVER_DAILY_DIR points to '/home/nebu/world-observer/data/daily/2026-02-14', which does not end with 'data/daily/2026-02-15'.

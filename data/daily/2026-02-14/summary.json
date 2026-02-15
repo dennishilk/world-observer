@@ -1,8 +1,7 @@
 {
   "observer": "world-observer-meta",
-  "date": "2026-02-14",
-  "observers_run": [],
-  "observers_missing": [
+  "date": "2026-02-15",
+  "observers_run": [
     "area51-reachability",
     "asn-visibility-by-country",
     "cuba-internet-weather",
@@ -24,10 +23,11 @@
     "undersea-cable-dependency",
     "undersea-cable-dependency-map"
   ],
+  "observers_missing": [],
   "highlights": {
     "internet_shrinkage_index": null,
     "global_reachability_score": null,
     "silent_countries_count": null
   },
-  "notes": "Missing observers: area51-reachability, asn-visibility-by-country, cuba-internet-weather, dns-time-to-answer-index, dns-tta-stress-index, global-reachability-long-horizon, global-reachability-score, internet-shrinkage-index, ipv6-adoption-locked-states, ipv6-global-compare, ipv6-locked-states, iran-dns-behavior, mx-presence-by-country, mx-presence-per-country, north-korea-connectivity, silent-countries-list, tls-fingerprint-change, traceroute-to-nowhere, undersea-cable-dependency, undersea-cable-dependency-map"
+  "notes": "WORLD_OBSERVER_DAILY_DIR points to '/home/nebu/world-observer/data/daily/2026-02-14', which does not end with 'data/daily/2026-02-15'."
 }
