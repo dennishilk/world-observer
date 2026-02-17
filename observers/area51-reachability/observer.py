@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import math
 import os
+import sys
 import time as time_module
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta, timezone
@@ -85,7 +86,8 @@ def _fetch_aircraft(url: str, timeout_s: int) -> Optional[List[Dict[str, Any]]]:
             if attempt < max_attempts - 1:
                 delay = backoff_delays_s[attempt]
                 print(
-                    f"[{OBSERVER_NAME}] fetch attempt {attempt + 1}/{max_attempts} failed ({exc}); retrying in {delay}s"
+                    f"[{OBSERVER_NAME}] fetch attempt {attempt + 1}/{max_attempts} failed ({exc}); retrying in {delay}s",
+                    file=sys.stderr,
                 )
                 time_module.sleep(delay)
                 continue
@@ -121,7 +123,8 @@ def _fetch_aircraft(url: str, timeout_s: int) -> Optional[List[Dict[str, Any]]]:
         if attempt < max_attempts - 1:
             delay = backoff_delays_s[attempt]
             print(
-                f"[{OBSERVER_NAME}] fetch attempt {attempt + 1}/{max_attempts} returned null/invalid aircraft data; retrying in {delay}s"
+                f"[{OBSERVER_NAME}] fetch attempt {attempt + 1}/{max_attempts} returned null/invalid aircraft data; retrying in {delay}s",
+                file=sys.stderr,
             )
             time_module.sleep(delay)
 
@@ -181,7 +184,9 @@ def _is_janet_like(item: Dict[str, Any], bucket_start: datetime) -> bool:
 def _current_bucket_start(target_day: date, bucket_minutes: int) -> datetime:
     now = datetime.now(timezone.utc)
     if now.date() != target_day:
-        return datetime.combine(target_day, time(23, 59), tzinfo=timezone.utc)
+        return datetime.combine(target_day, time.min, tzinfo=timezone.utc) + timedelta(
+            minutes=((24 * 60) // bucket_minutes - 1) * bucket_minutes
+        )
     minutes = (now.hour * 60 + now.minute) // bucket_minutes * bucket_minutes
     return datetime.combine(target_day, time.min, tzinfo=timezone.utc) + timedelta(minutes=minutes)
 
