@@ -1,6 +1,6 @@
 {
   "observer": "world-observer-meta",
-  "date": "2026-02-17",
+  "date": "2026-02-18",
   "observers_run": [
     "asn-visibility-by-country",
     "cuba-internet-weather",
@@ -30,5 +30,5 @@
     "global_reachability_score": null,
     "silent_countries_count": null
   },
-  "notes": "WORLD_OBSERVER_DAILY_DIR points to '/home/nebu/world-observer/data/daily/2026-02-16', which does not end with 'data/daily/2026-02-17'. | Missing observers: area51-reachability | Failed inputs: area51-reachability.json: status is error"
+  "notes": "WORLD_OBSERVER_DAILY_DIR points to '/home/nebu/world-observer/data/daily/2026-02-17', which does not end with 'data/daily/2026-02-18'. | Missing observers: area51-reachability | Failed inputs: area51-reachability.json: status is error"
 }

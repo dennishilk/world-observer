@@ -1,4 +1,4 @@
-# world-observer-meta daily summary (2026-02-16)
+# world-observer-meta daily summary (2026-02-17)
 
 ## observers run
 - asn-visibility-by-country
@@ -30,4 +30,4 @@
 - silent_countries_count: None
 
 ## notes
-- WORLD_OBSERVER_DAILY_DIR points to '/home/nebu/world-observer/data/daily/2026-02-16', which does not end with 'data/daily/2026-02-17'. | Missing observers: area51-reachability | Failed inputs: area51-reachability.json: status is error
+- WORLD_OBSERVER_DAILY_DIR points to '/home/nebu/world-observer/data/daily/2026-02-17', which does not end with 'data/daily/2026-02-18'. | Missing observers: area51-reachability | Failed inputs: area51-reachability.json: status is error

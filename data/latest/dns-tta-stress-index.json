@@ -1,134 +1,134 @@
 {
   "observer": "dns-tta-stress-index",
-  "date_utc": "2026-02-16",
+  "date_utc": "2026-02-17",
   "data_status": "ok",
   "countries": [
     {
       "country": "US",
-      "tta_mean_ms": 20.04,
-      "tta_p95_ms": 76.03,
+      "tta_mean_ms": 26.11,
+      "tta_p95_ms": 118.41,
       "timeout_rate": 0.0,
       "success_rate": 1.0,
-      "jitter_ms": 33.06,
+      "jitter_ms": 42.71,
       "probe_count": 12,
-      "dns_stress_score": 0.077411,
+      "dns_stress_score": 0.111782,
       "baseline_30d": {
         "mean": 0.070396,
         "std": 0.094144
       },
-      "z": 0.074514,
+      "z": 0.439603,
       "is_significant": false
     },
     {
       "country": "DE",
-      "tta_mean_ms": 2.06,
-      "tta_p95_ms": 2.72,
+      "tta_mean_ms": 2.05,
+      "tta_p95_ms": 2.62,
       "timeout_rate": 0.0,
       "success_rate": 1.0,
-      "jitter_ms": 0.55,
+      "jitter_ms": 0.53,
       "probe_count": 12,
-      "dns_stress_score": 0.002137,
+      "dns_stress_score": 0.002058,
       "baseline_30d": {
         "mean": 0.256094,
         "std": 0.244117
       },
-      "z": -1.040309,
+      "z": -1.040632,
       "is_significant": false
     },
     {
       "country": "BR",
-      "tta_mean_ms": 2.0,
-      "tta_p95_ms": 2.32,
+      "tta_mean_ms": 1.98,
+      "tta_p95_ms": 2.41,
       "timeout_rate": 0.0,
       "success_rate": 1.0,
       "jitter_ms": 0.47,
       "probe_count": 12,
-      "dns_stress_score": 0.001823,
+      "dns_stress_score": 0.001876,
       "baseline_30d": {
         "mean": 0.257412,
         "std": 0.242932
       },
-      "z": -1.052101,
+      "z": -1.051883,
       "is_significant": false
     },
     {
       "country": "IN",
-      "tta_mean_ms": 1.89,
-      "tta_p95_ms": 2.51,
+      "tta_mean_ms": 2.08,
+      "tta_p95_ms": 2.35,
       "timeout_rate": 0.0,
       "success_rate": 1.0,
-      "jitter_ms": 0.54,
+      "jitter_ms": 0.43,
       "probe_count": 12,
-      "dns_stress_score": 0.002004,
+      "dns_stress_score": 0.001801,
       "baseline_30d": {
         "mean": 0.038482,
         "std": 0.08261
       },
-      "z": -0.441569,
+      "z": -0.444026,
       "is_significant": false
     },
     {
       "country": "ZA",
-      "tta_mean_ms": 2.21,
-      "tta_p95_ms": 2.58,
+      "tta_mean_ms": 2.17,
+      "tta_p95_ms": 2.45,
       "timeout_rate": 0.0,
       "success_rate": 1.0,
-      "jitter_ms": 0.37,
+      "jitter_ms": 0.33,
       "probe_count": 12,
-      "dns_stress_score": 0.001875,
+      "dns_stress_score": 0.001759,
       "baseline_30d": {
         "mean": 0.255108,
         "std": 0.245036
       },
-      "z": -1.033452,
+      "z": -1.033926,
       "is_significant": false
     },
     {
       "country": "JP",
-      "tta_mean_ms": 2.58,
-      "tta_p95_ms": 3.1,
+      "tta_mean_ms": 2.07,
+      "tta_p95_ms": 2.38,
       "timeout_rate": 0.0,
       "success_rate": 1.0,
-      "jitter_ms": 0.38,
+      "jitter_ms": 0.42,
       "probe_count": 12,
-      "dns_stress_score": 0.002188,
+      "dns_stress_score": 0.001808,
       "baseline_30d": {
         "mean": 0.007746,
         "std": 0.014023
       },
-      "z": -0.396349,
+      "z": -0.423447,
       "is_significant": false
     },
     {
       "country": "AU",
-      "tta_mean_ms": 2.42,
-      "tta_p95_ms": 3.02,
+      "tta_mean_ms": 2.08,
+      "tta_p95_ms": 2.36,
       "timeout_rate": 0.0,
       "success_rate": 1.0,
-      "jitter_ms": 0.45,
+      "jitter_ms": 0.32,
       "probe_count": 12,
-      "dns_stress_score": 0.002212,
+      "dns_stress_score": 0.001697,
       "baseline_30d": {
         "mean": 0.258755,
         "std": 0.241754
       },
-      "z": -1.061174,
+      "z": -1.063304,
       "is_significant": false
     },
     {
       "country": "CA",
-      "tta_mean_ms": 2.29,
-      "tta_p95_ms": 2.87,
+      "tta_mean_ms": 2.42,
+      "tta_p95_ms": 3.69,
       "timeout_rate": 0.0,
       "success_rate": 1.0,
-      "jitter_ms": 0.46,
+      "jitter_ms": 0.72,
       "probe_count": 12,
-      "dns_stress_score": 0.002134,
+      "dns_stress_score": 0.002873,
       "baseline_30d": {
         "mean": 0.260203,
         "std": 0.240511
       },
-      "z": -1.073003,
+      "z": -1.06993,
       "is_significant": false
     }
   ],

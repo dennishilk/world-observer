@@ -1,12 +1,12 @@
 {
   "observer": "north-korea-connectivity",
-  "date_utc": "2026-02-16",
+  "date_utc": "2026-02-17",
   "data_status": "ok",
   "connectivity_state": "dark",
   "layers": {
     "dns": {
       "success_rate": 0.25,
-      "mean_latency_ms": 2529.0,
+      "mean_latency_ms": 417.46,
       "probe_count": 8,
       "data_completeness": 1.0
     },
@@ -27,9 +27,9 @@
     }
   },
   "time_to_silence": {
-    "mean_seconds": 62.18,
-    "p95_seconds": 62.19,
-    "worst_seconds": 62.19
+    "mean_seconds": 61.092,
+    "p95_seconds": 62.157,
+    "worst_seconds": 62.157
   },
   "baseline_30d": {
     "dns_success_rate": {
@@ -102,24 +102,24 @@
           "triggered": false
         },
         "tts_mean_seconds": {
-          "value": 62.18,
+          "value": 61.092,
           "mean_30d": 69.878143,
           "stddev_30d": 51.010499,
-          "zscore": -0.1509,
+          "zscore": -0.1722,
           "triggered": false
         },
         "tts_p95_seconds": {
-          "value": 62.19,
+          "value": 62.157,
           "mean_30d": 72.492429,
           "stddev_30d": 53.344102,
-          "zscore": -0.1931,
+          "zscore": -0.1938,
           "triggered": false
         },
         "tts_worst_seconds": {
-          "value": 62.19,
+          "value": 62.157,
           "mean_30d": 72.492429,
           "stddev_30d": 53.344102,
-          "zscore": -0.1931,
+          "zscore": -0.1938,
           "triggered": false
         }
       },
