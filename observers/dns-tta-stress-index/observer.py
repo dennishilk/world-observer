@@ -115,25 +115,40 @@ def _stddev(values: List[float]) -> float:
     return math.sqrt(variance)
 
 
-def _query_once(domain: str, record_type: str, timeout_s: float) -> Dict[str, Any]:
-    started = perf_counter()
+def _query_once(domain: str, record_type: str, timeout_s: float, max_attempts: int = 3) -> Dict[str, Any]:
     family = socket.AF_INET6 if record_type == "AAAA" else socket.AF_INET
     old_timeout = socket.getdefaulttimeout()
-    socket.setdefaulttimeout(timeout_s)
-    try:
-        answers = socket.getaddrinfo(domain, None, family=family, type=socket.SOCK_STREAM)
-        elapsed_ms = round((perf_counter() - started) * 1000, 2)
-        if not answers:
-            return {"status": "no_answer", "ms": elapsed_ms}
-        return {"status": "success", "ms": elapsed_ms}
-    except socket.timeout:
-        elapsed_ms = round((perf_counter() - started) * 1000, 2)
-        return {"status": "timeout", "ms": elapsed_ms}
-    except socket.gaierror:
-        elapsed_ms = round((perf_counter() - started) * 1000, 2)
-        return {"status": "error", "ms": elapsed_ms}
-    finally:
-        socket.setdefaulttimeout(old_timeout)
+    diagnostics = {"api_attempts": 0, "retries": 0, "http_status": None, "last_error": None}
+
+    for attempt in range(max_attempts):
+        diagnostics["api_attempts"] = attempt + 1
+        started = perf_counter()
+        socket.setdefaulttimeout(timeout_s)
+        try:
+            answers = socket.getaddrinfo(domain, None, family=family, type=socket.SOCK_STREAM)
+            elapsed_ms = round((perf_counter() - started) * 1000, 2)
+            if not answers:
+                diagnostics["last_error"] = "no_answer"
+                return {"status": "no_answer", "ms": elapsed_ms, "diagnostics": diagnostics}
+            return {"status": "success", "ms": elapsed_ms, "diagnostics": diagnostics}
+        except socket.timeout:
+            elapsed_ms = round((perf_counter() - started) * 1000, 2)
+            diagnostics["last_error"] = "timeout"
+            if attempt < max_attempts - 1:
+                diagnostics["retries"] += 1
+                continue
+            return {"status": "timeout", "ms": elapsed_ms, "diagnostics": diagnostics}
+        except socket.gaierror as exc:
+            elapsed_ms = round((perf_counter() - started) * 1000, 2)
+            diagnostics["last_error"] = f"gaierror_{getattr(exc, 'errno', 'unknown')}"
+            if attempt < max_attempts - 1:
+                diagnostics["retries"] += 1
+                continue
+            return {"status": "error", "ms": elapsed_ms, "diagnostics": diagnostics}
+        finally:
+            socket.setdefaulttimeout(old_timeout)
+
+    return {"status": "error", "ms": 0.0, "diagnostics": diagnostics}
 
 
 def _probe_country(country: str, config: Config) -> Dict[str, Any]:
@@ -142,11 +157,16 @@ def _probe_country(country: str, config: Config) -> Dict[str, Any]:
     successes = 0
     successful_ms: List[float] = []
     local_raw: List[Dict[str, Any]] = []
+    api_attempts = 0
+    retries = 0
 
     for domain in config.domains:
         for query_type in config.query_types:
             for _ in range(config.trials_per_domain):
                 result = _query_once(domain, query_type, config.timeout_s)
+                diag = result.get("diagnostics", {}) if isinstance(result, dict) else {}
+                api_attempts += int(diag.get("api_attempts", 0) or 0)
+                retries += int(diag.get("retries", 0) or 0)
                 total += 1
                 status = result["status"]
                 if status == "timeout":
@@ -173,6 +193,11 @@ def _probe_country(country: str, config: Config) -> Dict[str, Any]:
         "jitter_ms": round(jitter_ms, 2),
         "probe_count": total,
         "data_completeness": round(data_completeness, 6),
+        "diagnostics": {
+            "api_attempts": api_attempts,
+            "retries": retries,
+            "http_status": None,
+        },
         "_local_raw": local_raw,
     }
 
@@ -472,6 +497,11 @@ def run() -> Dict[str, Any]:
             "countries_evaluated": countries_evaluated,
             "significant_count": significant_count,
             "mass_event": mass_event,
+        },
+        "diagnostics": {
+            "api_attempts": sum(int(row.get("diagnostics", {}).get("api_attempts", 0) or 0) for row in countries),
+            "retries": sum(int(row.get("diagnostics", {}).get("retries", 0) or 0) for row in countries),
+            "http_status": None,
         },
         "significance": {
             "sigma_mult": config.sigma_mult,

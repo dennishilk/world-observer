@@ -12,6 +12,7 @@ from datetime import date, datetime, time, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 from urllib.parse import urlencode
+from urllib.error import HTTPError
 from urllib.error import URLError
 from urllib.request import urlopen
 
@@ -74,24 +75,46 @@ def _save_raw_day(path: Path, payload: Dict[str, Any]) -> None:
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
-def _fetch_aircraft(url: str, timeout_s: int) -> Optional[List[Dict[str, Any]]]:
+def _fetch_aircraft(url: str, timeout_s: int) -> Tuple[Optional[List[Dict[str, Any]]], Dict[str, Any]]:
     max_attempts = 3
-    backoff_delays_s = (1, 2)
+    backoff_base_s = 1.0
+    diagnostics: Dict[str, Any] = {
+        "api_attempts": 0,
+        "retries": 0,
+        "http_status": None,
+        "last_error": None,
+        "endpoint": url,
+    }
 
     for attempt in range(max_attempts):
+        diagnostics["api_attempts"] = attempt + 1
         try:
             with urlopen(url, timeout=timeout_s) as response:  # nosec - public data API
+                diagnostics["http_status"] = getattr(response, "status", 200)
                 payload = json.loads(response.read().decode("utf-8"))
-        except (URLError, TimeoutError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        except HTTPError as exc:
+            diagnostics["http_status"] = exc.code
+            diagnostics["last_error"] = f"http_error_{exc.code}"
+            if 400 <= exc.code < 500:
+                return None, diagnostics
             if attempt < max_attempts - 1:
-                delay = backoff_delays_s[attempt]
+                diagnostics["retries"] += 1
+                delay = backoff_base_s * (2 ** attempt)
+                time_module.sleep(delay)
+                continue
+            return None, diagnostics
+        except (URLError, TimeoutError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+            diagnostics["last_error"] = exc.__class__.__name__
+            if attempt < max_attempts - 1:
+                diagnostics["retries"] += 1
+                delay = backoff_base_s * (2 ** attempt)
                 print(
                     f"[{OBSERVER_NAME}] fetch attempt {attempt + 1}/{max_attempts} failed ({exc}); retrying in {delay}s",
                     file=sys.stderr,
                 )
                 time_module.sleep(delay)
                 continue
-            return None
+            return None, diagnostics
 
         if isinstance(payload, dict):
             aircraft = payload.get("ac")
@@ -100,7 +123,7 @@ def _fetch_aircraft(url: str, timeout_s: int) -> Optional[List[Dict[str, Any]]]:
                 for item in aircraft:
                     if isinstance(item, dict):
                         filtered.append(item)
-                return filtered
+                return filtered, diagnostics
 
             states = payload.get("states")
             if isinstance(states, list):
@@ -118,17 +141,20 @@ def _fetch_aircraft(url: str, timeout_s: int) -> Optional[List[Dict[str, Any]]]:
                             "alt_geom": state[13],
                         }
                     )
-                return normalized
+                return normalized, diagnostics
 
         if attempt < max_attempts - 1:
-            delay = backoff_delays_s[attempt]
+            diagnostics["retries"] += 1
+            delay = backoff_base_s * (2 ** attempt)
+            diagnostics["last_error"] = "empty_or_invalid_payload"
             print(
                 f"[{OBSERVER_NAME}] fetch attempt {attempt + 1}/{max_attempts} returned null/invalid aircraft data; retrying in {delay}s",
                 file=sys.stderr,
             )
             time_module.sleep(delay)
 
-    return None
+    diagnostics["last_error"] = diagnostics.get("last_error") or "empty_or_invalid_payload"
+    return None, diagnostics
 
 
 def _in_bbox(item: Dict[str, Any], bbox: Dict[str, float]) -> bool:
@@ -205,7 +231,7 @@ def _summarize_bucket(ac: List[Dict[str, Any]], config: Config, bucket_start: da
     return {"total": total, "janet_like": janet_like, "other": max(total - janet_like, 0)}
 
 
-def _collect_day_activity(config: Config, target_day: date) -> Tuple[Dict[str, Any], str]:
+def _collect_day_activity(config: Config, target_day: date) -> Tuple[Dict[str, Any], str, Dict[str, Any]]:
     raw_path = RAW_STATE_DIR / f"{target_day.isoformat()}.json"
     raw_state = _load_raw_day(raw_path)
     buckets = raw_state.setdefault("buckets", {})
@@ -222,12 +248,18 @@ def _collect_day_activity(config: Config, target_day: date) -> Tuple[Dict[str, A
     )
     separator = "&" if "?" in config.source_url else "?"
     source_url = f"{config.source_url}{separator}{query}"
-    fetched = _fetch_aircraft(source_url, config.request_timeout_s)
+    fetched, diagnostics = _fetch_aircraft(source_url, config.request_timeout_s)
 
     status = "ok"
     if fetched is None:
-        status = "partial" if buckets else "unavailable"
+        if isinstance(diagnostics.get("http_status"), int) and 400 <= diagnostics["http_status"] < 500:
+            status = "error"
+        elif buckets:
+            status = "partial"
+        else:
+            status = "unavailable"
     else:
+        diagnostics["last_error"] = None
         summary = _summarize_bucket(fetched, config, bucket_start)
         buckets[key] = summary
         _save_raw_day(raw_path, raw_state)
@@ -248,11 +280,15 @@ def _collect_day_activity(config: Config, target_day: date) -> Tuple[Dict[str, A
             if isinstance(v, int):
                 totals[k] += v
 
+    if fetched is not None and totals["total"] == 0:
+        status = "partial"
+        diagnostics["last_error"] = "empty_but_reachable"
+
     return {
         "bucket_count": present,
         "expected_bucket_count": expected,
         "au": totals,
-    }, status
+    }, status, diagnostics
 
 
 def _safe_float(v: Any) -> Optional[float]:
@@ -407,7 +443,7 @@ def _write_latest_summary(target_day: date, daily_payload: Dict[str, Any], chart
 def run() -> Dict[str, Any]:
     config = _load_config()
     target_day = _target_date_utc()
-    collection, status = _collect_day_activity(config, target_day)
+    collection, status, diagnostics = _collect_day_activity(config, target_day)
 
     observed = collection["au"]
     baseline: Dict[str, Dict[str, float]] = {}
@@ -417,9 +453,10 @@ def run() -> Dict[str, Any]:
     for class_name in ["janet_like", "other", "total"]:
         series = _load_daily_series(class_name, config.baseline_window, target_day)
         mean, std = _mean_std(series)
-        z = _zscore(int(observed[class_name]), mean, std)
-        sig = bool(std > 0 and observed[class_name] > (mean + config.sigma_mult * std))
-        baseline[class_name] = {"mean": round(mean, 4), "std": round(std, 4)}
+        effective_std = std if std > 0 else max(abs(mean) * 0.05, 1.0)
+        z = _zscore(int(observed[class_name]), mean, effective_std)
+        sig = bool(observed[class_name] > (mean + config.sigma_mult * effective_std) and len(series) >= 5)
+        baseline[class_name] = {"mean": round(mean, 4), "std": round(std, 4), "effective_std": round(effective_std, 4)}
         significance[class_name] = {"is_significant": sig, "z": round(z, 4)}
         any_sig = any_sig or sig
 
@@ -439,9 +476,18 @@ def run() -> Dict[str, Any]:
         },
         "baseline_30d": baseline,
         "significance": significance,
+        "diagnostics": {
+            "api_attempts": diagnostics.get("api_attempts", 0),
+            "retries": diagnostics.get("retries", 0),
+            "http_status": diagnostics.get("http_status"),
+            "endpoint": diagnostics.get("endpoint"),
+            "last_error": diagnostics.get("last_error"),
+        },
     }
 
-    chart_path = _build_chart_if_significant(target_day, payload, config.baseline_window) if any_sig else None
+    chart_path = None
+    if any_sig and os.environ.get("WORLD_OBSERVER_ENABLE_CHARTS", "0").strip() == "1":
+        chart_path = _build_chart_if_significant(target_day, payload, config.baseline_window)
     _write_latest_summary(target_day, payload, chart_path)
 
     return payload

@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import os
 import json
+import logging
 import shutil
 import subprocess
 import sys
@@ -47,6 +48,19 @@ def _repo_root() -> Path:
     return Path(__file__).resolve().parents[1]
 
 
+def _logger() -> logging.Logger:
+    logger = logging.getLogger("run_daily")
+    if logger.handlers:
+        return logger
+    log_path = _repo_root() / "logs" / "cron.log"
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+    logger.setLevel(logging.INFO)
+    handler = logging.FileHandler(log_path, encoding="utf-8")
+    handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(message)s"))
+    logger.addHandler(handler)
+    return logger
+
+
 def _yesterday_utc() -> str:
     return (datetime.now(timezone.utc).date() - timedelta(days=1)).isoformat()
 
@@ -73,10 +87,50 @@ def _error_payload(observer: str, date_str: str, message: str, stderr: str = "")
     }
     if stderr:
         payload["stderr"] = stderr.strip()
+    payload["data_status"] = "error"
+    payload["diagnostics"] = {"api_attempts": 0, "retries": 0, "http_status": None}
     return payload
 
 
+def _normalize_payload(observer: str, payload: Dict[str, Any], logger: logging.Logger) -> Dict[str, Any]:
+    normalized = dict(payload)
+    data_status = normalized.get("data_status")
+    status = normalized.get("status")
+    if status == "error":
+        normalized["data_status"] = "error"
+    elif data_status not in {"ok", "partial", "unavailable", "error"}:
+        normalized["data_status"] = "ok"
+
+    diagnostics = normalized.get("diagnostics")
+    if not isinstance(diagnostics, dict):
+        diagnostics = {}
+    diagnostics.setdefault("api_attempts", 0)
+    diagnostics.setdefault("retries", 0)
+    diagnostics.setdefault("http_status", None)
+    normalized["diagnostics"] = diagnostics
+
+    if "observer" not in normalized:
+        normalized["observer"] = observer
+    if "date_utc" not in normalized and "date" not in normalized:
+        logger.warning("%s missing date/date_utc in payload", observer)
+
+    return normalized
+
+
+def _detect_corrupted_json(daily_dir: Path, logger: logging.Logger) -> List[str]:
+    corrupted: List[str] = []
+    for path in sorted(daily_dir.glob("*.json")):
+        try:
+            json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            corrupted.append(path.name)
+    if corrupted:
+        logger.error("corrupted JSON files detected in %s: %s", daily_dir, ", ".join(corrupted))
+    return corrupted
+
+
 def _run_observer(observer: str, date_str: str, daily_dir: Path) -> Tuple[bool, str]:
+    logger = _logger()
     observer_path = _repo_root() / "observers" / observer / "observer.py"
     output_path = daily_dir / f"{observer}.json"
 
@@ -126,7 +180,8 @@ def _run_observer(observer: str, date_str: str, daily_dir: Path) -> Tuple[bool, 
         )
         return False, "non-object JSON"
 
-    _write_json(output_path, payload)
+    normalized = _normalize_payload(observer, payload, logger)
+    _write_json(output_path, normalized)
     return True, "ok"
 
 
@@ -231,6 +286,7 @@ def _has_complete_daily_outputs(daily_dir: Path) -> bool:
 
 
 def main() -> None:
+    logger = _logger()
     args = _parse_args()
     if args.date:
         date_str = args.date
@@ -253,6 +309,10 @@ def main() -> None:
             print(f"[fail] {observer}: {detail}")
             failures.append(observer)
 
+    corrupted = _detect_corrupted_json(daily_dir, logger)
+    if corrupted:
+        failures.append("corrupted_json")
+
     meta_ok, meta_detail = _run_meta_observer(date_str, daily_dir)
     if meta_ok:
         print(f"[ok] {META_OBSERVER}")
@@ -264,8 +324,10 @@ def main() -> None:
 
     if failures:
         print(f"Completed with failures: {', '.join(failures)}")
+        logger.warning("daily run %s completed with failures: %s", date_str, ", ".join(failures))
     else:
         print("Completed with no failures.")
+        logger.info("daily run %s completed with no failures", date_str)
 
 
 if __name__ == "__main__":
