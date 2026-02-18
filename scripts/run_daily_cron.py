@@ -19,7 +19,7 @@ from typing import Sequence
 import fcntl
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-LOG_FILE = REPO_ROOT / "logs" / "daily.log"
+LOG_FILE = REPO_ROOT / "logs" / "cron.log"
 LOCK_FILE = REPO_ROOT / "state" / "daily_run.lock"
 DEPLOY_KEY = Path("/home/nebu/.ssh/deploy_key")
 RUN_DAILY_SCRIPT = REPO_ROOT / "scripts" / "run_daily.py"

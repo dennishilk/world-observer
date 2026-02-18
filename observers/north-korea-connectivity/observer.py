@@ -148,16 +148,19 @@ def _empty_layer(include_latency: bool = False) -> Dict[str, Any]:
     return payload
 
 
-def _probe_once(hosts: List[str], timeout_s: float) -> Dict[str, Dict[str, Any]]:
+def _probe_once(hosts: List[str], timeout_s: float) -> Tuple[Dict[str, Dict[str, Any]], Dict[str, int]]:
     layers: Dict[str, Dict[str, Any]] = {
         "dns": _empty_layer(include_latency=True),
         "tcp": _empty_layer(),
         "icmp": _empty_layer(),
         "tls": _empty_layer(),
     }
+    diagnostics = {"api_attempts": 0, "retries": 0, "http_status": None}
+
     for host in hosts:
         layers["dns"]["expected"] += 1
         layers["dns"]["attempted"] += 1
+        diagnostics["api_attempts"] += 1
         dns_ok, dns_latency = _dns_probe(host, timeout_s)
         layers["dns"]["probe_count"] += 1
         if dns_ok:
@@ -167,6 +170,7 @@ def _probe_once(hosts: List[str], timeout_s: float) -> Dict[str, Dict[str, Any]]
 
         layers["icmp"]["expected"] += 1
         layers["icmp"]["attempted"] += 1
+        diagnostics["api_attempts"] += 1
         icmp_ok = _ping(host, timeout_s)
         layers["icmp"]["probe_count"] += 1
         if icmp_ok:
@@ -174,6 +178,7 @@ def _probe_once(hosts: List[str], timeout_s: float) -> Dict[str, Dict[str, Any]]
 
         layers["tls"]["expected"] += 1
         layers["tls"]["attempted"] += 1
+        diagnostics["api_attempts"] += 1
         tls_ok = _tls_probe(host, timeout_s)
         layers["tls"]["probe_count"] += 1
         if tls_ok:
@@ -182,12 +187,13 @@ def _probe_once(hosts: List[str], timeout_s: float) -> Dict[str, Dict[str, Any]]
         for port in TCP_PORTS:
             layers["tcp"]["expected"] += 1
             layers["tcp"]["attempted"] += 1
+            diagnostics["api_attempts"] += 1
             tcp_ok = _tcp_probe(host, port, timeout_s)
             layers["tcp"]["probe_count"] += 1
             if tcp_ok:
                 layers["tcp"]["successes"] += 1
 
-    return layers
+    return layers, diagnostics
 
 
 def _merge_layer_totals(total: Dict[str, Dict[str, Any]], piece: Dict[str, Dict[str, Any]]) -> None:
@@ -244,7 +250,7 @@ def _time_to_silence(hosts: List[str], timeout_s: float, trials: int, max_rounds
         start = time.monotonic()
         elapsed = 0.0
         for _round in range(max_rounds):
-            probe_round = _probe_once(shuffled, timeout_s)
+            probe_round, _ = _probe_once(shuffled, timeout_s)
             any_success = any(probe_round[layer]["successes"] > 0 for layer in LAYER_NAMES)
             elapsed = time.monotonic() - start
             if not any_success:
@@ -635,9 +641,13 @@ def run() -> Dict[str, Any]:
         "tls": _empty_layer(),
     }
 
+    diagnostics = {"api_attempts": 0, "retries": 0, "http_status": None}
+
     if hosts:
         for _ in range(2):
-            _merge_layer_totals(totals, _probe_once(hosts, config["timeout_s"]))
+            probe_layers, probe_diag = _probe_once(hosts, config["timeout_s"])
+            _merge_layer_totals(totals, probe_layers)
+            diagnostics["api_attempts"] += probe_diag["api_attempts"]
 
     layers = _finalize_layers(totals)
     tts = _time_to_silence(
@@ -669,7 +679,9 @@ def run() -> Dict[str, Any]:
 
     completeness_values = [float(layers[layer]["data_completeness"]) for layer in LAYER_NAMES]
     min_completeness = min(completeness_values) if completeness_values else 0.0
-    if min_completeness >= 0.95:
+    if not hosts:
+        data_status = "error"
+    elif min_completeness >= 0.95:
         data_status = "ok"
     elif min_completeness > 0:
         data_status = "partial"
@@ -711,6 +723,7 @@ def run() -> Dict[str, Any]:
         },
         "baseline_30d": baseline_stats,
         "significance": significance,
+        "diagnostics": diagnostics,
     }
 
     _generate_chart_if_needed(date_utc, significance, history, state)

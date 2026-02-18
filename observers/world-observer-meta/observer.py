@@ -85,10 +85,11 @@ def _load_json(path: Path) -> Tuple[Optional[Dict[str, Any]], Optional[str]]:
 def _collect_observations(
     daily_dir: Path,
     expected_observers: Iterable[str],
-) -> Tuple[Dict[str, Dict[str, Any]], List[str], List[str]]:
+) -> Tuple[Dict[str, Dict[str, Any]], List[str], List[str], List[str]]:
     observations: Dict[str, Dict[str, Any]] = {}
     missing_inputs: List[str] = []
     failed_inputs: List[str] = []
+    degraded_inputs: List[str] = []
 
     for observer_name in sorted(expected_observers):
         path = daily_dir / f"{observer_name}.json"
@@ -102,9 +103,12 @@ def _collect_observations(
         if payload.get("status") == "error":
             failed_inputs.append(f"{path.name}: status is error")
             continue
+        data_status = payload.get("data_status")
+        if data_status in {"partial", "unavailable", "error"}:
+            degraded_inputs.append(f"{observer_name}:{data_status}")
         observations[observer_name] = payload
 
-    return observations, missing_inputs, failed_inputs
+    return observations, missing_inputs, failed_inputs, degraded_inputs
 
 
 def _safe_number(value: Any) -> Optional[float]:
@@ -151,8 +155,9 @@ def run(date_value: Optional[object] = None) -> Dict[str, Any]:
     observations: Dict[str, Dict[str, Any]] = {}
     missing: List[str] = sorted(expected)
     failed_inputs: List[str] = []
+    degraded_inputs: List[str] = []
     if daily_dir is not None:
-        observations, missing_inputs, failed_inputs = _collect_observations(daily_dir, expected)
+        observations, missing_inputs, failed_inputs, degraded_inputs = _collect_observations(daily_dir, expected)
         observers_run = sorted(observations.keys())
         missing = sorted(set(missing_inputs) | (set(expected) - set(observers_run)))
     else:
@@ -172,6 +177,8 @@ def run(date_value: Optional[object] = None) -> Dict[str, Any]:
         notes_parts.append(f"Missing observers: {', '.join(missing)}")
     if failed_inputs:
         notes_parts.append(f"Failed inputs: {', '.join(failed_inputs)}")
+    if degraded_inputs:
+        notes_parts.append(f"Degraded observers: {', '.join(sorted(degraded_inputs))}")
     notes = " | ".join(notes_parts) if notes_parts else ""  # neutral, optional
 
     summary: Dict[str, Any] = {
@@ -179,6 +186,7 @@ def run(date_value: Optional[object] = None) -> Dict[str, Any]:
         "date": date_str,
         "observers_run": observers_run,
         "observers_missing": missing,
+        "observers_degraded": sorted(degraded_inputs),
         "highlights": highlights,
         "notes": notes,
     }
