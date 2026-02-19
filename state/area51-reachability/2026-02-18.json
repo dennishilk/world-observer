@@ -1,0 +1,14 @@
+{
+  "buckets": {
+    "10:45": {
+      "total": 10,
+      "janet_like": 10,
+      "other": 0
+    },
+    "23:45": {
+      "total": 67,
+      "janet_like": 55,
+      "other": 12
+    }
+  }
+}
