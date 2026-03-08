@@ -1,11 +1,7 @@
 {
-  "last_run_utc": "2026-03-07T02:14:35.389794+00:00",
-  "latest_date_utc": "2026-03-06",
+  "last_run_utc": "2026-03-08T02:14:58.759834+00:00",
+  "latest_date_utc": "2026-03-07",
   "last_7_days": [
-    {
-      "date_utc": "2026-02-28",
-      "any_significant": false
-    },
     {
       "date_utc": "2026-03-01",
       "any_significant": false
@@ -28,6 +24,10 @@
     },
     {
       "date_utc": "2026-03-06",
+      "any_significant": false
+    },
+    {
+      "date_utc": "2026-03-07",
       "any_significant": false
     }
   ]
