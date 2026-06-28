@@ -91,3 +91,49 @@ def test_run_meta_observer_rejects_invalid_meta_stdout(tmp_path, monkeypatch) ->
     assert ok is False
     assert detail == "invalid JSON"
     assert not (daily_dir / "summary.json").exists()
+
+
+def test_run_observer_timeout_writes_structured_error_and_can_continue(tmp_path, monkeypatch) -> None:
+    date_str = "2099-01-04"
+    daily_dir = tmp_path / "data" / "daily" / date_str
+    daily_dir.mkdir(parents=True)
+    observers_root = tmp_path / "observers"
+    hanging_dir = observers_root / "hanging-observer"
+    hanging_dir.mkdir(parents=True)
+    (hanging_dir / "observer.py").write_text("import time; time.sleep(999)\n", encoding="utf-8")
+    ok_dir = observers_root / "ok-observer"
+    ok_dir.mkdir(parents=True)
+    (ok_dir / "observer.py").write_text("print('{}')\n", encoding="utf-8")
+
+    calls = []
+
+    class DummyCompletedProcess:
+        returncode = 0
+        stdout = '{"observer":"ok-observer","date_utc":"2099-01-04"}'
+        stderr = ""
+
+    def _fake_run(args, **kwargs):
+        calls.append((args, kwargs))
+        if "hanging-observer" in str(args[1]):
+            raise run_daily.subprocess.TimeoutExpired(args, kwargs.get("timeout"), stderr="still running")
+        return DummyCompletedProcess()
+
+    monkeypatch.setattr(run_daily, "_repo_root", lambda: tmp_path)
+    monkeypatch.setattr(run_daily.subprocess, "run", _fake_run)
+    monkeypatch.setenv("WORLD_OBSERVER_OBSERVER_TIMEOUT_S", "3")
+
+    ok, detail = run_daily._run_observer("hanging-observer", date_str, daily_dir)
+    assert ok is False
+    assert detail == "timeout 3s"
+    payload = json.loads((daily_dir / "hanging-observer.json").read_text(encoding="utf-8"))
+    assert payload["status"] == "error"
+    assert payload["data_status"] == "error"
+    assert payload["diagnostics"]["timeout"] is True
+    assert payload["diagnostics"]["timeout_s"] == 3.0
+
+    ok, detail = run_daily._run_observer("ok-observer", date_str, daily_dir)
+    assert ok is True
+    assert detail == "ok"
+    assert json.loads((daily_dir / "ok-observer.json").read_text(encoding="utf-8"))["observer"] == "ok-observer"
+    assert calls[0][1]["timeout"] == 3.0
+    assert calls[1][1]["timeout"] == 3.0

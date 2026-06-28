@@ -78,7 +78,13 @@ def _write_json(path: Path, payload: Dict[str, Any]) -> None:
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n")
 
 
-def _error_payload(observer: str, date_str: str, message: str, stderr: str = "") -> Dict[str, Any]:
+def _error_payload(
+    observer: str,
+    date_str: str,
+    message: str,
+    stderr: str = "",
+    diagnostics: Dict[str, Any] | None = None,
+) -> Dict[str, Any]:
     payload = {
         "observer": observer,
         "date": date_str,
@@ -88,7 +94,10 @@ def _error_payload(observer: str, date_str: str, message: str, stderr: str = "")
     if stderr:
         payload["stderr"] = stderr.strip()
     payload["data_status"] = "error"
-    payload["diagnostics"] = {"api_attempts": 0, "retries": 0, "http_status": None}
+    base_diagnostics: Dict[str, Any] = {"api_attempts": 0, "retries": 0, "http_status": None}
+    if diagnostics:
+        base_diagnostics.update(diagnostics)
+    payload["diagnostics"] = base_diagnostics
     return payload
 
 
@@ -129,6 +138,14 @@ def _detect_corrupted_json(daily_dir: Path, logger: logging.Logger) -> List[str]
     return corrupted
 
 
+def _observer_timeout_s() -> float:
+    raw = os.environ.get("WORLD_OBSERVER_OBSERVER_TIMEOUT_S", "120").strip()
+    try:
+        return max(1.0, float(raw))
+    except ValueError:
+        return 120.0
+
+
 def _run_observer(observer: str, date_str: str, daily_dir: Path) -> Tuple[bool, str]:
     logger = _logger()
     observer_path = _repo_root() / "observers" / observer / "observer.py"
@@ -143,14 +160,31 @@ def _run_observer(observer: str, date_str: str, daily_dir: Path) -> Tuple[bool, 
 
     env = os.environ.copy()
     env["WORLD_OBSERVER_DATE_UTC"] = date_str
-    result = subprocess.run(
-        [sys.executable, str(observer_path)],
-        cwd=_repo_root(),
-        capture_output=True,
-        text=True,
-        check=False,
-        env=env,
-    )
+    timeout_s = _observer_timeout_s()
+    try:
+        result = subprocess.run(
+            [sys.executable, str(observer_path)],
+            cwd=_repo_root(),
+            capture_output=True,
+            text=True,
+            check=False,
+            env=env,
+            timeout=timeout_s,
+        )
+    except subprocess.TimeoutExpired as exc:
+        stderr = exc.stderr.decode("utf-8", errors="replace") if isinstance(exc.stderr, bytes) else (exc.stderr or "")
+        _write_json(
+            output_path,
+            _error_payload(
+                observer,
+                date_str,
+                f"observer timed out after {timeout_s:g} seconds",
+                stderr,
+                {"timeout": True, "timeout_s": timeout_s},
+            ),
+        )
+        logger.error("%s timed out after %s seconds", observer, timeout_s)
+        return False, f"timeout {timeout_s:g}s"
 
     if result.returncode != 0:
         _write_json(
@@ -195,14 +229,31 @@ def _run_meta_observer(date_str: str, daily_dir: Path) -> Tuple[bool, str]:
     env = os.environ.copy()
     env["WORLD_OBSERVER_DATE_UTC"] = date_str
     env["WORLD_OBSERVER_DAILY_DIR"] = str(daily_dir)
-    result = subprocess.run(
-        [sys.executable, str(observer_path)],
-        cwd=_repo_root(),
-        capture_output=True,
-        text=True,
-        check=False,
-        env=env,
-    )
+    timeout_s = _observer_timeout_s()
+    try:
+        result = subprocess.run(
+            [sys.executable, str(observer_path)],
+            cwd=_repo_root(),
+            capture_output=True,
+            text=True,
+            check=False,
+            env=env,
+            timeout=timeout_s,
+        )
+    except subprocess.TimeoutExpired as exc:
+        stderr = exc.stderr.decode("utf-8", errors="replace") if isinstance(exc.stderr, bytes) else (exc.stderr or "")
+        _write_json(
+            output_path,
+            _error_payload(
+                observer,
+                date_str,
+                f"observer timed out after {timeout_s:g} seconds",
+                stderr,
+                {"timeout": True, "timeout_s": timeout_s},
+            ),
+        )
+        logger.error("%s timed out after %s seconds", observer, timeout_s)
+        return False, f"timeout {timeout_s:g}s"
 
     if result.returncode != 0:
         return False, f"exit {result.returncode}"
