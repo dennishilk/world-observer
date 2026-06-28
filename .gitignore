@@ -24,3 +24,11 @@ state/tls-fingerprint-change/
 
 # Local undersea cable dataset cache
 observers/undersea-cable-dependency-map/.cache/
+
+# Generated runtime data from daily smoke/production runs
+/data/daily/
+/data/latest/
+
+# Python bytecode/cache
+*.pyc
+__pycache__/

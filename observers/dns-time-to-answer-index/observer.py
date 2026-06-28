@@ -2,12 +2,43 @@
 
 from __future__ import annotations
 
+import importlib.util
 import json
+import sys
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from time import perf_counter
 from typing import Any, Dict, List, Optional
+
+if importlib.util.find_spec("dns") is None:
+    print(
+        json.dumps(
+            {
+                "observer": "dns-time-to-answer-index",
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "status": "unavailable",
+                "data_status": "unavailable",
+                "error": "missing optional dependency: dnspython",
+                "diagnostics": {
+                    "api_attempts": 0,
+                    "retries": 0,
+                    "http_status": None,
+                    "missing_dependency": "dnspython",
+                },
+                "targets": [],
+                "summary": {
+                    "total_queries": 0,
+                    "successful": 0,
+                    "timeouts": 0,
+                    "avg_query_ms": None,
+                },
+                "notes": "Install requirements.txt to enable DNS probes.",
+            },
+            ensure_ascii=False,
+        )
+    )
+    sys.exit(0)
 
 import dns.exception
 import dns.resolver
