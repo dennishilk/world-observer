@@ -33,9 +33,16 @@ def test_fetch_aircraft_retries_emit_stderr_only(monkeypatch, capsys) -> None:
     monkeypatch.setattr(area51_observer, "urlopen", _raise_url_error)
     monkeypatch.setattr(area51_observer.time_module, "sleep", lambda *_: None)
 
-    result = area51_observer._fetch_aircraft("https://example.com", timeout_s=1)
+    aircraft, diagnostics = area51_observer._fetch_aircraft("https://example.com", timeout_s=1)
 
     captured = capsys.readouterr()
-    assert result is None
+    assert aircraft is None
+    assert diagnostics == {
+        "api_attempts": 3,
+        "retries": 2,
+        "http_status": None,
+        "last_error": "URLError",
+        "endpoint": "https://example.com",
+    }
     assert "fetch attempt 1/3 failed" in captured.err
     assert captured.out == ""
