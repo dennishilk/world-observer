@@ -9,7 +9,7 @@ import time
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, Iterable, List
 
 if importlib.util.find_spec("dns") is None:
     print(
@@ -58,8 +58,11 @@ class Observation:
 
     observer: str
     timestamp: str
+    status: str
+    data_status: str
     targets: List[Dict[str, Any]]
     summary: Dict[str, int]
+    diagnostics: Dict[str, Any]
     notes: str
 
 
@@ -73,14 +76,53 @@ def load_targets() -> List[Dict[str, str]]:
     return data
 
 
-def classify_no_nameservers(error: dns.resolver.NoNameservers) -> str:
-    """Classify a NoNameservers error when possible."""
+def _iter_no_nameserver_errors(errors: Any) -> Iterable[Any]:
+    """Yield structured NoNameservers entries from known dnspython shapes."""
 
-    for entry in error.errors.values():
+    if errors is None:
+        return
+    if isinstance(errors, dict):
+        yield from errors.values()
+        return
+    try:
+        yield from errors
+    except TypeError:
+        yield errors
+
+
+def _classify_no_nameservers_text(message: str) -> str:
+    """Classify a NoNameservers exception from its text representation."""
+
+    normalized = message.lower()
+    if "servfail" in normalized:
+        return "servfail"
+    if "refused" in normalized:
+        return "refused"
+    if "timed out" in normalized or "timeout" in normalized or "no response" in normalized:
+        return "timeout"
+    if "no nameservers" in normalized or "unavailable" in normalized:
+        return "no_nameservers"
+    return "no_nameservers"
+
+
+def classify_no_nameservers(error: dns.resolver.NoNameservers) -> str:
+    """Classify a NoNameservers error when possible without assuming internals."""
+
+    for entry in _iter_no_nameserver_errors(getattr(error, "errors", None)):
         response = getattr(entry, "response", None)
-        if response and response.rcode() == dns.rcode.REFUSED:
-            return "refused"
-    return "error"
+        if response is None and isinstance(entry, tuple):
+            response = next((item for item in entry if hasattr(item, "rcode")), None)
+        if response is not None:
+            try:
+                rcode = response.rcode()
+            except TypeError:
+                rcode = response.rcode
+            if rcode == dns.rcode.REFUSED:
+                return "refused"
+            if rcode == dns.rcode.SERVFAIL:
+                return "servfail"
+
+    return _classify_no_nameservers_text(str(error))
 
 
 def make_query(resolver: dns.resolver.Resolver, domain: str, record_type: str) -> Dict[str, Any]:
@@ -120,7 +162,7 @@ def make_query(resolver: dns.resolver.Resolver, domain: str, record_type: str) -
                 "status": status,
                 "query_ms": round(elapsed_ms, 2),
                 "answer_count": None,
-                "error": str(exc) if status == "error" else None,
+                "error": str(exc),
             }
         except dns.exception.Timeout:
             if attempt < MAX_RETRIES:
@@ -161,6 +203,9 @@ def run() -> Observation:
         "answered": 0,
         "timeouts": 0,
         "refused": 0,
+        "servfail": 0,
+        "no_nameservers": 0,
+        "errors": 0,
     }
 
     for target in load_targets():
@@ -175,6 +220,12 @@ def run() -> Observation:
                 summary["timeouts"] += 1
             if result["status"] == "refused":
                 summary["refused"] += 1
+            if result["status"] == "servfail":
+                summary["servfail"] += 1
+            if result["status"] == "no_nameservers":
+                summary["no_nameservers"] += 1
+            if result["status"] == "error":
+                summary["errors"] += 1
             target_queries[record_type] = result
         targets_data.append(
             {
@@ -189,11 +240,27 @@ def run() -> Observation:
         "No censorship circumvention or evasion techniques are used."
     )
 
+    if summary["answered"] == summary["total_queries"]:
+        data_status = "ok"
+    elif summary["answered"] > 0:
+        data_status = "partial"
+    else:
+        data_status = "unavailable"
+
     return Observation(
         observer="iran-dns-behavior",
         timestamp=timestamp,
+        status="ok",
+        data_status=data_status,
         targets=targets_data,
         summary=summary,
+        diagnostics={
+            "api_attempts": summary["total_queries"],
+            "retries": 0,
+            "http_status": None,
+            "servfail": summary["servfail"],
+            "no_nameservers": summary["no_nameservers"],
+        },
         notes=notes,
     )
 
