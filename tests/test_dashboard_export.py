@@ -407,9 +407,21 @@ def test_export_dashboard_writes_latest_heartbeat(tmp_path) -> None:
 
     heartbeat = json.loads((dashboard_dir / "heartbeat.json").read_text(encoding="utf-8"))
     assert heartbeat["status"] == "alive"
+    assert heartbeat["freshness_status"] in {"alive", "delayed", "old", "offline"}
     assert heartbeat["latest_heartbeat_utc"] == "2026-06-29T15:00:00Z"
     assert heartbeat["heartbeat_file"] == "2026-06-29T15Z.json"
     assert isinstance(heartbeat["generated_at"], str)
+
+
+def test_heartbeat_freshness_classification_thresholds() -> None:
+    generated_at = "2026-06-29T16:00:00+00:00"
+
+    assert export_dashboard._heartbeat_freshness("2026-06-29T14:00:00Z", generated_at) == "alive"
+    assert export_dashboard._heartbeat_freshness("2026-06-29T13:59:59Z", generated_at) == "delayed"
+    assert export_dashboard._heartbeat_freshness("2026-06-29T10:00:00Z", generated_at) == "delayed"
+    assert export_dashboard._heartbeat_freshness("2026-06-29T09:59:59Z", generated_at) == "old"
+    assert export_dashboard._heartbeat_freshness("2026-06-28T16:00:00Z", generated_at) == "old"
+    assert export_dashboard._heartbeat_freshness("2026-06-28T15:59:59Z", generated_at) == "offline"
 
 
 def test_export_dashboard_writes_unavailable_heartbeat_when_empty(tmp_path) -> None:
@@ -422,6 +434,7 @@ def test_export_dashboard_writes_unavailable_heartbeat_when_empty(tmp_path) -> N
 
     heartbeat = json.loads((dashboard_dir / "heartbeat.json").read_text(encoding="utf-8"))
     assert heartbeat["status"] == "unavailable"
+    assert heartbeat["freshness_status"] == "unavailable"
     assert heartbeat["latest_heartbeat_utc"] is None
     assert heartbeat["heartbeat_file"] is None
     assert isinstance(heartbeat["generated_at"], str)

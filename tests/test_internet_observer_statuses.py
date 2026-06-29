@@ -69,7 +69,7 @@ def test_dashboard_export_uses_countries_evaluated_for_ipv6_and_asn_cards(tmp_pa
     assert cards["asn-visibility-by-country"]["primary_metric_name"] == "countries evaluated"
     assert cards["asn-visibility-by-country"]["primary_metric_value"] == 4
     assert cards["ipv6-global-compare"]["primary_metric_name"] == "countries evaluated"
-    assert cards["ipv6-global-compare"]["primary_metric_value"] == 0
+    assert cards["ipv6-global-compare"]["primary_metric_value"] == 3
     assert cards["ipv6-locked-states"]["primary_metric_name"] == "countries evaluated"
     assert cards["ipv6-locked-states"]["primary_metric_value"] == 3
     assert cards["ipv6-locked-states"]["secondary_metrics"]["significant_count"] == 0
@@ -111,6 +111,59 @@ def test_dashboard_export_normalizes_ipv6_global_evaluated_unavailable_to_partia
     assert card["primary_metric_name"] == "countries evaluated"
     assert card["primary_metric_value"] == 3
     assert card["secondary_metrics"]["significant_count"] == 1
+
+
+def test_dashboard_export_uses_ipv6_locked_count_for_empty_global_compare(tmp_path) -> None:
+    latest_dir = tmp_path / "latest"
+    dashboard_dir = tmp_path / "dashboard"
+    latest_dir.mkdir()
+    payloads = {
+        "ipv6-global-compare": {
+            "observer": "ipv6-global-compare",
+            "status": "unavailable",
+            "data_status": "unavailable",
+            "summary_stats": {"countries_evaluated": 0, "significant_count": 0},
+        },
+        "ipv6-locked-states": {
+            "observer": "ipv6-locked-states",
+            "data_status": "ok",
+            "summary_stats": {"countries_evaluated": 3, "significant_count": 0},
+        },
+    }
+    for observer, payload in payloads.items():
+        (latest_dir / f"{observer}.json").write_text(json.dumps(payload), encoding="utf-8")
+
+    export_dashboard.export_dashboard(latest_dir, dashboard_dir)
+    internet = json.loads((dashboard_dir / "internet.json").read_text(encoding="utf-8"))
+    card = next(card for card in internet["observers"] if card["observer"] == "ipv6-global-compare")
+
+    assert card["status"] == "ok"
+    assert card["data_status"] == "partial"
+    assert card["primary_metric_name"] == "countries evaluated"
+    assert card["primary_metric_value"] == 3
+
+
+def test_dashboard_export_normalizes_ipv6_locked_evaluated_unavailable_to_ok(tmp_path) -> None:
+    latest_dir = tmp_path / "latest"
+    dashboard_dir = tmp_path / "dashboard"
+    latest_dir.mkdir()
+    payload = {
+        "observer": "ipv6-locked-states",
+        "status": "unavailable",
+        "data_status": "unavailable",
+        "summary_stats": {"countries_evaluated": 3, "significant_count": 0},
+    }
+    (latest_dir / "ipv6-locked-states.json").write_text(json.dumps(payload), encoding="utf-8")
+
+    export_dashboard.export_dashboard(latest_dir, dashboard_dir)
+    internet = json.loads((dashboard_dir / "internet.json").read_text(encoding="utf-8"))
+    card = next(card for card in internet["observers"] if card["observer"] == "ipv6-locked-states")
+
+    assert card["status"] == "ok"
+    assert card["data_status"] == "ok"
+    assert card["primary_metric_name"] == "countries evaluated"
+    assert card["primary_metric_value"] == 3
+    assert card["secondary_metrics"]["significant_count"] == 0
 
 
 def test_dashboard_export_asn_no_data_has_intentional_degraded_reason(tmp_path) -> None:

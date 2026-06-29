@@ -271,11 +271,39 @@ def _media_history(daily_dir: Path, generated_at: str) -> Dict[str, Any]:
     }
 
 
+def _parse_utc_datetime(value: str | None) -> datetime | None:
+    if not value:
+        return None
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
+
+
+def _heartbeat_freshness(latest_heartbeat_utc: str | None, generated_at: str) -> str:
+    latest = _parse_utc_datetime(latest_heartbeat_utc)
+    generated = _parse_utc_datetime(generated_at)
+    if latest is None or generated is None:
+        return "unavailable"
+    age_hours = max(0.0, (generated - latest).total_seconds() / 3600)
+    if age_hours <= 2:
+        return "alive"
+    if age_hours <= 6:
+        return "delayed"
+    if age_hours <= 24:
+        return "old"
+    return "offline"
+
+
 def _heartbeat(heartbeat_dir: Path, generated_at: str) -> Dict[str, Any]:
     files = sorted(path for path in heartbeat_dir.glob("*.json") if path.is_file()) if heartbeat_dir.exists() else []
     if not files:
         return {
             "status": "unavailable",
+            "freshness_status": "unavailable",
             "latest_heartbeat_utc": None,
             "heartbeat_file": None,
             "generated_at": generated_at,
@@ -295,6 +323,7 @@ def _heartbeat(heartbeat_dir: Path, generated_at: str) -> Dict[str, Any]:
 
     return {
         "status": status,
+        "freshness_status": _heartbeat_freshness(latest_heartbeat_utc, generated_at),
         "latest_heartbeat_utc": latest_heartbeat_utc,
         "heartbeat_file": path.name,
         "generated_at": generated_at,
@@ -483,6 +512,30 @@ def _default_degraded_reason(observer: str, payload: Dict[str, Any], status: str
     return "Observer data is unavailable in the latest output."
 
 
+def _normalized_internet_payload(
+    observer: str, payload: Dict[str, Any], loaded: Dict[str, Dict[str, Any]]
+) -> Dict[str, Any]:
+    if observer != "ipv6-global-compare":
+        return payload
+    summary_stats = payload.get("summary_stats")
+    if not isinstance(summary_stats, dict):
+        return payload
+    countries_evaluated = _as_number(summary_stats.get("countries_evaluated"))
+    if countries_evaluated is not None and countries_evaluated > 0:
+        return payload
+    source_summary = loaded.get("ipv6-locked-states", {}).get("summary_stats")
+    if not isinstance(source_summary, dict):
+        return payload
+    source_countries_evaluated = _as_number(source_summary.get("countries_evaluated"))
+    if source_countries_evaluated is None or source_countries_evaluated <= 0:
+        return payload
+    normalized = dict(payload)
+    normalized_summary = dict(summary_stats)
+    normalized_summary["countries_evaluated"] = source_countries_evaluated
+    normalized["summary_stats"] = normalized_summary
+    return normalized
+
+
 def _internet_observer(observer: str, payload: Dict[str, Any], metadata: Dict[str, Dict[str, Any]]) -> Dict[str, Any]:
     primary_name, primary_value = _internet_metric(observer, payload)
     status, data_status = _internet_status_fields(observer, payload)
@@ -508,7 +561,7 @@ def _internet_observer(observer: str, payload: Dict[str, Any], metadata: Dict[st
 
 def _internet(loaded: Dict[str, Dict[str, Any]], metadata: Dict[str, Dict[str, Any]]) -> Dict[str, Any]:
     observers = [
-        _internet_observer(observer, loaded[observer], metadata)
+        _internet_observer(observer, _normalized_internet_payload(observer, loaded[observer], loaded), metadata)
         for observer in sorted(
             loaded,
             key=lambda item: (_metadata_priority(metadata, item), _metadata_display_name(metadata, item), item),
