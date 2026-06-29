@@ -10,6 +10,7 @@ import socket
 import ssl
 import struct
 import subprocess
+import sys
 import time
 import zlib
 from datetime import datetime, timedelta, timezone
@@ -28,6 +29,54 @@ LATEST_CHART_PATH = LATEST_DIR / "chart.png"
 
 TCP_PORTS = (80, 443, 22)
 LAYER_NAMES = ("dns", "tcp", "icmp", "tls")
+
+
+class ProbeBudget:
+    def __init__(self, budget_s: float) -> None:
+        self.started_at = time.monotonic()
+        self.budget_s = max(1.0, float(budget_s))
+        self.probes_attempted = 0
+        self.probes_succeeded = 0
+        self.probes_failed = 0
+        self.timeouts = 0
+        self.budget_exhausted = False
+
+    def remaining(self) -> float:
+        remaining_s = self.budget_s - (time.monotonic() - self.started_at)
+        if remaining_s <= 0:
+            self.budget_exhausted = True
+            return 0.0
+        return remaining_s
+
+    def probe_timeout(self, requested_timeout_s: float) -> float:
+        remaining_s = self.remaining()
+        if remaining_s <= 0:
+            return 0.0
+        return max(0.0, min(float(requested_timeout_s), remaining_s))
+
+    def record(self, *, success: bool, timed_out: bool = False) -> None:
+        self.probes_attempted += 1
+        if success:
+            self.probes_succeeded += 1
+        else:
+            self.probes_failed += 1
+        if timed_out:
+            self.timeouts += 1
+
+    def diagnostics(self) -> Dict[str, Any]:
+        duration_s = time.monotonic() - self.started_at
+        exhausted = self.budget_exhausted or duration_s >= self.budget_s
+        return {
+            "probes_attempted": self.probes_attempted,
+            "probes_succeeded": self.probes_succeeded,
+            "probes_failed": self.probes_failed,
+            "timeouts": self.timeouts,
+            "duration_s": round(duration_s, 3),
+            "budget_s": round(self.budget_s, 3),
+            "budget_exhausted": bool(exhausted),
+        }
+
+
 RARE_STATE_TRANSITIONS = {
     "silent->partial",
     "silent->controlled",
@@ -82,58 +131,96 @@ def _load_config() -> Dict[str, Any]:
     baseline_days = int(payload.get("baseline_days", 30) or 30)
     sigma_mult = float(payload.get("sigma_mult", 2.0) or 2.0)
     timeout_s = float(payload.get("timeout_s", 2.0) or 2.0)
+    budget_s = float(
+        os.environ.get("WORLD_OBSERVER_NK_CONNECTIVITY_BUDGET_S", payload.get("budget_s", 60.0))
+        or 60.0
+    )
     tts_trials = int(payload.get("time_to_silence_trials", 5) or 5)
     tts_max_rounds = int(payload.get("time_to_silence_max_rounds", 6) or 6)
     return {
         "baseline_days": max(7, baseline_days),
         "sigma_mult": max(0.5, sigma_mult),
-        "timeout_s": max(0.5, timeout_s),
+        "timeout_s": min(max(0.5, timeout_s), 5.0),
+        "budget_s": max(1.0, budget_s),
         "time_to_silence_trials": max(1, tts_trials),
         "time_to_silence_max_rounds": max(1, tts_max_rounds),
     }
 
 
-def _ping(host: str, timeout_s: float) -> bool:
+def _ping(host: str, timeout_s: float) -> Tuple[bool, bool]:
+    if timeout_s <= 0:
+        return False, True
     command = ["ping", "-c", "1", "-W", str(max(1, int(math.ceil(timeout_s)))), host]
     try:
-        result = subprocess.run(command, capture_output=True, text=True, check=False)
+        result = subprocess.run(
+            command,
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=max(0.1, timeout_s + 0.5),
+        )
+    except subprocess.TimeoutExpired:
+        return False, True
     except Exception:
-        return False
-    return result.returncode == 0
+        return False, False
+    return result.returncode == 0, False
 
 
-def _dns_probe(host: str, timeout_s: float) -> Tuple[bool, Optional[float]]:
+def _dns_probe(host: str, timeout_s: float) -> Tuple[bool, Optional[float], bool]:
+    if timeout_s <= 0:
+        return False, None, True
     start = time.monotonic()
+    code = (
+        "import socket, sys; "
+        "socket.getaddrinfo(sys.argv[1], None); "
+        "print('ok')"
+    )
     try:
-        socket.getaddrinfo(host, None)
+        subprocess.run(
+            [sys.executable, "-c", code, host],
+            capture_output=True,
+            text=True,
+            check=True,
+            timeout=max(0.1, timeout_s),
+        )
+    except subprocess.TimeoutExpired:
+        return False, None, True
     except Exception:
-        return False, None
+        return False, None, False
     elapsed_ms = (time.monotonic() - start) * 1000
-    return True, round(elapsed_ms, 2)
+    return True, round(elapsed_ms, 2), False
 
 
-def _tcp_probe(host: str, port: int, timeout_s: float) -> bool:
+def _tcp_probe(host: str, port: int, timeout_s: float) -> Tuple[bool, bool]:
+    if timeout_s <= 0:
+        return False, True
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.settimeout(timeout_s)
     try:
-        return sock.connect_ex((host, port)) == 0
+        return sock.connect_ex((host, port)) == 0, False
+    except socket.timeout:
+        return False, True
     except Exception:
-        return False
+        return False, False
     finally:
         sock.close()
 
 
-def _tls_probe(host: str, timeout_s: float) -> bool:
+def _tls_probe(host: str, timeout_s: float) -> Tuple[bool, bool]:
     context = ssl.create_default_context()
     context.check_hostname = False
     context.verify_mode = ssl.CERT_NONE
+    if timeout_s <= 0:
+        return False, True
     try:
         with socket.create_connection((host, 443), timeout=timeout_s) as raw_sock:
             raw_sock.settimeout(timeout_s)
             with context.wrap_socket(raw_sock, server_hostname=host):
-                return True
+                return True, False
+    except (socket.timeout, TimeoutError):
+        return False, True
     except Exception:
-        return False
+        return False, False
 
 
 def _empty_layer(include_latency: bool = False) -> Dict[str, Any]:
@@ -148,7 +235,9 @@ def _empty_layer(include_latency: bool = False) -> Dict[str, Any]:
     return payload
 
 
-def _probe_once(hosts: List[str], timeout_s: float) -> Tuple[Dict[str, Dict[str, Any]], Dict[str, int]]:
+def _probe_once(
+    hosts: List[str], timeout_s: float, budget: ProbeBudget
+) -> Tuple[Dict[str, Dict[str, Any]], Dict[str, int]]:
     layers: Dict[str, Dict[str, Any]] = {
         "dns": _empty_layer(include_latency=True),
         "tcp": _empty_layer(),
@@ -159,36 +248,45 @@ def _probe_once(hosts: List[str], timeout_s: float) -> Tuple[Dict[str, Dict[str,
 
     for host in hosts:
         layers["dns"]["expected"] += 1
-        layers["dns"]["attempted"] += 1
-        diagnostics["api_attempts"] += 1
-        dns_ok, dns_latency = _dns_probe(host, timeout_s)
-        layers["dns"]["probe_count"] += 1
-        if dns_ok:
-            layers["dns"]["successes"] += 1
-            if dns_latency is not None:
-                layers["dns"]["latencies"].append(dns_latency)
+        if budget.remaining() > 0:
+            layers["dns"]["attempted"] += 1
+            diagnostics["api_attempts"] += 1
+            dns_ok, dns_latency, timed_out = _dns_probe(host, budget.probe_timeout(timeout_s))
+            budget.record(success=dns_ok, timed_out=timed_out)
+            layers["dns"]["probe_count"] += 1
+            if dns_ok:
+                layers["dns"]["successes"] += 1
+                if dns_latency is not None:
+                    layers["dns"]["latencies"].append(dns_latency)
 
         layers["icmp"]["expected"] += 1
-        layers["icmp"]["attempted"] += 1
-        diagnostics["api_attempts"] += 1
-        icmp_ok = _ping(host, timeout_s)
-        layers["icmp"]["probe_count"] += 1
-        if icmp_ok:
-            layers["icmp"]["successes"] += 1
+        if budget.remaining() > 0:
+            layers["icmp"]["attempted"] += 1
+            diagnostics["api_attempts"] += 1
+            icmp_ok, timed_out = _ping(host, budget.probe_timeout(timeout_s))
+            budget.record(success=icmp_ok, timed_out=timed_out)
+            layers["icmp"]["probe_count"] += 1
+            if icmp_ok:
+                layers["icmp"]["successes"] += 1
 
         layers["tls"]["expected"] += 1
-        layers["tls"]["attempted"] += 1
-        diagnostics["api_attempts"] += 1
-        tls_ok = _tls_probe(host, timeout_s)
-        layers["tls"]["probe_count"] += 1
-        if tls_ok:
-            layers["tls"]["successes"] += 1
+        if budget.remaining() > 0:
+            layers["tls"]["attempted"] += 1
+            diagnostics["api_attempts"] += 1
+            tls_ok, timed_out = _tls_probe(host, budget.probe_timeout(timeout_s))
+            budget.record(success=tls_ok, timed_out=timed_out)
+            layers["tls"]["probe_count"] += 1
+            if tls_ok:
+                layers["tls"]["successes"] += 1
 
         for port in TCP_PORTS:
             layers["tcp"]["expected"] += 1
+            if budget.remaining() <= 0:
+                continue
             layers["tcp"]["attempted"] += 1
             diagnostics["api_attempts"] += 1
-            tcp_ok = _tcp_probe(host, port, timeout_s)
+            tcp_ok, timed_out = _tcp_probe(host, port, budget.probe_timeout(timeout_s))
+            budget.record(success=tcp_ok, timed_out=timed_out)
             layers["tcp"]["probe_count"] += 1
             if tcp_ok:
                 layers["tcp"]["successes"] += 1
@@ -239,23 +337,32 @@ def _p95(values: List[float]) -> float:
     return float(ordered[idx])
 
 
-def _time_to_silence(hosts: List[str], timeout_s: float, trials: int, max_rounds: int) -> Dict[str, float]:
+def _time_to_silence(
+    hosts: List[str], timeout_s: float, trials: int, max_rounds: int, budget: ProbeBudget
+) -> Dict[str, float]:
     if not hosts:
         return {"mean_seconds": 0.0, "p95_seconds": 0.0, "worst_seconds": 0.0}
 
     measurements: List[float] = []
     for _ in range(trials):
+        if budget.remaining() <= 0:
+            break
         shuffled = hosts[:]
         random.shuffle(shuffled)
         start = time.monotonic()
         elapsed = 0.0
         for _round in range(max_rounds):
-            probe_round, _ = _probe_once(shuffled, timeout_s)
+            if budget.remaining() <= 0:
+                break
+            probe_round, _ = _probe_once(shuffled, timeout_s, budget)
             any_success = any(probe_round[layer]["successes"] > 0 for layer in LAYER_NAMES)
             elapsed = time.monotonic() - start
             if not any_success:
                 break
         measurements.append(round(elapsed, 3))
+
+    if not measurements:
+        return {"mean_seconds": 0.0, "p95_seconds": 0.0, "worst_seconds": 0.0}
 
     mean_seconds = sum(measurements) / len(measurements)
     return {
@@ -641,11 +748,14 @@ def run() -> Dict[str, Any]:
         "tls": _empty_layer(),
     }
 
+    budget = ProbeBudget(float(config["budget_s"]))
     diagnostics = {"api_attempts": 0, "retries": 0, "http_status": None}
 
     if hosts:
         for _ in range(2):
-            probe_layers, probe_diag = _probe_once(hosts, config["timeout_s"])
+            if budget.remaining() <= 0:
+                break
+            probe_layers, probe_diag = _probe_once(hosts, config["timeout_s"], budget)
             _merge_layer_totals(totals, probe_layers)
             diagnostics["api_attempts"] += probe_diag["api_attempts"]
 
@@ -655,6 +765,7 @@ def run() -> Dict[str, Any]:
         config["timeout_s"],
         config["time_to_silence_trials"],
         config["time_to_silence_max_rounds"],
+        budget,
     )
 
     baseline_stats, history = _baseline(date_utc, int(config["baseline_days"]))
@@ -679,8 +790,9 @@ def run() -> Dict[str, Any]:
 
     completeness_values = [float(layers[layer]["data_completeness"]) for layer in LAYER_NAMES]
     min_completeness = min(completeness_values) if completeness_values else 0.0
-    if not hosts:
-        data_status = "error"
+    total_successes = sum(float(layers[layer]["success_rate"]) for layer in LAYER_NAMES)
+    if not hosts or total_successes == 0.0:
+        data_status = "unavailable"
     elif min_completeness >= 0.95:
         data_status = "ok"
     elif min_completeness > 0:
@@ -688,7 +800,10 @@ def run() -> Dict[str, Any]:
     else:
         data_status = "unavailable"
 
+    diagnostics.update(budget.diagnostics())
+
     payload: Dict[str, Any] = {
+        "status": "ok",
         "observer": OBSERVER,
         "date_utc": date_utc,
         "data_status": data_status,
