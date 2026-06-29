@@ -2,8 +2,9 @@
 """Germany-only German-language media headline observer.
 
 This observer fetches a small set of public German RSS feeds, extracts titles
-only, and counts transparent keyword-category matches. It does not infer cause,
-intent, manipulation, or real-world risk.
+only, and counts transparent keyword-category matches. It separately aggregates
+public-broadcast and private-media source groups using the exact same scoring
+function. It does not infer cause, intent, manipulation, or real-world risk.
 """
 
 from __future__ import annotations
@@ -24,11 +25,26 @@ from typing import Any, Dict, Iterable, List, Tuple
 
 OBSERVER = "media-language-germany"
 
-SOURCES: List[Dict[str, str]] = [
+PUBLIC_BROADCAST_SOURCES: List[Dict[str, str]] = [
     {"name": "tagesschau", "url": "https://www.tagesschau.de/xml/rss2"},
     {"name": "zdfheute", "url": "https://www.zdf.de/rss/zdf/nachrichten"},
     {"name": "deutschlandfunk", "url": "https://www.deutschlandfunk.de/nachrichten-100.rss"},
 ]
+
+PRIVATE_MEDIA_SOURCES: List[Dict[str, str]] = [
+    {"name": "spiegel", "url": "https://www.spiegel.de/schlagzeilen/index.rss"},
+    {"name": "zeit", "url": "https://newsfeed.zeit.de/index"},
+    {"name": "focus", "url": "https://www.focus.de/rss/fol/XML/rss_folnews.xml"},
+    {"name": "n-tv", "url": "https://www.n-tv.de/rss"},
+]
+
+SOURCE_GROUPS: Dict[str, List[Dict[str, str]]] = {
+    "public_broadcast": PUBLIC_BROADCAST_SOURCES,
+    "private_media": PRIVATE_MEDIA_SOURCES,
+}
+
+# Backward-compatible all-source list for callers/tests that imported SOURCES.
+SOURCES: List[Dict[str, str]] = PUBLIC_BROADCAST_SOURCES + PRIVATE_MEDIA_SOURCES
 
 # German headline-only categories. Terms are deliberately simple and auditable.
 KEYWORD_CATEGORIES: Dict[str, List[str]] = {
@@ -154,11 +170,8 @@ def _fetch_titles(source: Dict[str, str]) -> Tuple[List[str], str | None]:
         return [], f"{source['name']}: {type(exc).__name__}: {exc}"
 
 
-def run(sources: List[Dict[str, str]] | None = None) -> Dict[str, Any]:
-    if sources is None and os.environ.get("WORLD_OBSERVER_MEDIA_LANGUAGE_GERMANY_DISABLE_NETWORK") == "1":
-        sources = []
+def _collect_group(sources: List[Dict[str, str]]) -> Tuple[List[str], Dict[str, Any]]:
     start = time.perf_counter()
-    sources = sources if sources is not None else SOURCES
     headlines: List[str] = []
     succeeded: List[str] = []
     failed: List[Dict[str, str]] = []
@@ -171,14 +184,6 @@ def run(sources: List[Dict[str, str]] | None = None) -> Dict[str, Any]:
         else:
             failed.append({"source": source.get("name", "unknown"), "error": error[:500]})
 
-    scores = score_headlines(headlines)
-    if succeeded and failed:
-        data_status = "partial"
-    elif succeeded:
-        data_status = "ok"
-    else:
-        data_status = "unavailable"
-
     diagnostics = {
         "sources_attempted": len(sources),
         "sources_succeeded": len(succeeded),
@@ -187,7 +192,67 @@ def run(sources: List[Dict[str, str]] | None = None) -> Dict[str, Any]:
         "source_errors": failed,
         "headlines_seen": len(headlines),
         "duration_s": round(time.perf_counter() - start, 3),
-        "api_attempts": len(sources),
+    }
+    return headlines, diagnostics
+
+
+def _data_status(group_diagnostics: Dict[str, Dict[str, Any]]) -> str:
+    attempted = sum(int(d["sources_attempted"]) for d in group_diagnostics.values())
+    succeeded = sum(int(d["sources_succeeded"]) for d in group_diagnostics.values())
+    failed = sum(int(d["sources_failed"]) for d in group_diagnostics.values())
+    if attempted == 0 or succeeded == 0:
+        return "unavailable"
+    if failed:
+        return "partial"
+    return "ok"
+
+
+def run(
+    sources: List[Dict[str, str]] | None = None,
+    source_groups: Dict[str, List[Dict[str, str]]] | None = None,
+) -> Dict[str, Any]:
+    if source_groups is None:
+        if sources is not None:
+            source_groups = {"public_broadcast": sources, "private_media": []}
+        elif os.environ.get("WORLD_OBSERVER_MEDIA_LANGUAGE_GERMANY_DISABLE_NETWORK") == "1":
+            source_groups = {"public_broadcast": [], "private_media": []}
+        else:
+            source_groups = SOURCE_GROUPS
+
+    start = time.perf_counter()
+    all_headlines: List[str] = []
+    group_scores: Dict[str, Dict[str, Any]] = {}
+    group_diagnostics: Dict[str, Dict[str, Any]] = {}
+
+    for group_name in ("public_broadcast", "private_media"):
+        group_headlines, diagnostics = _collect_group(source_groups.get(group_name, []))
+        all_headlines.extend(group_headlines)
+        score = score_headlines(group_headlines)
+        group_scores[group_name] = {
+            "headline_count": score["headline_count"],
+            "matched_headline_count": score["matched_headline_count"],
+            "fear_index": score["fear_index"],
+            "category_counts": score["category_counts"],
+            "top_terms": score["top_terms"],
+        }
+        group_diagnostics[group_name] = diagnostics
+
+    scores = score_headlines(all_headlines)
+    data_status = _data_status(group_diagnostics)
+    duration_s = round(time.perf_counter() - start, 3)
+
+    diagnostics = {
+        "sources_attempted": sum(d["sources_attempted"] for d in group_diagnostics.values()),
+        "sources_succeeded": sum(d["sources_succeeded"] for d in group_diagnostics.values()),
+        "sources_failed": sum(d["sources_failed"] for d in group_diagnostics.values()),
+        "source_names_succeeded": [
+            name for d in group_diagnostics.values() for name in d["source_names_succeeded"]
+        ],
+        "source_errors": [error for d in group_diagnostics.values() for error in d["source_errors"]],
+        "headlines_seen": len(all_headlines),
+        "duration_s": duration_s,
+        "source_groups": group_diagnostics,
+        "api_attempts": sum(d["sources_attempted"] for d in group_diagnostics.values()),
         "retries": 0,
         "http_status": None,
     }
@@ -200,9 +265,12 @@ def run(sources: List[Dict[str, str]] | None = None) -> Dict[str, Any]:
             "country": "Germany",
             "language": "German",
             "content": "RSS headline/title text only",
+            "source_groups": "public broadcasting and private media in Germany only",
             "claims": "observational keyword frequencies only; no causality or manipulation claims",
         },
         **scores,
+        "fear_index_overall": scores["fear_index"],
+        "source_groups": group_scores,
         "diagnostics": diagnostics,
     }
 

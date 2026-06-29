@@ -79,3 +79,69 @@ def test_stdout_remains_json_only_with_empty_sources(monkeypatch) -> None:
     assert payload["observer"] == "media-language-germany"
     assert completed.stdout.strip().startswith("{")
     assert completed.stdout.strip().endswith("}")
+
+
+def test_group_scoring_uses_same_keyword_scoring() -> None:
+    observer = _load_observer()
+    public_headlines = ["Warnung vor Hitze", "Sport ohne Treffer"]
+    private_headlines = ["Warnung vor Hitze", "Sport ohne Treffer"]
+
+    public_score = observer.score_headlines(public_headlines)
+    private_score = observer.score_headlines(private_headlines)
+
+    assert public_score["fear_index"] == private_score["fear_index"]
+    assert public_score["category_counts"] == private_score["category_counts"]
+    assert public_score["top_terms"] == private_score["top_terms"]
+
+
+def test_group_aggregation_and_json_output(monkeypatch) -> None:
+    observer = _load_observer()
+
+    def fake_fetch(source):
+        titles = {
+            "tagesschau": ["Warnung vor Hitze"],
+            "spiegel": ["Wirtschaft unter Druck"],
+        }
+        return titles[source["name"]], None
+
+    monkeypatch.setattr(observer, "_fetch_titles", fake_fetch)
+    payload = observer.run(
+        source_groups={
+            "public_broadcast": [{"name": "tagesschau", "url": "https://example.test/public.xml"}],
+            "private_media": [{"name": "spiegel", "url": "https://example.test/private.xml"}],
+        }
+    )
+
+    assert payload["data_status"] == "ok"
+    assert payload["headline_count"] == 2
+    assert payload["fear_index_overall"] == payload["fear_index"]
+    assert payload["source_groups"]["public_broadcast"]["headline_count"] == 1
+    assert payload["source_groups"]["private_media"]["headline_count"] == 1
+    assert payload["source_groups"]["public_broadcast"]["fear_index"] > 0
+    assert payload["source_groups"]["private_media"]["fear_index"] > 0
+    assert payload["diagnostics"]["source_groups"]["public_broadcast"]["sources_attempted"] == 1
+    assert payload["diagnostics"]["source_groups"]["private_media"]["sources_succeeded"] == 1
+    json.dumps(payload)
+
+
+def test_unavailable_sources_by_group(monkeypatch) -> None:
+    observer = _load_observer()
+
+    def fake_fetch(source):
+        return [], f"{source['name']}: URLError: unavailable"
+
+    monkeypatch.setattr(observer, "_fetch_titles", fake_fetch)
+    payload = observer.run(
+        source_groups={
+            "public_broadcast": [{"name": "tagesschau", "url": "https://example.test/public.xml"}],
+            "private_media": [{"name": "spiegel", "url": "https://example.test/private.xml"}],
+        }
+    )
+
+    assert payload["status"] == "ok"
+    assert payload["data_status"] == "unavailable"
+    assert payload["source_groups"]["public_broadcast"]["headline_count"] == 0
+    assert payload["source_groups"]["private_media"]["headline_count"] == 0
+    assert payload["diagnostics"]["sources_failed"] == 2
+    assert payload["diagnostics"]["source_groups"]["public_broadcast"]["sources_failed"] == 1
+    assert payload["diagnostics"]["source_groups"]["private_media"]["headlines_seen"] == 0
