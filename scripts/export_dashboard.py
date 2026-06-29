@@ -17,7 +17,7 @@ from scripts.run_daily import OBSERVERS
 DASHBOARD_VERSION = 1
 MEDIA_OBSERVER = "media-language-germany"
 SUMMARY_NAME = "summary.json"
-OUTPUT_FILES = ("summary.json", "internet.json", "media.json", "society.json", "environment.json")
+OUTPUT_FILES = ("summary.json", "internet.json", "media.json", "society.json", "environment.json", "heartbeat.json")
 HISTORY_FILES = ("history/media-language-germany.json", "history/internet-observers.json")
 METADATA_PATH = "config/observer_metadata.json"
 
@@ -264,6 +264,36 @@ def _media_history(daily_dir: Path, generated_at: str) -> Dict[str, Any]:
     }
 
 
+def _heartbeat(heartbeat_dir: Path, generated_at: str) -> Dict[str, Any]:
+    files = sorted(path for path in heartbeat_dir.glob("*.json") if path.is_file()) if heartbeat_dir.exists() else []
+    if not files:
+        return {
+            "status": "unavailable",
+            "latest_heartbeat_utc": None,
+            "heartbeat_file": None,
+            "generated_at": generated_at,
+        }
+
+    path = files[-1]
+    payload, _error = _read_json(path)
+    status = "unavailable"
+    latest_heartbeat_utc = None
+    if payload is not None:
+        status_value = payload.get("status")
+        if isinstance(status_value, str) and status_value:
+            status = status_value
+        timestamp_value = payload.get("timestamp_utc")
+        if isinstance(timestamp_value, str) and timestamp_value:
+            latest_heartbeat_utc = timestamp_value
+
+    return {
+        "status": status,
+        "latest_heartbeat_utc": latest_heartbeat_utc,
+        "heartbeat_file": path.name,
+        "generated_at": generated_at,
+    }
+
+
 def _display_name(observer: str) -> str:
     return " ".join(part.upper() if part in {"dns", "ipv6", "tls", "mx"} else part.capitalize() for part in observer.split("-"))
 
@@ -501,11 +531,15 @@ def _internet_history(daily_dir: Path, generated_at: str, metadata: Dict[str, Di
 
 
 def export_dashboard(
-    latest_dir: Path | None = None, dashboard_dir: Path | None = None, daily_dir: Path | None = None
+    latest_dir: Path | None = None,
+    dashboard_dir: Path | None = None,
+    daily_dir: Path | None = None,
+    heartbeat_dir: Path | None = None,
 ) -> Dict[str, Path]:
     latest_dir = latest_dir or (_repo_root() / "data" / "latest")
     dashboard_dir = dashboard_dir or (_repo_root() / "dashboard")
     daily_dir = daily_dir or (_repo_root() / "data" / "daily")
+    heartbeat_dir = heartbeat_dir or (_repo_root() / "state" / "heartbeat")
     dashboard_dir.mkdir(parents=True, exist_ok=True)
 
     generated_at = _utc_now()
@@ -517,6 +551,7 @@ def export_dashboard(
         "media.json": _media(loaded.get(MEDIA_OBSERVER)),
         "society.json": {"status": "placeholder", "items": _planned_items(metadata, "society")},
         "environment.json": {"status": "placeholder", "items": _planned_items(metadata, "environment")},
+        "heartbeat.json": _heartbeat(heartbeat_dir, generated_at),
         "history/media-language-germany.json": _media_history(daily_dir, generated_at),
         "history/internet-observers.json": _internet_history(daily_dir, generated_at, metadata),
     }
@@ -534,12 +569,13 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--latest-dir", type=Path, default=None, help="Input latest data directory.")
     parser.add_argument("--dashboard-dir", type=Path, default=None, help="Output dashboard directory.")
     parser.add_argument("--daily-dir", type=Path, default=None, help="Input daily data directory for history exports.")
+    parser.add_argument("--heartbeat-dir", type=Path, default=None, help="Input heartbeat state directory.")
     return parser.parse_args()
 
 
 def main() -> None:
     args = _parse_args()
-    written = export_dashboard(args.latest_dir, args.dashboard_dir, args.daily_dir)
+    written = export_dashboard(args.latest_dir, args.dashboard_dir, args.daily_dir, args.heartbeat_dir)
     for path in written.values():
         print(path)
 
