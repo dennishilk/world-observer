@@ -31,6 +31,7 @@ OBSERVERS: List[str] = [
     "ipv6-global-compare",
     "ipv6-locked-states",
     "iran-dns-behavior",
+    "media-language-germany",
     "mx-presence-by-country",
     "mx-presence-per-country",
     "north-korea-connectivity",
