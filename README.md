@@ -304,4 +304,5 @@ Checks performed:
 - Install dependencies:
   ```sh
   pip install -r requirements.txt
+  pip install -r requirements-dev.txt
   ```
