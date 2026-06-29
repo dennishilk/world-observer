@@ -88,3 +88,49 @@ def test_ipv6_global_compare_keeps_true_no_data_unavailable(tmp_path, monkeypatc
     assert payload["data_status"] == "unavailable"
     assert payload["summary_stats"]["countries_evaluated"] == 0
     assert payload["diagnostics"]["no_usable_input_data"] is True
+
+
+def test_dashboard_export_normalizes_ipv6_global_evaluated_unavailable_to_partial(tmp_path) -> None:
+    latest_dir = tmp_path / "latest"
+    dashboard_dir = tmp_path / "dashboard"
+    latest_dir.mkdir()
+    payload = {
+        "observer": "ipv6-global-compare",
+        "status": "unavailable",
+        "data_status": "unavailable",
+        "summary_stats": {"countries_evaluated": 3, "significant_count": 1},
+    }
+    (latest_dir / "ipv6-global-compare.json").write_text(json.dumps(payload), encoding="utf-8")
+
+    export_dashboard.export_dashboard(latest_dir, dashboard_dir)
+    internet = json.loads((dashboard_dir / "internet.json").read_text(encoding="utf-8"))
+    card = next(card for card in internet["observers"] if card["observer"] == "ipv6-global-compare")
+
+    assert card["status"] == "ok"
+    assert card["data_status"] == "partial"
+    assert card["primary_metric_name"] == "countries evaluated"
+    assert card["primary_metric_value"] == 3
+    assert card["secondary_metrics"]["significant_count"] == 1
+
+
+def test_dashboard_export_asn_no_data_has_intentional_degraded_reason(tmp_path) -> None:
+    latest_dir = tmp_path / "latest"
+    dashboard_dir = tmp_path / "dashboard"
+    latest_dir.mkdir()
+    payload = {
+        "observer": "asn-visibility-by-country",
+        "status": "unavailable",
+        "data_status": "unavailable",
+        "summary_stats": {"countries_evaluated": 0, "significant_count": 0},
+    }
+    (latest_dir / "asn-visibility-by-country.json").write_text(json.dumps(payload), encoding="utf-8")
+
+    export_dashboard.export_dashboard(latest_dir, dashboard_dir)
+    internet = json.loads((dashboard_dir / "internet.json").read_text(encoding="utf-8"))
+    card = next(card for card in internet["observers"] if card["observer"] == "asn-visibility-by-country")
+
+    assert card["status"] == "unavailable"
+    assert card["data_status"] == "unavailable"
+    assert card["primary_metric_name"] == "countries evaluated"
+    assert card["primary_metric_value"] == 0
+    assert "ASN visibility data" in card["degraded_reason"]
