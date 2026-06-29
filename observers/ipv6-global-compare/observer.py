@@ -344,7 +344,9 @@ def run() -> Dict[str, Any]:
         return {
             "observer": OBSERVER,
             "date_utc": date_utc,
+            "status": "unavailable",
             "data_status": "unavailable",
+            "degraded_reason": diagnostics["reason"],
             "countries": [],
             "summary_stats": {
                 "countries_evaluated": 0,
@@ -417,10 +419,13 @@ def run() -> Dict[str, Any]:
 
     _write_latest_summary(date_utc)
 
+    output_data_status = data_status if data_status in {"ok", "partial"} else "partial"
+
     return {
         "observer": OBSERVER,
         "date_utc": date_utc,
-        "data_status": data_status,
+        "status": "ok",
+        "data_status": output_data_status,
         "countries": sorted(countries, key=lambda row: row["country"]),
         "summary_stats": {
             "countries_evaluated": len(countries),

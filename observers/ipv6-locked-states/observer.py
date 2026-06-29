@@ -425,10 +425,14 @@ def run() -> Dict[str, Any]:
     any_significant = significant_count > 0
     triggers = _build_triggers(countries, mass_event)
 
+    output_data_status = _daily_data_status(countries)
+    output_status = "ok" if countries and output_data_status in {"ok", "partial"} else output_data_status
+
     payload = {
         "observer": OBSERVER_NAME,
         "date_utc": date_utc,
-        "data_status": _daily_data_status(countries),
+        "status": output_status,
+        "data_status": output_data_status,
         "countries": [
             {
                 "country": item["country"],

@@ -63,7 +63,7 @@ def _status(payload: Dict[str, Any] | None) -> str:
         return "missing"
     if payload.get("status") == "error" or payload.get("data_status") == "error":
         return "error"
-    return str(payload.get("data_status") or payload.get("status") or "ok")
+    return str(payload.get("status") or payload.get("data_status") or "ok")
 
 
 def _is_ok(status: str) -> bool:
@@ -119,7 +119,14 @@ def _summary(
     loaded: Dict[str, Dict[str, Any]],
     metadata: Dict[str, Dict[str, Any]],
 ) -> Dict[str, Any]:
-    observer_statuses = {observer: _status(loaded.get(observer)) for observer in OBSERVERS}
+    observer_statuses = {
+        observer: (
+            _internet_status_fields(observer, loaded[observer])[0]
+            if observer in loaded and _metadata_category(metadata, observer) == "internet"
+            else _status(loaded.get(observer))
+        )
+        for observer in OBSERVERS
+    }
     missing = sorted(observer for observer in OBSERVERS if observer not in loaded)
     degraded = sorted(observer for observer, status in observer_statuses.items() if _is_degraded(status))
     ok = sorted(observer for observer, status in observer_statuses.items() if _is_ok(status))
@@ -365,7 +372,7 @@ def _internet_metric(observer: str, payload: Dict[str, Any]) -> tuple[str, float
             return "countries evaluated", countries_evaluated
         significant_count = _as_number(summary_stats.get("significant_count"))
         if significant_count is not None:
-            return "significant_count", significant_count
+            return "significant events", significant_count
 
     rules: dict[str, tuple[tuple[str, ...], ...]] = {
         "area51-reachability": (("au", "total"), ("bucket_count",)),
@@ -446,15 +453,46 @@ def _last_seen_date(payload: Dict[str, Any]) -> Any:
     return payload.get("date_utc") or payload.get("date") or payload.get("timestamp")
 
 
+def _internet_status_fields(observer: str, payload: Dict[str, Any]) -> tuple[str, str]:
+    status = _status(payload)
+    data_status = str(payload.get("data_status") or payload.get("status") or status)
+    summary_stats = payload.get("summary_stats")
+    if observer in {"ipv6-global-compare", "ipv6-locked-states"} and isinstance(summary_stats, dict):
+        countries_evaluated = _as_number(summary_stats.get("countries_evaluated"))
+        significant_count = _as_number(summary_stats.get("significant_count"))
+        if countries_evaluated is not None and countries_evaluated > 0:
+            status = "ok"
+            if observer == "ipv6-locked-states" and significant_count == 0:
+                data_status = "ok"
+            elif data_status == "unavailable":
+                data_status = "partial"
+    return status, data_status
+
+
+def _default_degraded_reason(observer: str, payload: Dict[str, Any], status: str, data_status: str) -> str | None:
+    if status != "unavailable" and data_status != "unavailable":
+        return None
+    summary_stats = payload.get("summary_stats")
+    if observer == "asn-visibility-by-country" and isinstance(summary_stats, dict):
+        countries_evaluated = _as_number(summary_stats.get("countries_evaluated"))
+        if countries_evaluated == 0:
+            return "No countries were evaluated; ASN visibility data is not yet producing a usable dashboard signal."
+    diagnostics = payload.get("diagnostics")
+    if isinstance(diagnostics, dict) and isinstance(diagnostics.get("reason"), str):
+        return diagnostics["reason"]
+    return "Observer data is unavailable in the latest output."
+
+
 def _internet_observer(observer: str, payload: Dict[str, Any], metadata: Dict[str, Dict[str, Any]]) -> Dict[str, Any]:
     primary_name, primary_value = _internet_metric(observer, payload)
+    status, data_status = _internet_status_fields(observer, payload)
     item: Dict[str, Any] = {
         "observer": observer,
         "display_name": _metadata_display_name(metadata, observer),
         "category": _metadata_category(metadata, observer),
         "dashboard_priority": _metadata_priority(metadata, observer),
-        "status": _status(payload),
-        "data_status": str(payload.get("data_status") or payload.get("status") or _status(payload)),
+        "status": status,
+        "data_status": data_status,
         "primary_metric_name": primary_name,
         "primary_metric_value": primary_value,
         "secondary_metrics": _secondary_metrics(payload, primary_name),
@@ -462,7 +500,7 @@ def _internet_observer(observer: str, payload: Dict[str, Any], metadata: Dict[st
     last_seen = _last_seen_date(payload)
     if last_seen is not None:
         item["last_seen_date"] = last_seen
-    degraded_reason = payload.get("degraded_reason") or payload.get("error") or payload.get("reason")
+    degraded_reason = payload.get("degraded_reason") or payload.get("error") or payload.get("reason") or _default_degraded_reason(observer, payload, status, data_status)
     if degraded_reason:
         item["degraded_reason"] = degraded_reason
     return item
