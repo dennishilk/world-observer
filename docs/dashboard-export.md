@@ -43,16 +43,45 @@ The exporter writes the following compact JSON files to `dashboard/`:
 - `environment.json` — empty placeholder for future website sections.
 - `history/media-language-germany.json` — compact Germany media-observer time
   series for trend charts.
+- `history/internet-observers.json` — compact Internet-observer time series for
+  website cards and sparklines.
 
 These files are intended to be copied directly into the GitHub Pages repository.
 The website should consume only `dashboard/*.json` and should not depend on raw
 observer schemas.
 
+## Internet observer export
+
+`internet.json` contains one compact card per available Internet observer from
+`data/latest/*.json`. The exporter keeps only website-oriented fields:
+
+- `observer`
+- `display_name`
+- `status`
+- `data_status`
+- `primary_metric_name`
+- `primary_metric_value`
+- `secondary_metrics`
+- `last_seen_date`, when a timestamp or date is present
+- `degraded_reason`, when the observer output already provides one
+
+Primary metrics are selected with simple safe rules for the existing Internet
+observers. For example, Area51 uses `au.total` or `bucket_count`, global
+reachability uses a score when present, DNS time-to-answer prefers median or
+average response values, TLS fingerprint changes prefer change counts, and
+silent-country/traceroute/cable-style observers prefer count or score fields.
+If no numeric value can be found, the card uses the observer's `data_status` as
+the primary value instead.
+
+The Internet export intentionally does not include diagnostics, probe details,
+full country lists, raw traceroutes, raw DNS answers, or other native observer
+payloads.
+
 ## History export
 
-The first history export is for the Germany media observer. It scans every
-available `data/daily/YYYY-MM-DD/media-language-germany.json` file, sorts points
-by date, and writes `dashboard/history/media-language-germany.json`.
+The Germany media history export scans every available
+`data/daily/YYYY-MM-DD/media-language-germany.json` file, sorts points by date,
+and writes `dashboard/history/media-language-germany.json`.
 
 Each point keeps only website-friendly fields:
 
@@ -63,12 +92,31 @@ Each point keeps only website-friendly fields:
 - `headline_count`
 - up to three `top_terms`
 
-The history file also includes simple 7-day and 30-day windows. Each window
+The media history file also includes simple 7-day and 30-day windows. Each window
 reports its point `count`; when numeric fear-index values are available it also
 includes `latest`, `previous`, `delta`, `min`, `max`, and `avg` as applicable.
 
-The history export intentionally does not include diagnostics, full raw observer
-JSON, or full headline lists.
+The Internet history export scans existing
+`data/daily/YYYY-MM-DD/<observer>.json` files for every Internet observer and
+writes `dashboard/history/internet-observers.json`. Each observer entry contains
+its display name, compact points, and 7-day, 30-day, and 90-day windows:
+
+```json
+{
+  "date": "2026-06-29",
+  "value": 1,
+  "data_status": "partial"
+}
+```
+
+The `value` field uses the same primary metric selection as `internet.json`.
+When a daily file is missing or invalid, that date is skipped for that observer
+and the export continues. Window summaries report point `count`; when numeric
+values are available they also include `latest`, `previous`, `delta`, `min`,
+`max`, and `avg` as applicable.
+
+History exports intentionally do not include diagnostics, full raw observer
+JSON, full headline lists, raw probe details, or other large native payloads.
 
 This is not a historical backfill. No 1984-era backfill is implemented yet, and
 historical archive import remains future work.
@@ -100,6 +148,10 @@ available dashboard files.
 If no daily media files exist, the exporter still writes a valid empty
 `dashboard/history/media-language-germany.json` file with no points and window
 counts of zero.
+
+If no daily Internet files exist, the exporter still writes a valid
+`dashboard/history/internet-observers.json` file with every Internet observer,
+empty point lists, and 7-day, 30-day, and 90-day window counts of zero.
 
 The local publish helper fails before copying if the Pages checkout is missing
 or does not contain the required website marker files.
