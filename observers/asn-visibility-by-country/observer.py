@@ -8,6 +8,7 @@ import json
 import math
 import os
 import struct
+import time
 import urllib.error
 import urllib.request
 from collections import Counter, defaultdict
@@ -21,6 +22,36 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 OBSERVER = "asn-visibility-by-country"
 DEFAULT_CONFIG_PATH = Path(__file__).with_name("config.json")
 FIXED_CHART_PATH = REPO_ROOT / "data" / "latest" / "chart.png"
+DEFAULT_RUNTIME_BUDGET_S = 105.0
+
+
+class BudgetExceeded(RuntimeError):
+    """Raised when the observer exhausts its internal runtime budget."""
+
+
+def _runtime_budget_s() -> float:
+    raw = os.getenv("WORLD_OBSERVER_ASN_RUNTIME_BUDGET_S") or os.getenv("WORLD_OBSERVER_INTERNAL_RUNTIME_BUDGET_S")
+    if raw:
+        try:
+            return max(0.0, float(raw))
+        except ValueError:
+            pass
+    runner_raw = os.getenv("WORLD_OBSERVER_OBSERVER_TIMEOUT_S")
+    if runner_raw:
+        try:
+            return max(1.0, min(DEFAULT_RUNTIME_BUDGET_S, float(runner_raw) - 10.0))
+        except ValueError:
+            pass
+    return DEFAULT_RUNTIME_BUDGET_S
+
+
+def _remaining_s(deadline: float) -> float:
+    return deadline - time.monotonic()
+
+
+def _check_budget(deadline: float) -> None:
+    if _remaining_s(deadline) <= 0:
+        raise BudgetExceeded("internal runtime budget exhausted")
 
 
 def _date_utc() -> date:
@@ -55,12 +86,19 @@ def _ensure_dir(path: Path) -> Path:
     return path
 
 
-def _http_download(url: str, destination: Path) -> bool:
+def _http_download(url: str, destination: Path, deadline: float | None = None) -> bool:
     try:
+        if deadline is not None:
+            _check_budget(deadline)
         request = urllib.request.Request(url, headers={"User-Agent": "world-observer/1.0"})
-        with urllib.request.urlopen(request, timeout=45) as response:
+        timeout = 45.0 if deadline is None else max(0.5, min(10.0, _remaining_s(deadline)))
+        with urllib.request.urlopen(request, timeout=timeout) as response:
             destination.write_bytes(response.read())
+        if deadline is not None:
+            _check_budget(deadline)
         return True
+    except BudgetExceeded:
+        raise
     except (urllib.error.URLError, TimeoutError, OSError):
         return False
 
@@ -160,7 +198,7 @@ def _consume_nlri_prefixes(data: bytes, offset: int, v6: bool) -> int:
     return offset
 
 
-def _extract_unique_asns_from_mrt(mrt_path: Path) -> set[int]:
+def _extract_unique_asns_from_mrt(mrt_path: Path, deadline: float | None = None) -> set[int]:
     discovered: set[int] = set()
     with _open_compressed(mrt_path) as fh:
         blob = fh.read()
@@ -168,6 +206,8 @@ def _extract_unique_asns_from_mrt(mrt_path: Path) -> set[int]:
     offset = 0
     total = len(blob)
     while offset + 12 <= total:
+        if deadline is not None and offset % 1_000_000 < 12:
+            _check_budget(deadline)
         _, msg_type, subtype, msg_len = struct.unpack("!IHHI", blob[offset : offset + 12])
         offset += 12
         payload = blob[offset : offset + msg_len]
@@ -245,7 +285,7 @@ def _extract_unique_asns_from_mrt(mrt_path: Path) -> set[int]:
     return discovered
 
 
-def _download_as2org(cache_dir: Path, target_date: date) -> Optional[Path]:
+def _download_as2org(cache_dir: Path, target_date: date, deadline: float | None = None) -> Optional[Path]:
     yyyy = target_date.strftime("%Y")
     mm = target_date.strftime("%m")
     stamp = target_date.strftime("%Y%m01")
@@ -255,8 +295,10 @@ def _download_as2org(cache_dir: Path, target_date: date) -> Optional[Path]:
         "https://publicdata.caida.org/datasets/as-organizations/2026/01/20260101.as-org2info.txt.gz",
     ]
     for url in candidates:
+        if deadline is not None:
+            _check_budget(deadline)
         destination = cache_dir / Path(url).name
-        if destination.exists() or _http_download(url, destination):
+        if destination.exists() or _http_download(url, destination, deadline):
             return destination
     return None
 
@@ -467,6 +509,8 @@ def _forced_counts_from_env() -> Optional[Counter[str]]:
 
 
 def run() -> Dict[str, Any]:
+    started = time.monotonic()
+    deadline = started + _runtime_budget_s()
     config = _load_config()
     target_date = _date_utc()
     notes: List[str] = [
@@ -478,39 +522,48 @@ def run() -> Dict[str, Any]:
     country_counts: Counter[str] = Counter()
     unknown_count = 0
     data_status = "ok"
+    budget_exhausted = False
 
-    if forced is not None:
-        country_counts = forced
-        notes.append("Country counts were injected via WORLD_OBSERVER_FORCE_COUNTRY_COUNTS_JSON for simulation.")
-    else:
-        cache = config["cache_paths"]
-        rib_cache = _ensure_dir(REPO_ROOT / cache["rib"])
-        as2org_cache = _ensure_dir(REPO_ROOT / cache["as2org"])
-
-        downloaded_rib: Optional[Path] = None
-        for url, filename in _iter_rib_candidates(target_date, config["collectors"], config["rib_time_window_utc"]):
-            destination = rib_cache / filename
-            if destination.exists() or _http_download(url, destination):
-                downloaded_rib = destination
-                notes.append(f"Used RIB snapshot source: {url}")
-                break
-
-        as2org_path = _download_as2org(as2org_cache, target_date)
-
-        if not downloaded_rib or not as2org_path:
-            data_status = "unavailable"
-            if not downloaded_rib:
-                notes.append("No reachable RIS/RouteViews RIB snapshot found in configured window.")
-            if not as2org_path:
-                notes.append("No reachable CAIDA AS2Org dataset found for mapping.")
+    try:
+        _check_budget(deadline)
+        if forced is not None:
+            country_counts = forced
+            notes.append("Country counts were injected via WORLD_OBSERVER_FORCE_COUNTRY_COUNTS_JSON for simulation.")
         else:
-            discovered_asns = _extract_unique_asns_from_mrt(downloaded_rib)
-            asn_country = _load_asn_country_map(as2org_path)
-            for asn in discovered_asns:
-                country = asn_country.get(asn, "unknown")
-                if country == "unknown":
-                    unknown_count += 1
-                country_counts[country] += 1
+            cache = config["cache_paths"]
+            rib_cache = _ensure_dir(REPO_ROOT / cache["rib"])
+            as2org_cache = _ensure_dir(REPO_ROOT / cache["as2org"])
+
+            downloaded_rib: Optional[Path] = None
+            for url, filename in _iter_rib_candidates(target_date, config["collectors"], config["rib_time_window_utc"]):
+                _check_budget(deadline)
+                destination = rib_cache / filename
+                if destination.exists() or _http_download(url, destination, deadline):
+                    downloaded_rib = destination
+                    notes.append(f"Used RIB snapshot source: {url}")
+                    break
+
+            as2org_path = _download_as2org(as2org_cache, target_date, deadline)
+
+            if not downloaded_rib or not as2org_path:
+                data_status = "unavailable"
+                if not downloaded_rib:
+                    notes.append("No reachable RIS/RouteViews RIB snapshot found in configured window.")
+                if not as2org_path:
+                    notes.append("No reachable CAIDA AS2Org dataset found for mapping.")
+            else:
+                discovered_asns = _extract_unique_asns_from_mrt(downloaded_rib, deadline)
+                _check_budget(deadline)
+                asn_country = _load_asn_country_map(as2org_path)
+                for asn in discovered_asns:
+                    country = asn_country.get(asn, "unknown")
+                    if country == "unknown":
+                        unknown_count += 1
+                    country_counts[country] += 1
+    except BudgetExceeded:
+        budget_exhausted = True
+        data_status = "partial" if country_counts else "unavailable"
+        notes.append("Internal runtime budget exhausted before ASN visibility collection completed.")
 
     baseline = _historical_country_counts(target_date, config["baseline_window_days"])
     countries_payload: List[Dict[str, Any]] = []
@@ -553,6 +606,7 @@ def run() -> Dict[str, Any]:
     payload: Dict[str, Any] = {
         "observer": OBSERVER,
         "date_utc": target_date.isoformat(),
+        "status": "partial" if budget_exhausted else "ok",
         "data_status": data_status,
         "countries": countries_payload,
         "summary_stats": {
@@ -567,6 +621,12 @@ def run() -> Dict[str, Any]:
             "triggers": triggers,
         },
         "notes": notes,
+        "diagnostics": {
+            "timeout": budget_exhausted,
+            "budget_exhausted": budget_exhausted,
+            "duration_s": round(time.monotonic() - started, 3),
+            "runtime_budget_s": _runtime_budget_s(),
+        },
     }
     if unknown_count:
         payload["summary_stats"]["unknown_count"] = unknown_count

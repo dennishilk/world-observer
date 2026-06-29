@@ -358,11 +358,22 @@ def _find_named_number(value: Any, name: str, prefix: str = "") -> tuple[str, fl
 
 
 def _internet_metric(observer: str, payload: Dict[str, Any]) -> tuple[str, float | int | str]:
+    summary_stats = payload.get("summary_stats")
+    if observer in {"asn-visibility-by-country", "ipv6-global-compare", "ipv6-locked-states"} and isinstance(summary_stats, dict):
+        countries_evaluated = _as_number(summary_stats.get("countries_evaluated"))
+        if countries_evaluated is not None:
+            return "countries evaluated", countries_evaluated
+        significant_count = _as_number(summary_stats.get("significant_count"))
+        if significant_count is not None:
+            return "significant_count", significant_count
+
     rules: dict[str, tuple[tuple[str, ...], ...]] = {
         "area51-reachability": (("au", "total"), ("bucket_count",)),
         "global-reachability-score": (("score",), ("score_percent",)),
         "internet-shrinkage-index": (("score",), ("index",)),
-        "ipv6-global-compare": (("percentage",), ("score",), ("score_percent",)),
+        "asn-visibility-by-country": (("summary_stats", "countries_evaluated"), ("summary_stats", "significant_count")),
+        "ipv6-global-compare": (("summary_stats", "countries_evaluated"), ("summary_stats", "significant_count"), ("percentage",), ("score",), ("score_percent",)),
+        "ipv6-locked-states": (("summary_stats", "countries_evaluated"), ("summary_stats", "significant_count")),
         "dns-time-to-answer-index": (("median_response_ms",), ("avg_response_ms",), ("median_ms",), ("avg_ms",)),
         "dns-tta-stress-index": (("stress",), ("timeout_count",), ("timeouts",)),
         "tls-fingerprint-change": (("change_count",), ("changes",)),
@@ -381,7 +392,9 @@ def _internet_metric(observer: str, payload: Dict[str, Any]) -> tuple[str, float
     ordered_names = {
         "global-reachability-score": ("score", "score_percent"),
         "internet-shrinkage-index": ("score", "index", "global_shrinkage_index", "shrinkage_score"),
-        "ipv6-global-compare": ("percentage", "score", "score_percent"),
+        "asn-visibility-by-country": ("countries_evaluated", "significant_count", "asn_visible_count"),
+        "ipv6-global-compare": ("countries_evaluated", "significant_count", "percentage", "score", "score_percent"),
+        "ipv6-locked-states": ("countries_evaluated", "significant_count", "ipv6_capable_rate"),
         "dns-time-to-answer-index": ("median_response_ms", "avg_response_ms", "median_ms", "avg_ms", "avg_query_ms", "query_ms"),
         "dns-tta-stress-index": ("stress", "timeout_count", "timeouts", "timeout_rate", "dns_stress_score"),
         "tls-fingerprint-change": ("change_count", "changes", "tls_change_score"),
@@ -418,10 +431,12 @@ def _internet_metric(observer: str, payload: Dict[str, Any]) -> tuple[str, float
 
 def _secondary_metrics(payload: Dict[str, Any], primary_name: str, limit: int = 3) -> Dict[str, float | int]:
     metrics: Dict[str, float | int] = {}
-    for name, value in _iter_named_numbers(payload, ("score", "index", "count", "percent", "total", "median", "avg")):
-        if name == primary_name or name.startswith("diagnostics."):
+    for name, value in _iter_named_numbers(payload, ("score", "index", "count", "percent", "total", "median", "avg", "evaluated", "significant")):
+        display_name = name.replace("summary_stats.", "")
+        normalized_display = display_name.replace("_", " ")
+        if name == primary_name or display_name == primary_name or normalized_display == primary_name or name.startswith("diagnostics."):
             continue
-        metrics[name] = value
+        metrics[display_name] = value
         if len(metrics) >= limit:
             break
     return metrics

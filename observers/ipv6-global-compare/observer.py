@@ -331,6 +331,13 @@ def run() -> Dict[str, Any]:
     global_today = _global_rate(source_countries)
 
     if global_today is None:
+        diagnostics = {
+            "input_observer": cfg["input_observer"],
+            "input_payload_found": bool(input_payload),
+            "usable_country_rows": len(source_countries),
+            "no_usable_input_data": True,
+            "reason": "No usable country IPv6 rates were found in the input observer payload.",
+        }
         if LATEST_CHART_PATH.exists():
             LATEST_CHART_PATH.unlink()
         _write_latest_summary(date_utc)
@@ -349,6 +356,7 @@ def run() -> Dict[str, Any]:
                 "any_significant": False,
                 "triggers": ["input_unavailable"],
             },
+            "diagnostics": diagnostics,
         }
 
     all_deltas = [float(item["ipv6_rate"]) - global_today for item in source_countries]
