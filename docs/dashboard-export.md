@@ -13,7 +13,9 @@ Daily archive already produced by run_daily (`data/daily/YYYY-MM-DD/*.json`)
   ↓
 Dashboard Export (`scripts/export_dashboard.py`)
   ↓
-Website (`dashboard/*.json`)
+Local publish helper (`scripts/publish_dashboard_to_pages.py`)
+  ↓
+Website checkout (`dennishilk.github.io/world-observer/dashboard/`)
 ```
 
 ## Inputs
@@ -71,6 +73,24 @@ JSON, or full headline lists.
 This is not a historical backfill. No 1984-era backfill is implemented yet, and
 historical archive import remains future work.
 
+## Local Pages publish helper
+
+`scripts/publish_dashboard_to_pages.py` is a safe local copy helper for a
+checked-out `dennishilk.github.io` repository. It copies the exported
+`dashboard/` directory into `world-observer/dashboard/` inside that website
+checkout.
+
+The helper requires `--pages-repo` and validates that the target looks like the
+website repository by checking for both `index.html` and `world-observer.html`.
+It creates `world-observer/dashboard/` if it does not already exist, then
+replaces only the files and directories inside that destination directory before
+copying the current dashboard export.
+
+The helper intentionally does not run `git commit`, does not run `git push`, and
+does not delete anything outside `world-observer/dashboard/`. Production publish
+automation is not enabled yet; reviewing, committing, and pushing website
+changes remains a separate manual step.
+
 ## Error handling
 
 Exports are best-effort. If an observer file is missing or invalid, the exporter
@@ -81,14 +101,30 @@ If no daily media files exist, the exporter still writes a valid empty
 `dashboard/history/media-language-germany.json` file with no points and window
 counts of zero.
 
-## Usage
+The local publish helper fails before copying if the Pages checkout is missing
+or does not contain the required website marker files.
+
+## Manual workflow
+
+Export the dashboard JSON from this repository:
 
 ```sh
 python scripts/export_dashboard.py
 ```
 
+Copy the exported dashboard into a local website checkout:
+
+```sh
+python scripts/publish_dashboard_to_pages.py --pages-repo ../dennishilk.github.io
+```
+
+After copying, inspect the website checkout manually. If the changes are ready,
+commit and push them from the website repository yourself. There is no automatic
+GitHub push automation yet.
+
 For tests or local experiments, custom paths can be supplied:
 
 ```sh
 python scripts/export_dashboard.py --latest-dir /tmp/latest --dashboard-dir /tmp/dashboard --daily-dir /tmp/daily
+python scripts/publish_dashboard_to_pages.py --pages-repo /tmp/dennishilk.github.io --dashboard-dir /tmp/dashboard
 ```
