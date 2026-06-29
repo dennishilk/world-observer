@@ -231,6 +231,8 @@ def test_export_dashboard_writes_internet_cards(tmp_path) -> None:
     card = internet["observers"][0]
     assert card["observer"] == "area51-reachability"
     assert card["display_name"] == "Area51 Reachability"
+    assert card["category"] == "internet"
+    assert card["dashboard_priority"] == 10
     assert card["status"] == "partial"
     assert card["data_status"] == "partial"
     assert card["primary_metric_name"] == "au.total"
@@ -238,6 +240,91 @@ def test_export_dashboard_writes_internet_cards(tmp_path) -> None:
     assert card["last_seen_date"] == "2026-06-29"
     assert card["degraded_reason"] == "sample partial data"
     assert "diagnostics" not in json.dumps(card)
+
+
+def test_export_dashboard_uses_observer_metadata_for_display_and_order(tmp_path, monkeypatch) -> None:
+    latest_dir = tmp_path / "latest"
+    dashboard_dir = tmp_path / "dashboard"
+    metadata_path = tmp_path / "observer_metadata.json"
+    latest_dir.mkdir()
+    metadata_path.write_text(
+        json.dumps(
+            {
+                "observers": [
+                    {
+                        "observer": "cuba-internet-weather",
+                        "display_name": "Custom Cuba Weather",
+                        "category": "internet",
+                        "description": "Custom metadata.",
+                        "tags": ["internet", "custom"],
+                        "dashboard_priority": 1,
+                        "planned": False,
+                    },
+                    {
+                        "observer": "area51-reachability",
+                        "display_name": "Custom Area 51",
+                        "category": "internet",
+                        "description": "Custom metadata.",
+                        "tags": ["internet", "custom"],
+                        "dashboard_priority": 2,
+                        "planned": False,
+                    },
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(export_dashboard, "METADATA_PATH", str(metadata_path))
+    _write_latest(latest_dir, "area51-reachability", {"observer": "area51-reachability", "data_status": "ok"})
+    _write_latest(latest_dir, "cuba-internet-weather", {"observer": "cuba-internet-weather", "data_status": "ok"})
+
+    export_dashboard.export_dashboard(latest_dir, dashboard_dir)
+
+    internet = json.loads((dashboard_dir / "internet.json").read_text(encoding="utf-8"))
+    assert [card["observer"] for card in internet["observers"]] == ["cuba-internet-weather", "area51-reachability"]
+    assert internet["observers"][0]["display_name"] == "Custom Cuba Weather"
+    assert internet["observers"][0]["dashboard_priority"] == 1
+
+
+def test_export_dashboard_writes_planned_metadata_placeholders(tmp_path) -> None:
+    latest_dir = tmp_path / "latest"
+    dashboard_dir = tmp_path / "dashboard"
+    latest_dir.mkdir()
+
+    export_dashboard.export_dashboard(latest_dir, dashboard_dir)
+
+    society = json.loads((dashboard_dir / "society.json").read_text(encoding="utf-8"))
+    environment = json.loads((dashboard_dir / "environment.json").read_text(encoding="utf-8"))
+    assert [item["observer"] for item in society["items"]] == [
+        "fuel-prices-germany",
+        "electricity-prices-germany",
+        "food-prices-germany",
+        "housing-costs-germany",
+        "deutsche-bahn-punctuality",
+        "deutsche-post-reliability",
+    ]
+    assert [item["observer"] for item in environment["items"]] == [
+        "weather-germany",
+        "climate-germany",
+        "natural-disasters-germany",
+    ]
+    assert all(item["planned"] is True for item in society["items"] + environment["items"])
+
+
+def test_export_dashboard_falls_back_when_metadata_is_missing(tmp_path, monkeypatch) -> None:
+    latest_dir = tmp_path / "latest"
+    dashboard_dir = tmp_path / "dashboard"
+    latest_dir.mkdir()
+    monkeypatch.setattr(export_dashboard, "METADATA_PATH", str(tmp_path / "missing.json"))
+    _write_latest(latest_dir, "area51-reachability", {"observer": "area51-reachability", "data_status": "ok"})
+
+    export_dashboard.export_dashboard(latest_dir, dashboard_dir)
+
+    internet = json.loads((dashboard_dir / "internet.json").read_text(encoding="utf-8"))
+    card = internet["observers"][0]
+    assert card["display_name"] == "Area51 Reachability"
+    assert card["category"] == "internet"
+    assert card["dashboard_priority"] == 10_000
 
 
 def test_export_dashboard_internet_card_falls_back_to_data_status(tmp_path) -> None:

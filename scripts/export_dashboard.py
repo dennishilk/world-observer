@@ -19,6 +19,7 @@ MEDIA_OBSERVER = "media-language-germany"
 SUMMARY_NAME = "summary.json"
 OUTPUT_FILES = ("summary.json", "internet.json", "media.json", "society.json", "environment.json")
 HISTORY_FILES = ("history/media-language-germany.json", "history/internet-observers.json")
+METADATA_PATH = "config/observer_metadata.json"
 
 
 def _repo_root() -> Path:
@@ -37,6 +38,24 @@ def _read_json(path: Path) -> Tuple[Dict[str, Any] | None, str | None]:
     if not isinstance(payload, dict):
         return None, "JSON root is not an object"
     return payload, None
+
+
+def _load_metadata(path: Path | None = None) -> Dict[str, Dict[str, Any]]:
+    path = path or (_repo_root() / METADATA_PATH)
+    payload, _error = _read_json(path) if path.exists() else (None, None)
+    if payload is None:
+        return {}
+    entries = payload.get("observers")
+    if not isinstance(entries, list):
+        return {}
+    metadata: Dict[str, Dict[str, Any]] = {}
+    for entry in entries:
+        if not isinstance(entry, dict):
+            continue
+        observer = entry.get("observer")
+        if isinstance(observer, str) and observer:
+            metadata[observer] = entry
+    return metadata
 
 
 def _status(payload: Dict[str, Any] | None) -> str:
@@ -75,17 +94,39 @@ def _load_latest(latest_dir: Path) -> Tuple[Dict[str, Dict[str, Any]], Dict[str,
     return loaded, errors
 
 
-def _summary(latest_dir: Path, generated_at: str, loaded: Dict[str, Dict[str, Any]]) -> Dict[str, Any]:
+def _metadata_value(metadata: Dict[str, Dict[str, Any]], observer: str, key: str, fallback: Any = None) -> Any:
+    value = metadata.get(observer, {}).get(key)
+    return fallback if value is None else value
+
+
+def _metadata_category(metadata: Dict[str, Dict[str, Any]], observer: str) -> str:
+    value = _metadata_value(metadata, observer, "category")
+    if isinstance(value, str) and value:
+        return value
+    return "media" if observer == MEDIA_OBSERVER else "internet"
+
+
+def _metadata_priority(metadata: Dict[str, Dict[str, Any]], observer: str) -> int:
+    value = _metadata_value(metadata, observer, "dashboard_priority")
+    if isinstance(value, int) and not isinstance(value, bool):
+        return value
+    return 10_000
+
+
+def _summary(
+    latest_dir: Path,
+    generated_at: str,
+    loaded: Dict[str, Dict[str, Any]],
+    metadata: Dict[str, Dict[str, Any]],
+) -> Dict[str, Any]:
     observer_statuses = {observer: _status(loaded.get(observer)) for observer in OBSERVERS}
     missing = sorted(observer for observer in OBSERVERS if observer not in loaded)
     degraded = sorted(observer for observer, status in observer_statuses.items() if _is_degraded(status))
     ok = sorted(observer for observer, status in observer_statuses.items() if _is_ok(status))
-    categories = {
-        "internet": sum(1 for observer in OBSERVERS if observer != MEDIA_OBSERVER),
-        "media": 1 if MEDIA_OBSERVER in OBSERVERS else 0,
-        "society": 0,
-        "environment": 0,
-    }
+    categories = {category: 0 for category in ("internet", "media", "society", "environment")}
+    for observer in OBSERVERS:
+        category = _metadata_category(metadata, observer)
+        categories[category] = categories.get(category, 0) + 1
     latest_summary, _ = _read_json(latest_dir / SUMMARY_NAME) if (latest_dir / SUMMARY_NAME).exists() else (None, None)
     payload: Dict[str, Any] = {
         "generated_at": generated_at,
@@ -227,6 +268,11 @@ def _display_name(observer: str) -> str:
     return " ".join(part.upper() if part in {"dns", "ipv6", "tls", "mx"} else part.capitalize() for part in observer.split("-"))
 
 
+def _metadata_display_name(metadata: Dict[str, Dict[str, Any]], observer: str) -> str:
+    value = _metadata_value(metadata, observer, "display_name")
+    return value if isinstance(value, str) and value else _display_name(observer)
+
+
 def _find_path(payload: Any, path: tuple[str, ...]) -> Any:
     value = payload
     for key in path:
@@ -355,11 +401,13 @@ def _last_seen_date(payload: Dict[str, Any]) -> Any:
     return payload.get("date_utc") or payload.get("date") or payload.get("timestamp")
 
 
-def _internet_observer(observer: str, payload: Dict[str, Any]) -> Dict[str, Any]:
+def _internet_observer(observer: str, payload: Dict[str, Any], metadata: Dict[str, Dict[str, Any]]) -> Dict[str, Any]:
     primary_name, primary_value = _internet_metric(observer, payload)
     item: Dict[str, Any] = {
         "observer": observer,
-        "display_name": _display_name(observer),
+        "display_name": _metadata_display_name(metadata, observer),
+        "category": _metadata_category(metadata, observer),
+        "dashboard_priority": _metadata_priority(metadata, observer),
         "status": _status(payload),
         "data_status": str(payload.get("data_status") or payload.get("status") or _status(payload)),
         "primary_metric_name": primary_name,
@@ -375,13 +423,38 @@ def _internet_observer(observer: str, payload: Dict[str, Any]) -> Dict[str, Any]
     return item
 
 
-def _internet(loaded: Dict[str, Dict[str, Any]]) -> Dict[str, Any]:
+def _internet(loaded: Dict[str, Dict[str, Any]], metadata: Dict[str, Dict[str, Any]]) -> Dict[str, Any]:
     observers = [
-        _internet_observer(observer, loaded[observer])
-        for observer in sorted(loaded)
-        if observer != MEDIA_OBSERVER
+        _internet_observer(observer, loaded[observer], metadata)
+        for observer in sorted(
+            loaded,
+            key=lambda item: (_metadata_priority(metadata, item), _metadata_display_name(metadata, item), item),
+        )
+        if _metadata_category(metadata, observer) == "internet"
     ]
     return {"observer_count": len(observers), "observers": observers}
+
+
+def _planned_items(metadata: Dict[str, Dict[str, Any]], category: str) -> list[Dict[str, Any]]:
+    items: list[Dict[str, Any]] = []
+    for observer, entry in sorted(
+        metadata.items(),
+        key=lambda item: (_metadata_priority(metadata, item[0]), _metadata_display_name(metadata, item[0]), item[0]),
+    ):
+        if _metadata_category(metadata, observer) != category or entry.get("planned") is not True:
+            continue
+        items.append(
+            {
+                "observer": observer,
+                "display_name": _metadata_display_name(metadata, observer),
+                "category": category,
+                "dashboard_priority": _metadata_priority(metadata, observer),
+                "planned": True,
+                "description": entry.get("description", ""),
+                "tags": entry.get("tags", []),
+            }
+        )
+    return items
 
 
 def _iter_daily_observer_files(daily_dir: Path, observer: str) -> Iterable[tuple[str, Path]]:
@@ -401,9 +474,12 @@ def _iter_daily_observer_files(daily_dir: Path, observer: str) -> Iterable[tuple
     return sorted(files)
 
 
-def _internet_history(daily_dir: Path, generated_at: str) -> Dict[str, Any]:
+def _internet_history(daily_dir: Path, generated_at: str, metadata: Dict[str, Dict[str, Any]]) -> Dict[str, Any]:
     observers: Dict[str, Any] = {}
-    for observer in sorted(item for item in OBSERVERS if item != MEDIA_OBSERVER):
+    for observer in sorted(
+        (item for item in OBSERVERS if _metadata_category(metadata, item) == "internet"),
+        key=lambda item: (_metadata_priority(metadata, item), _metadata_display_name(metadata, item), item),
+    ):
         points: list[Dict[str, Any]] = []
         for date, path in _iter_daily_observer_files(daily_dir, observer):
             payload, _error = _read_json(path)
@@ -413,7 +489,7 @@ def _internet_history(daily_dir: Path, generated_at: str) -> Dict[str, Any]:
             point: Dict[str, Any] = {"date": date, "value": value, "data_status": _status(payload)}
             points.append(point)
         observers[observer] = {
-            "display_name": _display_name(observer),
+            "display_name": _metadata_display_name(metadata, observer),
             "points": points,
             "windows": {
                 "7d": _window_summary(points, 7, "value"),
@@ -434,14 +510,15 @@ def export_dashboard(
 
     generated_at = _utc_now()
     loaded, _errors = _load_latest(latest_dir)
+    metadata = _load_metadata()
     outputs = {
-        "summary.json": _summary(latest_dir, generated_at, loaded),
-        "internet.json": _internet(loaded),
+        "summary.json": _summary(latest_dir, generated_at, loaded, metadata),
+        "internet.json": _internet(loaded, metadata),
         "media.json": _media(loaded.get(MEDIA_OBSERVER)),
-        "society.json": {"status": "placeholder", "items": []},
-        "environment.json": {"status": "placeholder", "items": []},
+        "society.json": {"status": "placeholder", "items": _planned_items(metadata, "society")},
+        "environment.json": {"status": "placeholder", "items": _planned_items(metadata, "environment")},
         "history/media-language-germany.json": _media_history(daily_dir, generated_at),
-        "history/internet-observers.json": _internet_history(daily_dir, generated_at),
+        "history/internet-observers.json": _internet_history(daily_dir, generated_at, metadata),
     }
     written: Dict[str, Path] = {}
     for name in (*OUTPUT_FILES, *HISTORY_FILES):

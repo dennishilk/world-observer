@@ -1,0 +1,343 @@
+{
+  "observers": [
+    {
+      "observer": "area51-reachability",
+      "display_name": "Area51 Reachability",
+      "category": "internet",
+      "description": "Area51 Reachability observer.",
+      "tags": [
+        "internet"
+      ],
+      "dashboard_priority": 10,
+      "planned": false
+    },
+    {
+      "observer": "asn-visibility-by-country",
+      "display_name": "ASN Visibility By Country",
+      "category": "internet",
+      "description": "ASN Visibility By Country observer.",
+      "tags": [
+        "internet"
+      ],
+      "dashboard_priority": 11,
+      "planned": false
+    },
+    {
+      "observer": "cuba-internet-weather",
+      "display_name": "Cuba Internet Weather",
+      "category": "internet",
+      "description": "Cuba Internet Weather observer.",
+      "tags": [
+        "internet"
+      ],
+      "dashboard_priority": 12,
+      "planned": false
+    },
+    {
+      "observer": "dns-time-to-answer-index",
+      "display_name": "DNS Time To Answer Index",
+      "category": "internet",
+      "description": "DNS Time To Answer Index observer.",
+      "tags": [
+        "internet"
+      ],
+      "dashboard_priority": 13,
+      "planned": false
+    },
+    {
+      "observer": "dns-tta-stress-index",
+      "display_name": "DNS Tta Stress Index",
+      "category": "internet",
+      "description": "DNS Tta Stress Index observer.",
+      "tags": [
+        "internet"
+      ],
+      "dashboard_priority": 14,
+      "planned": false
+    },
+    {
+      "observer": "global-reachability-long-horizon",
+      "display_name": "Global Reachability Long Horizon",
+      "category": "internet",
+      "description": "Global Reachability Long Horizon observer.",
+      "tags": [
+        "internet"
+      ],
+      "dashboard_priority": 15,
+      "planned": false
+    },
+    {
+      "observer": "global-reachability-score",
+      "display_name": "Global Reachability Score",
+      "category": "internet",
+      "description": "Global Reachability Score observer.",
+      "tags": [
+        "internet"
+      ],
+      "dashboard_priority": 16,
+      "planned": false
+    },
+    {
+      "observer": "internet-shrinkage-index",
+      "display_name": "Internet Shrinkage Index",
+      "category": "internet",
+      "description": "Internet Shrinkage Index observer.",
+      "tags": [
+        "internet"
+      ],
+      "dashboard_priority": 17,
+      "planned": false
+    },
+    {
+      "observer": "ipv6-adoption-locked-states",
+      "display_name": "IPV6 Adoption Locked States",
+      "category": "internet",
+      "description": "IPV6 Adoption Locked States observer.",
+      "tags": [
+        "internet"
+      ],
+      "dashboard_priority": 18,
+      "planned": false
+    },
+    {
+      "observer": "ipv6-global-compare",
+      "display_name": "IPV6 Global Compare",
+      "category": "internet",
+      "description": "IPV6 Global Compare observer.",
+      "tags": [
+        "internet"
+      ],
+      "dashboard_priority": 19,
+      "planned": false
+    },
+    {
+      "observer": "ipv6-locked-states",
+      "display_name": "IPV6 Locked States",
+      "category": "internet",
+      "description": "IPV6 Locked States observer.",
+      "tags": [
+        "internet"
+      ],
+      "dashboard_priority": 20,
+      "planned": false
+    },
+    {
+      "observer": "iran-dns-behavior",
+      "display_name": "Iran DNS Behavior",
+      "category": "internet",
+      "description": "Iran DNS Behavior observer.",
+      "tags": [
+        "internet"
+      ],
+      "dashboard_priority": 21,
+      "planned": false
+    },
+    {
+      "observer": "media-language-germany",
+      "display_name": "Media Language Germany",
+      "category": "media",
+      "description": "Media Language Germany observer.",
+      "tags": [
+        "media"
+      ],
+      "dashboard_priority": 22,
+      "planned": false
+    },
+    {
+      "observer": "mx-presence-by-country",
+      "display_name": "MX Presence By Country",
+      "category": "internet",
+      "description": "MX Presence By Country observer.",
+      "tags": [
+        "internet"
+      ],
+      "dashboard_priority": 23,
+      "planned": false
+    },
+    {
+      "observer": "mx-presence-per-country",
+      "display_name": "MX Presence Per Country",
+      "category": "internet",
+      "description": "MX Presence Per Country observer.",
+      "tags": [
+        "internet"
+      ],
+      "dashboard_priority": 24,
+      "planned": false
+    },
+    {
+      "observer": "north-korea-connectivity",
+      "display_name": "North Korea Connectivity",
+      "category": "internet",
+      "description": "North Korea Connectivity observer.",
+      "tags": [
+        "internet"
+      ],
+      "dashboard_priority": 25,
+      "planned": false
+    },
+    {
+      "observer": "silent-countries-list",
+      "display_name": "Silent Countries List",
+      "category": "internet",
+      "description": "Silent Countries List observer.",
+      "tags": [
+        "internet"
+      ],
+      "dashboard_priority": 26,
+      "planned": false
+    },
+    {
+      "observer": "tls-fingerprint-change",
+      "display_name": "TLS Fingerprint Change",
+      "category": "internet",
+      "description": "TLS Fingerprint Change observer.",
+      "tags": [
+        "internet"
+      ],
+      "dashboard_priority": 27,
+      "planned": false
+    },
+    {
+      "observer": "traceroute-to-nowhere",
+      "display_name": "Traceroute To Nowhere",
+      "category": "internet",
+      "description": "Traceroute To Nowhere observer.",
+      "tags": [
+        "internet"
+      ],
+      "dashboard_priority": 28,
+      "planned": false
+    },
+    {
+      "observer": "undersea-cable-dependency",
+      "display_name": "Undersea Cable Dependency",
+      "category": "internet",
+      "description": "Undersea Cable Dependency observer.",
+      "tags": [
+        "internet"
+      ],
+      "dashboard_priority": 29,
+      "planned": false
+    },
+    {
+      "observer": "undersea-cable-dependency-map",
+      "display_name": "Undersea Cable Dependency Map",
+      "category": "internet",
+      "description": "Undersea Cable Dependency Map observer.",
+      "tags": [
+        "internet"
+      ],
+      "dashboard_priority": 30,
+      "planned": false
+    },
+    {
+      "observer": "fuel-prices-germany",
+      "display_name": "Fuel Prices Germany",
+      "category": "society",
+      "description": "Planned Fuel Prices Germany observer.",
+      "tags": [
+        "society",
+        "planned"
+      ],
+      "dashboard_priority": 100,
+      "planned": true
+    },
+    {
+      "observer": "electricity-prices-germany",
+      "display_name": "Electricity Prices Germany",
+      "category": "society",
+      "description": "Planned Electricity Prices Germany observer.",
+      "tags": [
+        "society",
+        "planned"
+      ],
+      "dashboard_priority": 101,
+      "planned": true
+    },
+    {
+      "observer": "food-prices-germany",
+      "display_name": "Food Prices Germany",
+      "category": "society",
+      "description": "Planned Food Prices Germany observer.",
+      "tags": [
+        "society",
+        "planned"
+      ],
+      "dashboard_priority": 102,
+      "planned": true
+    },
+    {
+      "observer": "housing-costs-germany",
+      "display_name": "Housing Costs Germany",
+      "category": "society",
+      "description": "Planned Housing Costs Germany observer.",
+      "tags": [
+        "society",
+        "planned"
+      ],
+      "dashboard_priority": 103,
+      "planned": true
+    },
+    {
+      "observer": "deutsche-bahn-punctuality",
+      "display_name": "Deutsche Bahn Punctuality",
+      "category": "society",
+      "description": "Planned Deutsche Bahn Punctuality observer.",
+      "tags": [
+        "society",
+        "planned"
+      ],
+      "dashboard_priority": 104,
+      "planned": true
+    },
+    {
+      "observer": "deutsche-post-reliability",
+      "display_name": "Deutsche Post Reliability",
+      "category": "society",
+      "description": "Planned Deutsche Post Reliability observer.",
+      "tags": [
+        "society",
+        "planned"
+      ],
+      "dashboard_priority": 105,
+      "planned": true
+    },
+    {
+      "observer": "weather-germany",
+      "display_name": "Weather Germany",
+      "category": "environment",
+      "description": "Planned Weather Germany observer.",
+      "tags": [
+        "environment",
+        "planned"
+      ],
+      "dashboard_priority": 100,
+      "planned": true
+    },
+    {
+      "observer": "climate-germany",
+      "display_name": "Climate Germany",
+      "category": "environment",
+      "description": "Planned Climate Germany observer.",
+      "tags": [
+        "environment",
+        "planned"
+      ],
+      "dashboard_priority": 101,
+      "planned": true
+    },
+    {
+      "observer": "natural-disasters-germany",
+      "display_name": "Natural Disasters Germany",
+      "category": "environment",
+      "description": "Planned Natural Disasters Germany observer.",
+      "tags": [
+        "environment",
+        "planned"
+      ],
+      "dashboard_priority": 102,
+      "planned": true
+    }
+  ]
+}
