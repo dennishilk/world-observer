@@ -103,6 +103,13 @@ def _write_daily_media(daily_dir: Path, date: str, payload: dict) -> None:
     (date_dir / f"{export_dashboard.MEDIA_OBSERVER}.json").write_text(json.dumps(payload), encoding="utf-8")
 
 
+def _write_daily_observer(daily_dir: Path, date: str, observer: str, payload: dict | str) -> None:
+    date_dir = daily_dir / date
+    date_dir.mkdir(parents=True, exist_ok=True)
+    text = payload if isinstance(payload, str) else json.dumps(payload)
+    (date_dir / f"{observer}.json").write_text(text, encoding="utf-8")
+
+
 def test_export_dashboard_writes_empty_media_history(tmp_path) -> None:
     latest_dir = tmp_path / "latest"
     daily_dir = tmp_path / "daily"
@@ -198,3 +205,90 @@ def test_export_dashboard_history_is_compact(tmp_path) -> None:
     assert ": " not in history_text
     assert "diagnostics" not in history_text
     assert "headlines" not in history_text
+
+
+def test_export_dashboard_writes_internet_cards(tmp_path) -> None:
+    latest_dir = tmp_path / "latest"
+    dashboard_dir = tmp_path / "dashboard"
+    latest_dir.mkdir()
+    _write_latest(
+        latest_dir,
+        "area51-reachability",
+        {
+            "observer": "area51-reachability",
+            "data_status": "partial",
+            "date_utc": "2026-06-29",
+            "au": {"total": 71, "other": 17},
+            "bucket_count": 1,
+            "diagnostics": {"not": "exported"},
+            "degraded_reason": "sample partial data",
+        },
+    )
+
+    export_dashboard.export_dashboard(latest_dir, dashboard_dir)
+
+    internet = json.loads((dashboard_dir / "internet.json").read_text(encoding="utf-8"))
+    card = internet["observers"][0]
+    assert card["observer"] == "area51-reachability"
+    assert card["display_name"] == "Area51 Reachability"
+    assert card["status"] == "partial"
+    assert card["data_status"] == "partial"
+    assert card["primary_metric_name"] == "au.total"
+    assert card["primary_metric_value"] == 71
+    assert card["last_seen_date"] == "2026-06-29"
+    assert card["degraded_reason"] == "sample partial data"
+    assert "diagnostics" not in json.dumps(card)
+
+
+def test_export_dashboard_internet_card_falls_back_to_data_status(tmp_path) -> None:
+    latest_dir = tmp_path / "latest"
+    dashboard_dir = tmp_path / "dashboard"
+    latest_dir.mkdir()
+    _write_latest(latest_dir, "cuba-internet-weather", {"observer": "cuba-internet-weather", "data_status": "unavailable"})
+
+    export_dashboard.export_dashboard(latest_dir, dashboard_dir)
+
+    internet = json.loads((dashboard_dir / "internet.json").read_text(encoding="utf-8"))
+    card = internet["observers"][0]
+    assert card["primary_metric_name"] == "data_status"
+    assert card["primary_metric_value"] == "unavailable"
+
+
+def test_export_dashboard_writes_internet_history(tmp_path) -> None:
+    latest_dir = tmp_path / "latest"
+    daily_dir = tmp_path / "daily"
+    dashboard_dir = tmp_path / "dashboard"
+    latest_dir.mkdir()
+    _write_daily_observer(daily_dir, "2026-06-27", "area51-reachability", {"data_status": "ok", "au": {"total": 1}})
+    _write_daily_observer(daily_dir, "2026-06-28", "area51-reachability", {"data_status": "partial", "au": {"total": 3}})
+    _write_daily_observer(daily_dir, "2026-06-29", "area51-reachability", {"data_status": "ok", "au": {"total": 6}})
+
+    export_dashboard.export_dashboard(latest_dir, dashboard_dir, daily_dir)
+
+    history = json.loads((dashboard_dir / "history" / "internet-observers.json").read_text(encoding="utf-8"))
+    area51 = history["observers"]["area51-reachability"]
+    assert area51["display_name"] == "Area51 Reachability"
+    assert area51["points"] == [
+        {"date": "2026-06-27", "value": 1, "data_status": "ok"},
+        {"date": "2026-06-28", "value": 3, "data_status": "partial"},
+        {"date": "2026-06-29", "value": 6, "data_status": "ok"},
+    ]
+    assert area51["windows"]["7d"] == {"count": 3, "latest": 6, "previous": 3, "delta": 3, "min": 1, "max": 6, "avg": 3.33}
+    assert area51["windows"]["90d"]["count"] == 3
+
+
+def test_export_dashboard_internet_history_skips_invalid_and_missing_daily_files(tmp_path) -> None:
+    latest_dir = tmp_path / "latest"
+    daily_dir = tmp_path / "daily"
+    dashboard_dir = tmp_path / "dashboard"
+    latest_dir.mkdir()
+    _write_daily_observer(daily_dir, "2026-06-28", "area51-reachability", "{not json")
+    _write_daily_observer(daily_dir, "2026-06-29", "area51-reachability", {"data_status": "ok", "bucket_count": 2})
+    (daily_dir / "2026-06-30").mkdir(parents=True)
+
+    export_dashboard.export_dashboard(latest_dir, dashboard_dir, daily_dir)
+
+    history = json.loads((dashboard_dir / "history" / "internet-observers.json").read_text(encoding="utf-8"))
+    assert history["observers"]["area51-reachability"]["points"] == [
+        {"date": "2026-06-29", "value": 2, "data_status": "ok"}
+    ]

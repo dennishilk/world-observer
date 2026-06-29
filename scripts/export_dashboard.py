@@ -18,7 +18,7 @@ DASHBOARD_VERSION = 1
 MEDIA_OBSERVER = "media-language-germany"
 SUMMARY_NAME = "summary.json"
 OUTPUT_FILES = ("summary.json", "internet.json", "media.json", "society.json", "environment.json")
-HISTORY_FILES = ("history/media-language-germany.json",)
+HISTORY_FILES = ("history/media-language-germany.json", "history/internet-observers.json")
 
 
 def _repo_root() -> Path:
@@ -167,9 +167,9 @@ def _media_history_point(date: str, payload: Dict[str, Any]) -> Dict[str, Any]:
     return point
 
 
-def _window_summary(points: list[Dict[str, Any]], days: int) -> Dict[str, Any]:
+def _window_summary(points: list[Dict[str, Any]], days: int, value_key: str = "fear_index_overall") -> Dict[str, Any]:
     window = points[-days:]
-    values = [point["fear_index_overall"] for point in window if isinstance(point.get("fear_index_overall"), (int, float))]
+    values = [point[value_key] for point in window if isinstance(point.get(value_key), (int, float))]
     summary: Dict[str, Any] = {"count": len(window)}
     if values:
         latest = values[-1]
@@ -223,12 +223,155 @@ def _media_history(daily_dir: Path, generated_at: str) -> Dict[str, Any]:
     }
 
 
-def _internet_observer(observer: str, payload: Dict[str, Any]) -> Dict[str, Any]:
-    item: Dict[str, Any] = {"observer": observer, "status": _status(payload)}
-    for key in ("timestamp", "date_utc", "date", "summary", "highlights", "score", "score_percent", "notes"):
-        value = payload.get(key)
+def _display_name(observer: str) -> str:
+    return " ".join(part.upper() if part in {"dns", "ipv6", "tls", "mx"} else part.capitalize() for part in observer.split("-"))
+
+
+def _find_path(payload: Any, path: tuple[str, ...]) -> Any:
+    value = payload
+    for key in path:
+        if not isinstance(value, dict):
+            return None
+        value = value.get(key)
+    return value
+
+
+def _first_numeric_path(payload: Dict[str, Any], paths: tuple[tuple[str, ...], ...]) -> tuple[str, float | int] | None:
+    for path in paths:
+        value = _as_number(_find_path(payload, path))
         if value is not None:
-            item[key] = value
+            return ".".join(path), value
+    return None
+
+
+def _iter_named_numbers(value: Any, names: tuple[str, ...]) -> Iterable[tuple[str, float | int]]:
+    if isinstance(value, dict):
+        for key, child in value.items():
+            number = _as_number(child)
+            if number is not None and any(name in key.lower() for name in names):
+                yield key, number
+            elif isinstance(child, (dict, list)):
+                for child_key, child_number in _iter_named_numbers(child, names):
+                    yield f"{key}.{child_key}", child_number
+    elif isinstance(value, list):
+        for index, child in enumerate(value):
+            if isinstance(child, (dict, list)):
+                for child_key, child_number in _iter_named_numbers(child, names):
+                    yield f"{index}.{child_key}", child_number
+
+
+def _find_named_number(value: Any, name: str, prefix: str = "") -> tuple[str, float | int] | None:
+    if isinstance(value, dict):
+        for key, child in value.items():
+            path = f"{prefix}.{key}" if prefix else key
+            number = _as_number(child)
+            if number is not None and key.lower() == name:
+                return path, number
+            if isinstance(child, (dict, list)):
+                found = _find_named_number(child, name, path)
+                if found is not None:
+                    return found
+    elif isinstance(value, list):
+        for index, child in enumerate(value):
+            if isinstance(child, (dict, list)):
+                path = f"{prefix}.{index}" if prefix else str(index)
+                found = _find_named_number(child, name, path)
+                if found is not None:
+                    return found
+    return None
+
+
+def _internet_metric(observer: str, payload: Dict[str, Any]) -> tuple[str, float | int | str]:
+    rules: dict[str, tuple[tuple[str, ...], ...]] = {
+        "area51-reachability": (("au", "total"), ("bucket_count",)),
+        "global-reachability-score": (("score",), ("score_percent",)),
+        "internet-shrinkage-index": (("score",), ("index",)),
+        "ipv6-global-compare": (("percentage",), ("score",), ("score_percent",)),
+        "dns-time-to-answer-index": (("median_response_ms",), ("avg_response_ms",), ("median_ms",), ("avg_ms",)),
+        "dns-tta-stress-index": (("stress",), ("timeout_count",), ("timeouts",)),
+        "tls-fingerprint-change": (("change_count",), ("changes",)),
+        "mx-presence-by-country": (("countries",), ("coverage_count",), ("coverage",)),
+        "mx-presence-per-country": (("countries",), ("coverage_count",), ("coverage",)),
+        "silent-countries-list": (("silent_country_count",), ("silent_countries",), ("count",)),
+        "traceroute-to-nowhere": (("anomaly_count",), ("anomalies",)),
+        "north-korea-connectivity": (("probes_succeeded",), ("reachability_count",), ("reachable_count",)),
+        "iran-dns-behavior": (("answered",), ("servfail",), ("answered_count",), ("servfail_count",)),
+        "undersea-cable-dependency": (("score",), ("count",)),
+        "undersea-cable-dependency-map": (("score",), ("count",)),
+    }
+    direct = _first_numeric_path(payload, rules.get(observer, ()))
+    if direct is not None:
+        return direct
+    ordered_names = {
+        "global-reachability-score": ("score", "score_percent"),
+        "internet-shrinkage-index": ("score", "index", "global_shrinkage_index", "shrinkage_score"),
+        "ipv6-global-compare": ("percentage", "score", "score_percent"),
+        "dns-time-to-answer-index": ("median_response_ms", "avg_response_ms", "median_ms", "avg_ms", "avg_query_ms", "query_ms"),
+        "dns-tta-stress-index": ("stress", "timeout_count", "timeouts", "timeout_rate", "dns_stress_score"),
+        "tls-fingerprint-change": ("change_count", "changes", "tls_change_score"),
+        "mx-presence-by-country": ("countries", "coverage_count", "coverage", "mx_present_count"),
+        "mx-presence-per-country": ("countries", "coverage_count", "coverage", "mx_present_count"),
+        "silent-countries-list": ("silent_country_count", "silent_countries", "count", "countries_evaluated", "silence_score"),
+        "traceroute-to-nowhere": ("anomaly_count", "anomalies", "trace_count", "count"),
+        "north-korea-connectivity": ("probes_succeeded", "reachability_count", "reachable_count", "probe_count"),
+        "iran-dns-behavior": ("answered", "servfail", "answered_count", "servfail_count"),
+        "undersea-cable-dependency": ("score", "count", "cable_count"),
+        "undersea-cable-dependency-map": ("score", "count", "cable_count", "landing_count"),
+    }.get(observer, ("score", "index", "count", "percentage"))
+    for name in ordered_names:
+        found = _find_named_number(payload, name)
+        if found is not None:
+            return found
+    keywords = {
+        "dns-time-to-answer-index": ("median", "avg", "response", "query_ms"),
+        "dns-tta-stress-index": ("stress", "timeout"),
+        "tls-fingerprint-change": ("change",),
+        "mx-presence-by-country": ("countries", "coverage", "count"),
+        "mx-presence-per-country": ("countries", "coverage", "count"),
+        "silent-countries-list": ("silent", "count"),
+        "traceroute-to-nowhere": ("anomaly", "count"),
+        "north-korea-connectivity": ("succeeded", "reachability", "reachable"),
+        "iran-dns-behavior": ("answered", "servfail"),
+        "undersea-cable-dependency": ("score", "count"),
+        "undersea-cable-dependency-map": ("score", "count"),
+    }.get(observer, ("score", "index", "count", "percentage"))
+    for name, value in _iter_named_numbers(payload, keywords):
+        return name, value
+    return "data_status", _status(payload)
+
+
+def _secondary_metrics(payload: Dict[str, Any], primary_name: str, limit: int = 3) -> Dict[str, float | int]:
+    metrics: Dict[str, float | int] = {}
+    for name, value in _iter_named_numbers(payload, ("score", "index", "count", "percent", "total", "median", "avg")):
+        if name == primary_name or name.startswith("diagnostics."):
+            continue
+        metrics[name] = value
+        if len(metrics) >= limit:
+            break
+    return metrics
+
+
+def _last_seen_date(payload: Dict[str, Any]) -> Any:
+    return payload.get("date_utc") or payload.get("date") or payload.get("timestamp")
+
+
+def _internet_observer(observer: str, payload: Dict[str, Any]) -> Dict[str, Any]:
+    primary_name, primary_value = _internet_metric(observer, payload)
+    item: Dict[str, Any] = {
+        "observer": observer,
+        "display_name": _display_name(observer),
+        "status": _status(payload),
+        "data_status": str(payload.get("data_status") or payload.get("status") or _status(payload)),
+        "primary_metric_name": primary_name,
+        "primary_metric_value": primary_value,
+        "secondary_metrics": _secondary_metrics(payload, primary_name),
+    }
+    last_seen = _last_seen_date(payload)
+    if last_seen is not None:
+        item["last_seen_date"] = last_seen
+    degraded_reason = payload.get("degraded_reason") or payload.get("error") or payload.get("reason")
+    if degraded_reason:
+        item["degraded_reason"] = degraded_reason
     return item
 
 
@@ -239,6 +382,46 @@ def _internet(loaded: Dict[str, Dict[str, Any]]) -> Dict[str, Any]:
         if observer != MEDIA_OBSERVER
     ]
     return {"observer_count": len(observers), "observers": observers}
+
+
+def _iter_daily_observer_files(daily_dir: Path, observer: str) -> Iterable[tuple[str, Path]]:
+    if not daily_dir.exists():
+        return []
+    files: list[tuple[str, Path]] = []
+    for date_dir in daily_dir.iterdir():
+        if not date_dir.is_dir():
+            continue
+        try:
+            datetime.strptime(date_dir.name, "%Y-%m-%d")
+        except ValueError:
+            continue
+        path = date_dir / f"{observer}.json"
+        if path.exists():
+            files.append((date_dir.name, path))
+    return sorted(files)
+
+
+def _internet_history(daily_dir: Path, generated_at: str) -> Dict[str, Any]:
+    observers: Dict[str, Any] = {}
+    for observer in sorted(item for item in OBSERVERS if item != MEDIA_OBSERVER):
+        points: list[Dict[str, Any]] = []
+        for date, path in _iter_daily_observer_files(daily_dir, observer):
+            payload, _error = _read_json(path)
+            if payload is None:
+                continue
+            _name, value = _internet_metric(observer, payload)
+            point: Dict[str, Any] = {"date": date, "value": value, "data_status": _status(payload)}
+            points.append(point)
+        observers[observer] = {
+            "display_name": _display_name(observer),
+            "points": points,
+            "windows": {
+                "7d": _window_summary(points, 7, "value"),
+                "30d": _window_summary(points, 30, "value"),
+                "90d": _window_summary(points, 90, "value"),
+            },
+        }
+    return {"generated_at": generated_at, "observers": observers}
 
 
 def export_dashboard(
@@ -258,6 +441,7 @@ def export_dashboard(
         "society.json": {"status": "placeholder", "items": []},
         "environment.json": {"status": "placeholder", "items": []},
         "history/media-language-germany.json": _media_history(daily_dir, generated_at),
+        "history/internet-observers.json": _internet_history(daily_dir, generated_at),
     }
     written: Dict[str, Path] = {}
     for name in (*OUTPUT_FILES, *HISTORY_FILES):
