@@ -379,3 +379,49 @@ def test_export_dashboard_internet_history_skips_invalid_and_missing_daily_files
     assert history["observers"]["area51-reachability"]["points"] == [
         {"date": "2026-06-29", "value": 2, "data_status": "ok"}
     ]
+
+
+def _write_heartbeat(heartbeat_dir: Path, name: str, payload: dict | str) -> None:
+    heartbeat_dir.mkdir(parents=True, exist_ok=True)
+    text = payload if isinstance(payload, str) else json.dumps(payload)
+    (heartbeat_dir / name).write_text(text, encoding="utf-8")
+
+
+def test_export_dashboard_writes_latest_heartbeat(tmp_path) -> None:
+    latest_dir = tmp_path / "latest"
+    dashboard_dir = tmp_path / "dashboard"
+    heartbeat_dir = tmp_path / "heartbeat"
+    latest_dir.mkdir()
+    _write_heartbeat(
+        heartbeat_dir,
+        "2026-06-29T14Z.json",
+        {"timestamp_utc": "2026-06-29T14:00:00Z", "status": "alive"},
+    )
+    _write_heartbeat(
+        heartbeat_dir,
+        "2026-06-29T15Z.json",
+        {"timestamp_utc": "2026-06-29T15:00:00Z", "status": "alive"},
+    )
+
+    export_dashboard.export_dashboard(latest_dir, dashboard_dir, heartbeat_dir=heartbeat_dir)
+
+    heartbeat = json.loads((dashboard_dir / "heartbeat.json").read_text(encoding="utf-8"))
+    assert heartbeat["status"] == "alive"
+    assert heartbeat["latest_heartbeat_utc"] == "2026-06-29T15:00:00Z"
+    assert heartbeat["heartbeat_file"] == "2026-06-29T15Z.json"
+    assert isinstance(heartbeat["generated_at"], str)
+
+
+def test_export_dashboard_writes_unavailable_heartbeat_when_empty(tmp_path) -> None:
+    latest_dir = tmp_path / "latest"
+    dashboard_dir = tmp_path / "dashboard"
+    heartbeat_dir = tmp_path / "heartbeat"
+    latest_dir.mkdir()
+
+    export_dashboard.export_dashboard(latest_dir, dashboard_dir, heartbeat_dir=heartbeat_dir)
+
+    heartbeat = json.loads((dashboard_dir / "heartbeat.json").read_text(encoding="utf-8"))
+    assert heartbeat["status"] == "unavailable"
+    assert heartbeat["latest_heartbeat_utc"] is None
+    assert heartbeat["heartbeat_file"] is None
+    assert isinstance(heartbeat["generated_at"], str)
