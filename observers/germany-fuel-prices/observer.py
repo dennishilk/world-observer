@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
 """Germany Fuel Price Observer.
 
-Fetches current German public fuel prices from the Tankerkoenig/MTS-K API
-when WORLD_OBSERVER_FUEL_API_KEY is configured. The observer is descriptive
-only and emits unavailable data when current prices cannot be fetched.
+Builds Germany fuel price dashboard data from permitted local imports by default.
+
+The Tankerkoenig/MTS-K API integration is retained only for optional,
+manual/local tests and is never used automatically by production daily runs.
+The observer emits unavailable data when no permitted import or manually
+requested API result is available; it does not invent prices.
 """
 from __future__ import annotations
 
@@ -27,6 +30,8 @@ SUPPORTED_FUELS = {
 API_URL = "https://creativecommons.tankerkoenig.de/json/list.php"
 USER_AGENT = "world-observer/1.0 (+https://github.com/dennishilk/world-observer)"
 IMPORTS_DIR = Path("imports/fuel-prices-germany")
+MANUAL_API_ENV = "WORLD_OBSERVER_FUEL_ENABLE_TANKERKOENIG_API"
+API_KEY_ENV = "WORLD_OBSERVER_FUEL_API_KEY"
 
 
 def _repo_root() -> Path:
@@ -260,15 +265,28 @@ def _fuel_stats(fuel: str, current: float | None, date: str, history: list[dict[
     return item
 
 
-def build_payload(date: str, current_prices: dict[str, float], diagnostics: dict[str, Any], degraded_reason: str | None = None, root: Path | None = None) -> dict[str, Any]:
+def _latest_import_prices(points: list[dict[str, Any]], date: str) -> dict[str, float]:
+    latest: dict[str, dict[str, Any]] = {}
+    for point in sorted(points, key=lambda p: (p["date"], p["fuel_type"])):
+        if point["date"] <= date:
+            latest[point["fuel_type"]] = point
+    return {fuel: point["price"] for fuel, point in latest.items()}
+
+
+def build_payload(date: str, current_prices: dict[str, float], diagnostics: dict[str, Any], degraded_reason: str | None = None, root: Path | None = None, source: str | None = None) -> dict[str, Any]:
     root = root or _repo_root()
-    daily_points = _daily_price_points(root)
+    manual_api = source == "Tankerkoenig/MTS-K API"
+    daily_points = _daily_price_points(root) if manual_api else []
     daily_keys = {(p["date"], p["fuel_type"]) for p in daily_points}
     import_points, import_diagnostics = import_price_points(root / IMPORTS_DIR, daily_keys | {(date, f) for f in current_prices})
     history = sorted(import_points + daily_points, key=lambda p: (p["date"], p["fuel_type"]))
-    data_status = "ok" if current_prices else "unavailable"
-    status = "ok" if current_prices else "unavailable"
-    fuels = {fuel: _fuel_stats(fuel, current_prices.get(fuel), date, history, data_status, degraded_reason) for fuel in SUPPORTED_FUELS}
+    effective_prices = current_prices or _latest_import_prices(import_points, date)
+    effective_source = source if current_prices else ("imports/fuel-prices-germany" if effective_prices else None)
+    data_status = "ok" if effective_prices else "unavailable"
+    status = "ok" if effective_prices else "unavailable"
+    if not effective_prices and degraded_reason is None:
+        degraded_reason = "No permitted fuel price import is available"
+    fuels = {fuel: _fuel_stats(fuel, effective_prices.get(fuel), date, history, data_status, degraded_reason) for fuel in SUPPORTED_FUELS}
     payload: dict[str, Any] = {
         "observer": OBSERVER,
         "category": "society",
@@ -276,7 +294,7 @@ def build_payload(date: str, current_prices: dict[str, float], diagnostics: dict
         "date_utc": date,
         "status": status,
         "data_status": data_status,
-        "source": "Tankerkoenig/MTS-K API" if current_prices else None,
+        "source": effective_source,
         "fuels": fuels,
         "supported_fuel_types": SUPPORTED_FUELS,
         "import_diagnostics": import_diagnostics,
@@ -294,14 +312,21 @@ def _write_outputs(payload: dict[str, Any], root: Path) -> None:
         path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
+def _manual_api_enabled() -> bool:
+    return os.environ.get(MANUAL_API_ENV, "").strip().lower() in {"1", "true", "yes"}
+
+
 def main() -> None:
     date = _date_utc()
-    api_key = os.environ.get("WORLD_OBSERVER_FUEL_API_KEY", "").strip()
-    if not api_key:
-        payload = build_payload(date, {}, {"api_attempts": 0, "retries": 0, "http_status": None}, "WORLD_OBSERVER_FUEL_API_KEY is not configured")
-    else:
+    api_key = os.environ.get(API_KEY_ENV, "").strip()
+    if api_key and _manual_api_enabled():
         prices, diagnostics, reason = _fetch_current_prices(api_key)
-        payload = build_payload(date, prices, diagnostics, reason)
+        payload = build_payload(date, prices, diagnostics, reason, source="Tankerkoenig/MTS-K API")
+    else:
+        reason = "Tankerkönig API disabled; using permitted local imports only"
+        if api_key:
+            reason = f"Tankerkönig API key present but {MANUAL_API_ENV} is not enabled; using permitted local imports only"
+        payload = build_payload(date, {}, {"api_attempts": 0, "retries": 0, "http_status": None, "manual_api_enabled": False}, reason)
     _write_outputs(payload, _repo_root())
     print(json.dumps(payload, ensure_ascii=False, sort_keys=True))
 
