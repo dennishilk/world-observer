@@ -120,3 +120,51 @@ def test_main_uses_public_average_not_tankerkoenig_without_manual_opt_in(monkeyp
     assert payload["diagnostics"]["source"] == "public fuel average page"
     assert payload["diagnostics"]["tankerkoenig_automatic"] is False
     assert payload["fuels"]["diesel"]["current_price"] == 1.7
+
+def test_public_average_uses_swr_fallback_only_for_missing_fuels(monkeypatch):
+    calls = []
+    fixture_dir = ROOT / "tests" / "fixtures" / "germany-fuel-prices"
+
+    def fake_fetch(url, source_label):
+        calls.append(source_label)
+        if "NDR" in source_label:
+            prices = fuel._parse_public_average_prices((fixture_dir / "ndr-average-no-e10.html").read_text(encoding="utf-8"))
+            return prices, {"source": "www.ndr.de", "fetch_url": url, "fetched_at_utc": "t1", "parse_status": "ok", "api_attempts": 1, "http_status": 200}, None
+        prices = fuel._parse_public_average_prices((fixture_dir / "swr-average.txt").read_text(encoding="utf-8"))
+        return prices, {"source": "www.swr.de", "fetch_url": url, "fetched_at_utc": "t2", "parse_status": "ok", "api_attempts": 1, "http_status": 200}, None
+
+    monkeypatch.setattr(fuel, "_fetch_public_average_url", fake_fetch)
+    prices, diagnostics, reason = fuel._fetch_public_average_prices()
+    assert reason is None
+    assert prices == {"benzin": 1.92, "diesel": 1.79, "super_e10": 1.89}
+    assert calls == ["NDR public fuel average page", "SWR public fuel average page"]
+    assert diagnostics["primary_source"] == "www.ndr.de"
+    assert diagnostics["fallback_source"] == "www.tagesschau.de"
+    assert diagnostics["fallback_used"] is True
+    assert diagnostics["missing_fuels_after_primary"] == ["super_e10"]
+    assert diagnostics["fallback_filled_fuels"] == ["super_e10"]
+    assert diagnostics["priced_fuel_count"] == 3
+
+
+def test_public_average_does_not_fetch_swr_when_ndr_has_all_fuels(monkeypatch):
+    def fake_fetch(url, source_label):
+        assert "NDR" in source_label
+        return {"benzin": 1.92, "super_e10": 1.86, "diesel": 1.79}, {"source": "www.ndr.de", "fetch_url": url, "fetched_at_utc": "t1", "parse_status": "ok", "api_attempts": 1, "http_status": 200}, None
+
+    monkeypatch.setattr(fuel, "_fetch_public_average_url", fake_fetch)
+    prices, diagnostics, reason = fuel._fetch_public_average_prices()
+    assert reason is None
+    assert prices == {"benzin": 1.92, "super_e10": 1.86, "diesel": 1.79}
+    assert diagnostics["fallback_used"] is False
+    assert diagnostics["missing_fuels_after_primary"] == []
+    assert diagnostics["priced_fuel_count"] == 3
+
+
+def test_missing_e10_keeps_observer_ok_when_other_fuels_have_data(tmp_path):
+    diagnostics = {"source": "www.ndr.de", "primary_source": "www.ndr.de", "fallback_source": "www.tagesschau.de", "fallback_used": False, "missing_fuels_after_primary": ["super_e10"], "priced_fuel_count": 2}
+    payload = fuel.build_payload("2026-07-01", {"benzin": 1.92, "diesel": 1.79}, diagnostics, root=tmp_path, source="public fuel average page")
+    assert payload["status"] == "ok"
+    assert payload["data_status"] == "ok"
+    assert payload["fuels"]["super_e10"]["status"] == "unavailable"
+    assert payload["fuels"]["benzin"]["status"] == "ok"
+    assert payload["diagnostics"]["priced_fuel_count"] == 2
