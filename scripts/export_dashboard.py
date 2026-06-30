@@ -943,6 +943,11 @@ def _society(loaded: Dict[str, Dict[str, Any]], metadata: Dict[str, Dict[str, An
                 "data_status": payload.get("data_status", _status(payload)),
                 "last_seen_date": payload.get("date") or payload.get("date_utc"),
                 "fuels": payload.get("fuels", {}),
+                "source": payload.get("source"),
+                "fetch_url": (payload.get("diagnostics") or {}).get("fetch_url") if isinstance(payload.get("diagnostics"), dict) else None,
+                "fetched_at_utc": (payload.get("diagnostics") or {}).get("fetched_at_utc") if isinstance(payload.get("diagnostics"), dict) else None,
+                "parse_status": (payload.get("diagnostics") or {}).get("parse_status") if isinstance(payload.get("diagnostics"), dict) else None,
+                "fallback_used": (payload.get("diagnostics") or {}).get("fallback_used") if isinstance(payload.get("diagnostics"), dict) else None,
                 "import_diagnostics": payload.get("import_diagnostics", []),
             }
             degraded_reason = payload.get("degraded_reason") or payload.get("error")
