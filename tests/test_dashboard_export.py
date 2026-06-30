@@ -572,3 +572,64 @@ def test_internet_dashboard_uses_http_reachability_slot_and_excludes_planned_asn
     assert "asn-visibility-by-country" not in observers
     http_card = next(card for card in internet["observers"] if card["observer"] == "http-reachability-index")
     assert http_card["dashboard_priority"] == 70
+
+
+def _write_state_observer(state_dir: Path, observer: str, date: str, payload: dict | str) -> None:
+    observer_dir = state_dir / observer
+    observer_dir.mkdir(parents=True, exist_ok=True)
+    text = payload if isinstance(payload, str) else json.dumps(payload)
+    (observer_dir / f"{date}.json").write_text(text, encoding="utf-8")
+
+
+def test_export_dashboard_internet_history_backfills_state_files_and_trend_stats(tmp_path) -> None:
+    latest_dir = tmp_path / "latest"
+    daily_dir = tmp_path / "daily"
+    state_dir = tmp_path / "state"
+    dashboard_dir = tmp_path / "dashboard"
+    latest_dir.mkdir()
+    _write_state_observer(state_dir, "dns-time-to-answer-index", "2026-06-27", {"data_status": "ok", "summary": {"avg_query_ms": 10}})
+    _write_state_observer(state_dir, "dns-time-to-answer-index", "2026-06-28", {"data_status": "ok", "summary": {"avg_query_ms": 15}})
+    _write_daily_observer(daily_dir, "2026-06-29", "dns-time-to-answer-index", {"data_status": "ok", "summary": {"avg_query_ms": 20}})
+
+    export_dashboard.export_dashboard(latest_dir, dashboard_dir, daily_dir, state_dir=state_dir)
+
+    history = json.loads((dashboard_dir / "history" / "internet-observers.json").read_text(encoding="utf-8"))
+    dns = history["observers"]["dns-time-to-answer-index"]
+    assert [point["date"] for point in dns["points"]] == ["2026-06-27", "2026-06-28", "2026-06-29"]
+    assert [point["value"] for point in dns["points"]] == [10, 15, 20]
+    assert dns["total_point_count"] == 3
+    assert dns["numeric_point_count"] == 3
+    assert dns["latest_value"] == 20
+    assert dns["previous_value"] == 15
+    assert dns["delta"] == 5
+    assert dns["delta_percent"] == 33.33
+    assert dns["direction"] == "up"
+
+
+def test_export_dashboard_internet_history_uses_area51_state_bucket_totals(tmp_path) -> None:
+    latest_dir = tmp_path / "latest"
+    daily_dir = tmp_path / "daily"
+    state_dir = tmp_path / "state"
+    dashboard_dir = tmp_path / "dashboard"
+    latest_dir.mkdir()
+    _write_state_observer(
+        state_dir,
+        "area51-reachability",
+        "2026-06-27",
+        {"buckets": {"23:45": {"total": 83}, "23:50": {"total": 17}}},
+    )
+
+    export_dashboard.export_dashboard(latest_dir, dashboard_dir, daily_dir, state_dir=state_dir)
+
+    history = json.loads((dashboard_dir / "history" / "internet-observers.json").read_text(encoding="utf-8"))
+    area51 = history["observers"]["area51-reachability"]
+    assert area51["points"] == [
+        {
+            "date": "2026-06-27",
+            "data_status": "ok",
+            "metric_name": "au.total",
+            "metric_label": "Reachability score",
+            "metric_unit": "score",
+            "value": 100,
+        }
+    ]

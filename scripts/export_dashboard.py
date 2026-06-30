@@ -424,6 +424,13 @@ def _configured_metric_value(observer: str, payload: Dict[str, Any], key: str) -
     if not isinstance(path, str) or not path:
         return None
     value = _as_number(_find_path(payload, _path_tuple(path)))
+    if value is None and observer == "area51-reachability" and path == "au.total":
+        buckets = payload.get("buckets")
+        if isinstance(buckets, dict):
+            bucket_totals = [_as_number(bucket.get("total")) for bucket in buckets.values() if isinstance(bucket, dict)]
+            numeric_totals = [total for total in bucket_totals if total is not None]
+            if numeric_totals:
+                value = round(sum(numeric_totals), 2)
     if value is None:
         return None
     return path, value
@@ -758,14 +765,78 @@ def _iter_daily_observer_files(daily_dir: Path, observer: str) -> Iterable[tuple
     return sorted(files)
 
 
-def _internet_history(daily_dir: Path, generated_at: str, metadata: Dict[str, Dict[str, Any]]) -> Dict[str, Any]:
+def _iter_state_observer_files(state_dir: Path, observer: str) -> Iterable[tuple[str, Path]]:
+    observer_dir = state_dir / observer
+    if not observer_dir.exists():
+        return []
+    files: list[tuple[str, Path]] = []
+    for path in observer_dir.glob("*.json"):
+        if not path.is_file():
+            continue
+        date = path.stem[:10]
+        try:
+            datetime.strptime(date, "%Y-%m-%d")
+        except ValueError:
+            continue
+        files.append((date, path))
+    return sorted(files)
+
+
+def _historical_observer_files(daily_dir: Path, state_dir: Path, observer: str) -> list[tuple[str, Path]]:
+    files_by_date: dict[str, Path] = {}
+    for date, path in _iter_state_observer_files(state_dir, observer):
+        files_by_date[date] = path
+    for date, path in _iter_daily_observer_files(daily_dir, observer):
+        files_by_date[date] = path
+    return sorted(files_by_date.items())
+
+
+def _numeric_history_values(points: list[Dict[str, Any]]) -> list[float | int]:
+    return [point["value"] for point in points if isinstance(point.get("value"), (int, float)) and not isinstance(point.get("value"), bool)]
+
+
+def _delta_percent(latest: float | int, previous: float | int) -> float | None:
+    if previous == 0:
+        return None
+    return round(((latest - previous) / abs(previous)) * 100, 2)
+
+
+def _direction(delta: float | int) -> str:
+    if delta > 0:
+        return "up"
+    if delta < 0:
+        return "down"
+    return "flat"
+
+
+def _internet_history_stats(points: list[Dict[str, Any]]) -> Dict[str, Any]:
+    values = _numeric_history_values(points)
+    stats: Dict[str, Any] = {"total_point_count": len(points), "numeric_point_count": len(values)}
+    if values:
+        stats["latest_value"] = values[-1]
+    if len(values) >= 2:
+        latest = values[-1]
+        previous = values[-2]
+        delta = round(latest - previous, 2)
+        stats.update({"previous_value": previous, "delta": delta, "direction": _direction(delta)})
+        percent = _delta_percent(latest, previous)
+        if percent is not None:
+            stats["delta_percent"] = percent
+    if len(values) >= 7:
+        stats["seven_day_average"] = round(sum(values[-7:]) / 7, 2)
+    if len(values) >= 30:
+        stats["thirty_day_average"] = round(sum(values[-30:]) / 30, 2)
+    return stats
+
+
+def _internet_history(daily_dir: Path, state_dir: Path, generated_at: str, metadata: Dict[str, Dict[str, Any]]) -> Dict[str, Any]:
     observers: Dict[str, Any] = {}
     for observer in sorted(
         (item for item in OBSERVERS if _metadata_category(metadata, item) == "internet" and _metadata_active(metadata, item)),
         key=lambda item: (_metadata_priority(metadata, item), _metadata_display_name(metadata, item), item),
     ):
         points: list[Dict[str, Any]] = []
-        for date, path in _iter_daily_observer_files(daily_dir, observer):
+        for date, path in _historical_observer_files(daily_dir, state_dir, observer):
             payload, _error = _read_json(path)
             if payload is None:
                 continue
@@ -785,8 +856,7 @@ def _internet_history(daily_dir: Path, generated_at: str, metadata: Dict[str, Di
         observer_payload: Dict[str, Any] = {
             "display_name": _metadata_display_name(metadata, observer),
             "metric_label": metric_label,
-            "numeric_point_count": sum(1 for point in points if isinstance(point.get("value"), (int, float)) and not isinstance(point.get("value"), bool)),
-            "total_point_count": len(points),
+            **_internet_history_stats(points),
             "points": points,
             "windows": {
                 "7d": _window_summary(points, 7, "value"),
@@ -812,11 +882,14 @@ def export_dashboard(
     dashboard_dir: Path | None = None,
     daily_dir: Path | None = None,
     heartbeat_dir: Path | None = None,
+    state_dir: Path | None = None,
 ) -> Dict[str, Path]:
+    using_default_daily_dir = daily_dir is None
     latest_dir = latest_dir or (_repo_root() / "data" / "latest")
     dashboard_dir = dashboard_dir or (_repo_root() / "dashboard")
     daily_dir = daily_dir or (_repo_root() / "data" / "daily")
     heartbeat_dir = heartbeat_dir or (_repo_root() / "state" / "heartbeat")
+    state_dir = state_dir or ((_repo_root() / "state") if using_default_daily_dir else (daily_dir.parent / "state"))
     dashboard_dir.mkdir(parents=True, exist_ok=True)
 
     generated_at = _utc_now()
@@ -830,7 +903,7 @@ def export_dashboard(
         "environment.json": {"status": "placeholder", "items": _planned_items(metadata, "environment")},
         "heartbeat.json": _heartbeat(heartbeat_dir, generated_at),
         "history/media-language-germany.json": _media_history(daily_dir, generated_at),
-        "history/internet-observers.json": _internet_history(daily_dir, generated_at, metadata),
+        "history/internet-observers.json": _internet_history(daily_dir, state_dir, generated_at, metadata),
     }
     written: Dict[str, Path] = {}
     for name in (*OUTPUT_FILES, *HISTORY_FILES):
