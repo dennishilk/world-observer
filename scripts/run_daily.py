@@ -26,6 +26,7 @@ OBSERVERS: List[str] = [
     "dns-tta-stress-index",
     "global-reachability-long-horizon",
     "global-reachability-score",
+    "http-reachability-index",
     "internet-shrinkage-index",
     "ipv6-adoption-locked-states",
     "ipv6-global-compare",
