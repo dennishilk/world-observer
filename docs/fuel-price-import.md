@@ -16,14 +16,16 @@ Super Plus is not accepted unless a reliable public source is added later.
 
 ## Daily data source and compliance behavior
 
-Public World Observer Fuel uses `imports/fuel-prices-germany/` as the safe data source until a permitted daily source is available. Historical imports are the primary path for public dashboard data.
+Public World Observer Fuel automatically attempts one ADAC detail-page fetch during each daily run. The fetch is best-effort and only accepts parsed, positive euro-per-liter prices for the supported fuels. Historical imports remain authoritative for the same date.
 
 Default production behavior:
 
+- The observer fetches ADAC once per daily run from `WORLD_OBSERVER_FUEL_ADAC_URL` or the built-in ADAC details URL.
 - The observer does **not** automatically fetch Tankerkönig/MTS-K API data, even if `WORLD_OBSERVER_FUEL_API_KEY` is present.
-- If no permitted import exists, the observer exports `status: unavailable`, `data_status: unavailable`, and a clear `degraded_reason`.
+- A local import row for the run date wins over an ADAC-fetched value for the same fuel.
+- If ADAC fetch or parsing fails, the observer falls back to permitted local imports.
+- If neither ADAC nor imports produce a price, the observer exports `status: unavailable`, `data_status: unavailable`, and a clear `degraded_reason`.
 - The observer does not invent, synthesize, or fake fuel prices.
-- Public automated aggregation requires a permitted data source or explicit permission/contact with the data provider.
 
 ## Optional manual/local Tankerkönig API mode
 
@@ -84,7 +86,7 @@ Manual API results for the current run win over imported duplicate `(date, fuel_
 
 ## Validation and diagnostics
 
-Malformed files, malformed rows, unsupported fuel types, invalid prices, invalid granularities, and duplicate imported dates are ignored. Diagnostics are reported in `import_diagnostics` in the observer payload and dashboard society export.
+Malformed files, malformed rows, unsupported fuel types, invalid prices, invalid granularities, and duplicate imported dates are ignored. Import diagnostics are reported in `import_diagnostics` in the observer payload and dashboard society export. Fetch diagnostics include `source`, `fetch_url`, `fetched_at_utc`, `parse_status`, `fallback_used`, and `degraded_reason` when unavailable or degraded.
 
 ## How Cthulhu can prepare files
 

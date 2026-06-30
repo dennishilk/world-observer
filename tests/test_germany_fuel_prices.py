@@ -72,8 +72,47 @@ def test_main_does_not_fetch_tankerkoenig_without_manual_opt_in(monkeypatch, tmp
         raise AssertionError("Tankerkönig API should not be fetched without manual opt-in")
 
     monkeypatch.setattr(fuel, "_fetch_current_prices", fail_fetch)
+    monkeypatch.setattr(fuel, "_fetch_adac_current_prices", lambda: ({}, {"source": "ADAC", "fetch_url": "u", "fetched_at_utc": "t", "parse_status": "no_supported_prices", "fallback_used": True, "api_attempts": 1}, "ADAC page did not contain supported fuel prices"))
     fuel.main()
     payload = json.loads(capsys.readouterr().out)
-    assert payload["diagnostics"]["api_attempts"] == 0
+    assert payload["diagnostics"]["source"] == "ADAC"
+    assert payload["diagnostics"]["tankerkoenig_automatic"] is False
     assert payload["status"] == "unavailable"
-    assert "WORLD_OBSERVER_FUEL_ENABLE_TANKERKOENIG_API" in payload["degraded_reason"]
+    assert "ADAC" in payload["degraded_reason"]
+
+
+def test_adac_parser_extracts_supported_fuels_without_fake_values():
+    parser = fuel._AdacPriceParser()
+    parser.feed("<div>Diesel 1,699</div><div>Super E10 1,799</div><div>Super 1,859</div>")
+    assert parser.prices() == {"diesel": 1.699, "super_e10": 1.799, "benzin": 1.859}
+
+
+def test_same_date_import_overrides_adac_fetch(tmp_path):
+    imports = tmp_path / "imports" / "fuel-prices-germany"
+    imports.mkdir(parents=True)
+    (imports / "history.json").write_text('[{"date":"2026-07-01","fuel_type":"diesel","price_eur_per_liter":1.6,"source":"local","granularity":"daily"}]')
+    diagnostics = {"source": "ADAC", "fetch_url": "https://www.adac.de/example", "fetched_at_utc": "2026-06-30T00:00:00Z", "parse_status": "ok", "fallback_used": False}
+    payload = fuel.build_payload("2026-07-01", {"diesel": 1.7, "benzin": 1.8}, diagnostics, root=tmp_path, source="ADAC")
+    assert payload["source"] == "imports/fuel-prices-germany"
+    assert payload["fuels"]["diesel"]["current_price"] == 1.6
+    assert payload["fuels"]["benzin"]["current_price"] == 1.8
+    assert payload["diagnostics"]["fallback_used"] is True
+    assert payload["diagnostics"]["local_import_override"] == ["diesel"]
+
+
+def test_main_uses_adac_not_tankerkoenig_without_manual_opt_in(monkeypatch, tmp_path, capsys):
+    monkeypatch.setenv("WORLD_OBSERVER_FUEL_API_KEY", "dummy")
+    monkeypatch.delenv("WORLD_OBSERVER_FUEL_ENABLE_TANKERKOENIG_API", raising=False)
+    monkeypatch.setenv("WORLD_OBSERVER_DATE_UTC", "2026-06-30")
+    monkeypatch.setattr(fuel, "_repo_root", lambda: tmp_path)
+
+    def fail_tankerkoenig(api_key):  # pragma: no cover - should never run
+        raise AssertionError("Tankerkönig API should not be fetched without manual opt-in")
+
+    monkeypatch.setattr(fuel, "_fetch_current_prices", fail_tankerkoenig)
+    monkeypatch.setattr(fuel, "_fetch_adac_current_prices", lambda: ({"diesel": 1.7}, {"source": "ADAC", "fetch_url": "u", "fetched_at_utc": "t", "parse_status": "ok", "fallback_used": False, "api_attempts": 1}, None))
+    fuel.main()
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["diagnostics"]["source"] == "ADAC"
+    assert payload["diagnostics"]["tankerkoenig_automatic"] is False
+    assert payload["fuels"]["diesel"]["current_price"] == 1.7
