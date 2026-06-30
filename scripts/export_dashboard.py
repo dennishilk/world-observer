@@ -21,6 +21,29 @@ OUTPUT_FILES = ("summary.json", "internet.json", "media.json", "society.json", "
 HISTORY_FILES = ("history/media-language-germany.json", "history/internet-observers.json")
 METADATA_PATH = "config/observer_metadata.json"
 
+PREFERRED_INTERNET_HISTORY_METRICS: dict[str, tuple[tuple[str, ...], ...]] = {
+    "area51-reachability": (("au", "total"),),
+    "dns-time-to-answer-index": (("summary", "avg_query_ms"),),
+    "dns-tta-stress-index": (("diagnostics", "timeouts"), ("countries", "0", "dns_stress_score")),
+    "global-reachability-long-horizon": (("countries", "0", "score_today"), ("global", "avg_score_today")),
+    "global-reachability-score": (("countries", "0", "score"), ("countries", "0", "score_percent")),
+    "internet-shrinkage-index": (("global", "global_shrinkage_index"),),
+    "cuba-internet-weather": (("targets", "1", "ping", "rtt_avg_ms"),),
+    "iran-dns-behavior": (("summary", "answered"),),
+    "north-korea-connectivity": (("layers", "tcp", "probe_count"),),
+    "silent-countries-list": (("summary_stats", "countries_evaluated"), ("top_silent_countries",),),
+    "tls-fingerprint-change": (("countries", "0", "tls_change_score"),),
+    "traceroute-to-nowhere": (("metrics", "trace_count"),),
+    "undersea-cable-dependency": (("countries", "0", "cable_count"),),
+    "undersea-cable-dependency-map": (("countries", "0", "cable_count"),),
+    "ipv6-global-compare": (("summary_stats", "countries_evaluated"),),
+    "ipv6-locked-states": (("summary_stats", "countries_evaluated"),),
+    "ipv6-adoption-locked-states": (("summary_stats", "countries_evaluated"), ("countries", "0", "ipv6_capable_rate")),
+    "mx-presence-by-country": (("summary_stats", "countries_evaluated"), ("summary_stats", "unreachable_count"), ("countries",)),
+    "mx-presence-per-country": (("countries", "0", "mx_present_count"),),
+    "http-reachability-index": (("summary", "success_rate_percent"),),
+}
+
 
 def _repo_root() -> Path:
     return Path(__file__).resolve().parents[1]
@@ -346,9 +369,17 @@ def _metadata_display_name(metadata: Dict[str, Dict[str, Any]], observer: str) -
 def _find_path(payload: Any, path: tuple[str, ...]) -> Any:
     value = payload
     for key in path:
-        if not isinstance(value, dict):
+        if isinstance(value, dict):
+            value = value.get(key)
+        elif isinstance(value, list) and key.isdigit():
+            index = int(key)
+            if index >= len(value):
+                return None
+            value = value[index]
+        else:
             return None
-        value = value.get(key)
+    if isinstance(value, list):
+        return len(value)
     return value
 
 
@@ -357,6 +388,20 @@ def _first_numeric_path(payload: Dict[str, Any], paths: tuple[tuple[str, ...], .
         value = _as_number(_find_path(payload, path))
         if value is not None:
             return ".".join(path), value
+    return None
+
+
+def _preferred_internet_history_metric(observer: str, payload: Dict[str, Any]) -> tuple[str, float | int] | None:
+    return _first_numeric_path(payload, PREFERRED_INTERNET_HISTORY_METRICS.get(observer, ()))
+
+
+def _internet_history_metric(observer: str, payload: Dict[str, Any]) -> tuple[str, float | int] | None:
+    preferred = _preferred_internet_history_metric(observer, payload)
+    if preferred is not None:
+        return preferred
+    name, value = _internet_metric(observer, payload)
+    if isinstance(value, (int, float)) and not isinstance(value, bool):
+        return name, value
     return None
 
 
@@ -627,10 +672,14 @@ def _internet_history(daily_dir: Path, generated_at: str, metadata: Dict[str, Di
             payload, _error = _read_json(path)
             if payload is None:
                 continue
-            _name, value = _internet_metric(observer, payload)
-            point: Dict[str, Any] = {"date": date, "value": value, "data_status": _status(payload)}
+            metric = _internet_history_metric(observer, payload)
+            point: Dict[str, Any] = {"date": date, "data_status": _status(payload)}
+            if metric is not None:
+                name, value = metric
+                point["metric_name"] = name
+                point["value"] = value
             points.append(point)
-        observers[observer] = {
+        observer_payload: Dict[str, Any] = {
             "display_name": _metadata_display_name(metadata, observer),
             "points": points,
             "windows": {
@@ -639,6 +688,10 @@ def _internet_history(daily_dir: Path, generated_at: str, metadata: Dict[str, Di
                 "90d": _window_summary(points, 90, "value"),
             },
         }
+        preferred_paths = PREFERRED_INTERNET_HISTORY_METRICS.get(observer)
+        if preferred_paths:
+            observer_payload["preferred_metric_paths"] = [".".join(path) for path in preferred_paths]
+        observers[observer] = observer_payload
     return {"generated_at": generated_at, "observers": observers}
 
 

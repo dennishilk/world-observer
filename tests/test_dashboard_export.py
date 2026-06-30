@@ -356,10 +356,11 @@ def test_export_dashboard_writes_internet_history(tmp_path) -> None:
     area51 = history["observers"]["area51-reachability"]
     assert area51["display_name"] == "Area51 Reachability"
     assert area51["points"] == [
-        {"date": "2026-06-27", "value": 1, "data_status": "ok"},
-        {"date": "2026-06-28", "value": 3, "data_status": "partial"},
-        {"date": "2026-06-29", "value": 6, "data_status": "ok"},
+        {"date": "2026-06-27", "data_status": "ok", "metric_name": "au.total", "value": 1},
+        {"date": "2026-06-28", "data_status": "partial", "metric_name": "au.total", "value": 3},
+        {"date": "2026-06-29", "data_status": "ok", "metric_name": "au.total", "value": 6},
     ]
+    assert area51["preferred_metric_paths"] == ["au.total"]
     assert area51["windows"]["7d"] == {"count": 3, "latest": 6, "previous": 3, "delta": 3, "min": 1, "max": 6, "avg": 3.33}
     assert area51["windows"]["90d"]["count"] == 3
 
@@ -377,8 +378,64 @@ def test_export_dashboard_internet_history_skips_invalid_and_missing_daily_files
 
     history = json.loads((dashboard_dir / "history" / "internet-observers.json").read_text(encoding="utf-8"))
     assert history["observers"]["area51-reachability"]["points"] == [
-        {"date": "2026-06-29", "value": 2, "data_status": "ok"}
+        {"date": "2026-06-29", "data_status": "ok", "metric_name": "bucket_count", "value": 2}
     ]
+
+
+def test_export_dashboard_internet_history_extracts_preferred_numeric_metrics(tmp_path) -> None:
+    latest_dir = tmp_path / "latest"
+    daily_dir = tmp_path / "daily"
+    dashboard_dir = tmp_path / "dashboard"
+    latest_dir.mkdir()
+    _write_daily_observer(daily_dir, "2026-06-29", "dns-time-to-answer-index", {"data_status": "ok", "summary": {"avg_query_ms": 34.126}})
+    _write_daily_observer(daily_dir, "2026-06-29", "dns-tta-stress-index", {"data_status": "ok", "countries": [{"dns_stress_score": 0.12345}]})
+    _write_daily_observer(daily_dir, "2026-06-29", "global-reachability-long-horizon", {"data_status": "partial", "countries": [{"score_today": 98.4}]})
+    _write_daily_observer(daily_dir, "2026-06-29", "internet-shrinkage-index", {"data_status": "ok", "global": {"global_shrinkage_index": 1.5}})
+    _write_daily_observer(daily_dir, "2026-06-29", "north-korea-connectivity", {"data_status": "ok", "layers": {"tcp": {"probe_count": 24}}})
+
+    export_dashboard.export_dashboard(latest_dir, dashboard_dir, daily_dir)
+
+    history = json.loads((dashboard_dir / "history" / "internet-observers.json").read_text(encoding="utf-8"))
+    expected = {
+        "dns-time-to-answer-index": ("summary.avg_query_ms", 34.13),
+        "dns-tta-stress-index": ("countries.0.dns_stress_score", 0.12),
+        "global-reachability-long-horizon": ("countries.0.score_today", 98.4),
+        "internet-shrinkage-index": ("global.global_shrinkage_index", 1.5),
+        "north-korea-connectivity": ("layers.tcp.probe_count", 24),
+    }
+    for observer, (metric_name, value) in expected.items():
+        assert history["observers"][observer]["points"] == [
+            {"date": "2026-06-29", "data_status": history["observers"][observer]["points"][0]["data_status"], "metric_name": metric_name, "value": value}
+        ]
+
+
+def test_export_dashboard_internet_history_ignores_non_numeric_status_values(tmp_path) -> None:
+    latest_dir = tmp_path / "latest"
+    daily_dir = tmp_path / "daily"
+    dashboard_dir = tmp_path / "dashboard"
+    latest_dir.mkdir()
+    _write_daily_observer(daily_dir, "2026-06-29", "cuba-internet-weather", {"data_status": "unavailable"})
+
+    export_dashboard.export_dashboard(latest_dir, dashboard_dir, daily_dir)
+
+    history = json.loads((dashboard_dir / "history" / "internet-observers.json").read_text(encoding="utf-8"))
+    point = history["observers"]["cuba-internet-weather"]["points"][0]
+    assert point == {"date": "2026-06-29", "data_status": "unavailable"}
+    assert history["observers"]["cuba-internet-weather"]["windows"]["7d"] == {"count": 1}
+
+
+def test_export_dashboard_internet_history_does_not_fake_numeric_values(tmp_path) -> None:
+    latest_dir = tmp_path / "latest"
+    daily_dir = tmp_path / "daily"
+    dashboard_dir = tmp_path / "dashboard"
+    latest_dir.mkdir()
+    _write_daily_observer(daily_dir, "2026-06-29", "dns-time-to-answer-index", {"data_status": "ok", "summary": {"avg_query_ms": None}})
+
+    export_dashboard.export_dashboard(latest_dir, dashboard_dir, daily_dir)
+
+    history = json.loads((dashboard_dir / "history" / "internet-observers.json").read_text(encoding="utf-8"))
+    assert history["observers"]["dns-time-to-answer-index"]["points"] == [{"date": "2026-06-29", "data_status": "ok"}]
+    assert history["observers"]["dns-time-to-answer-index"]["windows"]["30d"] == {"count": 1}
 
 
 def _write_heartbeat(heartbeat_dir: Path, name: str, payload: dict | str) -> None:
