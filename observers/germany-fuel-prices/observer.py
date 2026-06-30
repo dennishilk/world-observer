@@ -30,12 +30,15 @@ SUPPORTED_FUELS = {
     "super_e10": "Super E10",
 }
 API_URL = "https://creativecommons.tankerkoenig.de/json/list.php"
-ADAC_DETAILS_URL = "https://www.adac.de/verkehr/tanken-kraftstoff-antrieb/kraftstoffpreise/details/52070-aachen-sb/2041580621/"
+PUBLIC_AVERAGE_URLS = (
+    "https://www.ndr.de/nachrichten/info/spritpreise-aktuell-so-entwickeln-sich-benzin-und-dieselpreise%2Cspritpreise-128.html",
+    "https://www.tagesschau.de/wirtschaft/verbraucher/spritpreis-entwicklung-104.html",
+)
 USER_AGENT = "world-observer/1.0 (+https://github.com/dennishilk/world-observer)"
 IMPORTS_DIR = Path("imports/fuel-prices-germany")
 MANUAL_API_ENV = "WORLD_OBSERVER_FUEL_ENABLE_TANKERKOENIG_API"
 API_KEY_ENV = "WORLD_OBSERVER_FUEL_API_KEY"
-ADAC_URL_ENV = "WORLD_OBSERVER_FUEL_ADAC_URL"
+PUBLIC_URL_ENV = "WORLD_OBSERVER_FUEL_PUBLIC_URL"
 
 
 def _repo_root() -> Path:
@@ -200,77 +203,125 @@ def _fetch_current_prices(api_key: str) -> tuple[dict[str, float], dict[str, Any
     return prices, diagnostics, None
 
 
-class _AdacPriceParser(HTMLParser):
-    """Extract ADAC detail-page fuel prices without fabricating missing values."""
+class _TextCollector(HTMLParser):
+    """Collect visible-ish text from public fuel-price pages."""
 
     def __init__(self) -> None:
         super().__init__()
         self._parts: list[str] = []
+        self._skip_depth = 0
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        if tag.lower() in {"script", "style", "noscript", "svg"}:
+            self._skip_depth += 1
+
+    def handle_endtag(self, tag: str) -> None:
+        if tag.lower() in {"script", "style", "noscript", "svg"} and self._skip_depth:
+            self._skip_depth -= 1
 
     def handle_data(self, data: str) -> None:
+        if self._skip_depth:
+            return
         text = data.strip()
         if text:
             self._parts.append(text)
 
-    def prices(self) -> dict[str, float]:
-        text = " ".join(self._parts)
-        patterns = {
-            "diesel": (r"Diesel\s*(?:\([^)]*\))?\s*(\d+[,.]\d{2,3})",),
-            "super_e10": (r"Super\s*E10\s*(?:\([^)]*\))?\s*(\d+[,.]\d{2,3})", r"\bE10\s*(?:\([^)]*\))?\s*(\d+[,.]\d{2,3})"),
-            "benzin": (r"Super(?!\s*E10)\s*(?:\([^)]*\))?\s*(\d+[,.]\d{2,3})",),
-        }
-        prices: dict[str, float] = {}
-        for fuel, fuel_patterns in patterns.items():
-            for pattern in fuel_patterns:
-                match = re.search(pattern, text, flags=re.IGNORECASE)
-                if not match:
-                    continue
-                price = _as_price(match.group(1).replace(",", "."))
-                if price is not None:
-                    prices[fuel] = price
-                    break
-        if prices:
-            return prices
-        numeric = [_as_price(match.replace(",", ".")) for match in re.findall(r"\b\d+[,.]\d{3}\b", text)]
-        valid = [price for price in numeric if price is not None]
-        if len(valid) >= 3:
-            return {"diesel": valid[0], "super_e10": valid[1], "benzin": valid[2]}
-        return {}
+    def text(self) -> str:
+        return " ".join(self._parts)
 
 
-def _fetch_adac_current_prices() -> tuple[dict[str, float], dict[str, Any], str | None]:
-    url = os.environ.get(ADAC_URL_ENV, ADAC_DETAILS_URL).strip() or ADAC_DETAILS_URL
+def _page_text(content: str) -> str:
+    parser = _TextCollector()
+    parser.feed(content)
+    text = parser.text()
+    return text or content
+
+
+def _price_from_match(match: re.Match[str]) -> float | None:
+    groups = [group for group in match.groups() if group is not None]
+    if not groups:
+        return None
+    return _as_price(groups[-1].replace(",", "."))
+
+
+def _parse_public_average_prices(content: str) -> dict[str, float]:
+    """Parse nationwide German daily average prices from SWR/tagesschau or NDR text.
+
+    The parser only accepts explicit fuel labels near euro/liter prices. It does not
+    infer missing fuels from unlabeled numbers, avoiding fabricated values.
+    """
+    text = re.sub(r"\s+", " ", _page_text(content))
+    patterns: dict[str, tuple[str, ...]] = {
+        "benzin": (
+            r"(?:Liter\s+)?Super(?:-?Benzin)?\s*(?:\(\s*Sorte\s*E5\s*\)|E5)?[^.]{0,180}?(\d+[,.]\d{2,3})\s*Euro",
+            r"(\d+[,.]\d{2,3})\s*Euro\s+kostete[^.]{0,120}?Liter\s+Super(?!\s*E10)",
+            r"Super\s*(?:E5)?\s*(\d+[,.]\d{2,3})\s*€",
+        ),
+        "super_e10": (
+            r"(?:mittlere\s+)?E10-?Preis[^.]{0,180}?(\d+[,.]\d{2,3})\s*Euro",
+            r"(?:Liter\s+)?Super\s*E10[^.]{0,180}?(\d+[,.]\d{2,3})\s*Euro",
+            r"Super\s*E10\s*(\d+[,.]\d{2,3})\s*€",
+        ),
+        "diesel": (
+            r"(?:beim|für|Liter\s+)?Diesel[^.]{0,180}?(\d+[,.]\d{2,3})\s*Euro",
+            r"(?:Preis\s+für\s+einen\s+Liter\s+)?Diesel[^.]{0,180}?(?:lag|liegt|sind|kostete)[^.]{0,80}?(\d+[,.]\d{2,3})\s*Euro",
+            r"Diesel\s*(\d+[,.]\d{2,3})\s*€",
+        ),
+    }
+    prices: dict[str, float] = {}
+    for fuel, fuel_patterns in patterns.items():
+        for pattern in fuel_patterns:
+            match = re.search(pattern, text, flags=re.IGNORECASE)
+            if not match:
+                continue
+            price = _price_from_match(match)
+            if price is not None:
+                prices[fuel] = price
+                break
+    return prices
+
+
+def _fetch_public_average_prices() -> tuple[dict[str, float], dict[str, Any], str | None]:
+    configured = os.environ.get(PUBLIC_URL_ENV, "").strip()
+    urls = (configured,) if configured else PUBLIC_AVERAGE_URLS
     diagnostics: dict[str, Any] = {
-        "source": "ADAC",
-        "fetch_url": url,
+        "source": "public fuel average page",
+        "fetch_url": None,
         "fetched_at_utc": None,
         "parse_status": "not_started",
         "fallback_used": False,
-        "api_attempts": 1,
+        "api_attempts": 0,
         "retries": 0,
         "http_status": None,
     }
-    req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
-    try:
-        with urllib.request.urlopen(req, timeout=20) as response:
-            diagnostics["http_status"] = getattr(response, "status", None)
-            html = response.read(2_000_000).decode("utf-8", errors="replace")
-            diagnostics["fetched_at_utc"] = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
-    except urllib.error.HTTPError as exc:
-        diagnostics["http_status"] = exc.code
-        diagnostics["parse_status"] = "fetch_failed"
-        return {}, diagnostics, f"ADAC fetch failed: HTTP {exc.code}"
-    except (OSError, urllib.error.URLError) as exc:
-        diagnostics["parse_status"] = "fetch_failed"
-        return {}, diagnostics, f"ADAC fetch failed: {type(exc).__name__}: {exc}"
-    parser = _AdacPriceParser()
-    parser.feed(html)
-    prices = parser.prices()
-    diagnostics["priced_fuel_count"] = len(prices)
-    diagnostics["parse_status"] = "ok" if prices else "no_supported_prices"
-    if not prices:
-        return {}, diagnostics, "ADAC page did not contain supported fuel prices"
-    return prices, diagnostics, None
+    errors: list[str] = []
+    for url in urls:
+        diagnostics["fetch_url"] = url
+        diagnostics["api_attempts"] += 1
+        req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
+        try:
+            with urllib.request.urlopen(req, timeout=20) as response:
+                diagnostics["http_status"] = getattr(response, "status", None)
+                html = response.read(2_000_000).decode("utf-8", errors="replace")
+                diagnostics["fetched_at_utc"] = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+        except urllib.error.HTTPError as exc:
+            diagnostics["http_status"] = exc.code
+            diagnostics["parse_status"] = "fetch_failed"
+            errors.append(f"{url}: HTTP {exc.code}")
+            continue
+        except (OSError, urllib.error.URLError) as exc:
+            diagnostics["parse_status"] = "fetch_failed"
+            errors.append(f"{url}: {type(exc).__name__}: {exc}")
+            continue
+        prices = _parse_public_average_prices(html)
+        diagnostics["priced_fuel_count"] = len(prices)
+        diagnostics["parse_status"] = "ok" if prices else "no_supported_prices"
+        if prices:
+            host = urllib.parse.urlparse(url).netloc
+            diagnostics["source"] = host or "public fuel average page"
+            return prices, diagnostics, None
+        errors.append(f"{url}: page did not contain supported nationwide average fuel prices")
+    return {}, diagnostics, "; ".join(errors) if errors else "public fuel average page did not contain supported prices"
 
 def _avg(values: list[float]) -> float | None:
     return round(sum(values) / len(values), 3) if values else None
@@ -354,12 +405,12 @@ def build_payload(date: str, current_prices: dict[str, float], diagnostics: dict
     manual_api = source == "Tankerkoenig/MTS-K API"
     daily_points = _daily_price_points(root) if manual_api else []
     daily_keys = {(p["date"], p["fuel_type"]) for p in daily_points}
-    adac_auto = source == "ADAC"
-    duplicate_current_keys = set() if adac_auto else {(date, f) for f in current_prices}
+    public_auto = source == "public fuel average page"
+    duplicate_current_keys = set() if public_auto else {(date, f) for f in current_prices}
     import_points, import_diagnostics = import_price_points(root / IMPORTS_DIR, daily_keys | duplicate_current_keys)
     history = sorted(import_points + daily_points, key=lambda p: (p["date"], p["fuel_type"]))
     same_date_imports = {p["fuel_type"]: p["price"] for p in import_points if p["date"] == date}
-    if adac_auto and same_date_imports:
+    if public_auto and same_date_imports:
         effective_prices = {**current_prices, **same_date_imports}
         effective_source = "imports/fuel-prices-germany"
         diagnostics["fallback_used"] = True
@@ -410,13 +461,13 @@ def main() -> None:
         prices, diagnostics, reason = _fetch_current_prices(api_key)
         payload = build_payload(date, prices, diagnostics, reason, source="Tankerkoenig/MTS-K API")
     else:
-        prices, diagnostics, reason = _fetch_adac_current_prices()
+        prices, diagnostics, reason = _fetch_public_average_prices()
         if reason:
             diagnostics["fallback_used"] = True
         if api_key:
             diagnostics["tankerkoenig_automatic"] = False
             diagnostics["tankerkoenig_note"] = f"Tankerkönig API key present but {MANUAL_API_ENV} is not enabled; not used automatically"
-        payload = build_payload(date, prices, diagnostics, reason, source="ADAC")
+        payload = build_payload(date, prices, diagnostics, reason, source="public fuel average page")
     _write_outputs(payload, _repo_root())
     print(json.dumps(payload, ensure_ascii=False, sort_keys=True))
 
