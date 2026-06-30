@@ -24,6 +24,7 @@ OBSERVERS: List[str] = [
     "cuba-internet-weather",
     "dns-time-to-answer-index",
     "dns-tta-stress-index",
+    "germany-fuel-prices",
     "global-reachability-long-horizon",
     "global-reachability-score",
     "http-reachability-index",

@@ -1,0 +1,77 @@
+{
+  "category": "society",
+  "data_status": "unavailable",
+  "date": "2026-06-30",
+  "date_utc": "2026-06-30",
+  "degraded_reason": "WORLD_OBSERVER_FUEL_API_KEY is not configured",
+  "diagnostics": {
+    "api_attempts": 0,
+    "http_status": null,
+    "retries": 0
+  },
+  "fuels": {
+    "benzin": {
+      "average_30d": null,
+      "average_365d": null,
+      "compared_with_365d_percent": null,
+      "current_price": null,
+      "data_status": "unavailable",
+      "degraded_reason": "WORLD_OBSERVER_FUEL_API_KEY is not configured",
+      "historical_max": null,
+      "historical_min": null,
+      "label": "Super E5",
+      "last_seen_date": null,
+      "observed_changes": [],
+      "record_high": null,
+      "record_low": null,
+      "status": "unavailable",
+      "trend_delta": null,
+      "trend_delta_percent": null
+    },
+    "diesel": {
+      "average_30d": null,
+      "average_365d": null,
+      "compared_with_365d_percent": null,
+      "current_price": null,
+      "data_status": "unavailable",
+      "degraded_reason": "WORLD_OBSERVER_FUEL_API_KEY is not configured",
+      "historical_max": null,
+      "historical_min": null,
+      "label": "Diesel",
+      "last_seen_date": null,
+      "observed_changes": [],
+      "record_high": null,
+      "record_low": null,
+      "status": "unavailable",
+      "trend_delta": null,
+      "trend_delta_percent": null
+    },
+    "super_e10": {
+      "average_30d": null,
+      "average_365d": null,
+      "compared_with_365d_percent": null,
+      "current_price": null,
+      "data_status": "unavailable",
+      "degraded_reason": "WORLD_OBSERVER_FUEL_API_KEY is not configured",
+      "historical_max": null,
+      "historical_min": null,
+      "label": "Super E10",
+      "last_seen_date": null,
+      "observed_changes": [],
+      "record_high": null,
+      "record_low": null,
+      "status": "unavailable",
+      "trend_delta": null,
+      "trend_delta_percent": null
+    }
+  },
+  "import_diagnostics": [],
+  "observer": "germany-fuel-prices",
+  "source": null,
+  "status": "unavailable",
+  "supported_fuel_types": {
+    "benzin": "Super E5",
+    "diesel": "Diesel",
+    "super_e10": "Super E10"
+  }
+}

@@ -16,6 +16,7 @@ from scripts.run_daily import OBSERVERS
 
 DASHBOARD_VERSION = 1
 MEDIA_OBSERVER = "media-language-germany"
+FUEL_OBSERVER = "germany-fuel-prices"
 SUMMARY_NAME = "summary.json"
 OUTPUT_FILES = ("summary.json", "internet.json", "media.json", "society.json", "environment.json", "heartbeat.json")
 HISTORY_FILES = ("history/media-language-germany.json", "history/internet-observers.json")
@@ -924,6 +925,35 @@ def _internet(loaded: Dict[str, Dict[str, Any]], metadata: Dict[str, Dict[str, A
     return {"observer_count": len(observers), "observers": observers}
 
 
+
+def _society(loaded: Dict[str, Dict[str, Any]], metadata: Dict[str, Dict[str, Any]]) -> Dict[str, Any]:
+    observers: list[Dict[str, Any]] = []
+    for observer in sorted(
+        (item for item in OBSERVERS if _metadata_category(metadata, item) == "society" and _metadata_active(metadata, item)),
+        key=lambda item: (_metadata_priority(metadata, item), _metadata_display_name(metadata, item), item),
+    ):
+        payload = loaded.get(observer)
+        if observer == FUEL_OBSERVER and isinstance(payload, dict):
+            item: Dict[str, Any] = {
+                "observer": observer,
+                "display_name": _metadata_display_name(metadata, observer),
+                "category": "society",
+                "dashboard_priority": _metadata_priority(metadata, observer),
+                "status": _status(payload),
+                "data_status": payload.get("data_status", _status(payload)),
+                "last_seen_date": payload.get("date") or payload.get("date_utc"),
+                "fuels": payload.get("fuels", {}),
+                "import_diagnostics": payload.get("import_diagnostics", []),
+            }
+            degraded_reason = payload.get("degraded_reason") or payload.get("error")
+            if degraded_reason:
+                item["degraded_reason"] = degraded_reason
+            observers.append(item)
+        elif isinstance(payload, dict):
+            observers.append(_internet_observer(observer, payload, metadata))
+    planned = _planned_items(metadata, "society")
+    return {"observer_count": len(observers), "observers": observers, "items": planned}
+
 def _planned_items(metadata: Dict[str, Dict[str, Any]], category: str) -> list[Dict[str, Any]]:
     items: list[Dict[str, Any]] = []
     for observer, entry in sorted(
@@ -1098,7 +1128,7 @@ def export_dashboard(
         "summary.json": _summary(latest_dir, generated_at, loaded, metadata),
         "internet.json": _internet(loaded, metadata),
         "media.json": _media(loaded.get(MEDIA_OBSERVER)),
-        "society.json": {"status": "placeholder", "items": _planned_items(metadata, "society")},
+        "society.json": _society(loaded, metadata),
         "environment.json": {"status": "placeholder", "items": _planned_items(metadata, "environment")},
         "heartbeat.json": _heartbeat(heartbeat_dir, generated_at),
         "history/media-language-germany.json": _media_history(daily_dir, generated_at, media_imports_dir),

@@ -1,0 +1,77 @@
+{
+  "observer": "germany-fuel-prices",
+  "category": "society",
+  "date": "2026-06-30",
+  "date_utc": "2026-06-30",
+  "status": "unavailable",
+  "data_status": "unavailable",
+  "source": null,
+  "fuels": {
+    "benzin": {
+      "label": "Super E5",
+      "current_price": null,
+      "average_30d": null,
+      "average_365d": null,
+      "record_low": null,
+      "record_high": null,
+      "historical_min": null,
+      "historical_max": null,
+      "last_seen_date": null,
+      "status": "unavailable",
+      "data_status": "unavailable",
+      "observed_changes": [],
+      "degraded_reason": "WORLD_OBSERVER_FUEL_API_KEY is not configured",
+      "trend_delta": null,
+      "trend_delta_percent": null,
+      "compared_with_365d_percent": null
+    },
+    "diesel": {
+      "label": "Diesel",
+      "current_price": null,
+      "average_30d": null,
+      "average_365d": null,
+      "record_low": null,
+      "record_high": null,
+      "historical_min": null,
+      "historical_max": null,
+      "last_seen_date": null,
+      "status": "unavailable",
+      "data_status": "unavailable",
+      "observed_changes": [],
+      "degraded_reason": "WORLD_OBSERVER_FUEL_API_KEY is not configured",
+      "trend_delta": null,
+      "trend_delta_percent": null,
+      "compared_with_365d_percent": null
+    },
+    "super_e10": {
+      "label": "Super E10",
+      "current_price": null,
+      "average_30d": null,
+      "average_365d": null,
+      "record_low": null,
+      "record_high": null,
+      "historical_min": null,
+      "historical_max": null,
+      "last_seen_date": null,
+      "status": "unavailable",
+      "data_status": "unavailable",
+      "observed_changes": [],
+      "degraded_reason": "WORLD_OBSERVER_FUEL_API_KEY is not configured",
+      "trend_delta": null,
+      "trend_delta_percent": null,
+      "compared_with_365d_percent": null
+    }
+  },
+  "supported_fuel_types": {
+    "benzin": "Super E5",
+    "diesel": "Diesel",
+    "super_e10": "Super E10"
+  },
+  "import_diagnostics": [],
+  "diagnostics": {
+    "api_attempts": 0,
+    "retries": 0,
+    "http_status": null
+  },
+  "degraded_reason": "WORLD_OBSERVER_FUEL_API_KEY is not configured"
+}
