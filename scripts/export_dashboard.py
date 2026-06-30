@@ -106,6 +106,10 @@ def _metadata_category(metadata: Dict[str, Dict[str, Any]], observer: str) -> st
     return "media" if observer == MEDIA_OBSERVER else "internet"
 
 
+def _metadata_active(metadata: Dict[str, Dict[str, Any]], observer: str) -> bool:
+    return metadata.get(observer, {}).get("planned") is not True and metadata.get(observer, {}).get("active") is not False
+
+
 def _metadata_priority(metadata: Dict[str, Dict[str, Any]], observer: str) -> int:
     value = _metadata_value(metadata, observer, "dashboard_priority")
     if isinstance(value, int) and not isinstance(value, bool):
@@ -406,6 +410,7 @@ def _internet_metric(observer: str, payload: Dict[str, Any]) -> tuple[str, float
     rules: dict[str, tuple[tuple[str, ...], ...]] = {
         "area51-reachability": (("au", "total"), ("bucket_count",)),
         "global-reachability-score": (("score",), ("score_percent",)),
+        "http-reachability-index": (("summary", "success_rate_percent"), ("summary", "targets_reachable")),
         "internet-shrinkage-index": (("score",), ("index",)),
         "asn-visibility-by-country": (("summary_stats", "countries_evaluated"), ("summary_stats", "significant_count")),
         "ipv6-global-compare": (("summary_stats", "countries_evaluated"), ("summary_stats", "significant_count"), ("percentage",), ("score",), ("score_percent",)),
@@ -427,6 +432,7 @@ def _internet_metric(observer: str, payload: Dict[str, Any]) -> tuple[str, float
         return direct
     ordered_names = {
         "global-reachability-score": ("score", "score_percent"),
+        "http-reachability-index": ("success_rate_percent", "targets_reachable", "targets_checked"),
         "internet-shrinkage-index": ("score", "index", "global_shrinkage_index", "shrinkage_score"),
         "asn-visibility-by-country": ("countries_evaluated", "significant_count", "asn_visible_count"),
         "ipv6-global-compare": ("countries_evaluated", "significant_count", "percentage", "score", "score_percent"),
@@ -566,7 +572,7 @@ def _internet(loaded: Dict[str, Dict[str, Any]], metadata: Dict[str, Dict[str, A
             loaded,
             key=lambda item: (_metadata_priority(metadata, item), _metadata_display_name(metadata, item), item),
         )
-        if _metadata_category(metadata, observer) == "internet"
+        if _metadata_category(metadata, observer) == "internet" and _metadata_active(metadata, observer)
     ]
     return {"observer_count": len(observers), "observers": observers}
 
@@ -613,7 +619,7 @@ def _iter_daily_observer_files(daily_dir: Path, observer: str) -> Iterable[tuple
 def _internet_history(daily_dir: Path, generated_at: str, metadata: Dict[str, Dict[str, Any]]) -> Dict[str, Any]:
     observers: Dict[str, Any] = {}
     for observer in sorted(
-        (item for item in OBSERVERS if _metadata_category(metadata, item) == "internet"),
+        (item for item in OBSERVERS if _metadata_category(metadata, item) == "internet" and _metadata_active(metadata, item)),
         key=lambda item: (_metadata_priority(metadata, item), _metadata_display_name(metadata, item), item),
     ):
         points: list[Dict[str, Any]] = []

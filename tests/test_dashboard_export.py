@@ -438,3 +438,53 @@ def test_export_dashboard_writes_unavailable_heartbeat_when_empty(tmp_path) -> N
     assert heartbeat["latest_heartbeat_utc"] is None
     assert heartbeat["heartbeat_file"] is None
     assert isinstance(heartbeat["generated_at"], str)
+
+
+def test_internet_dashboard_uses_http_reachability_slot_and_excludes_planned_asn(tmp_path, monkeypatch) -> None:
+    latest_dir = tmp_path / "latest"
+    dashboard_dir = tmp_path / "dashboard"
+    latest_dir.mkdir()
+    _write_latest(
+        latest_dir,
+        "http-reachability-index",
+        {
+            "observer": "http-reachability-index",
+            "status": "ok",
+            "data_status": "ok",
+            "date_utc": "2026-06-30",
+            "summary": {"success_rate_percent": 100.0, "targets_reachable": 8, "targets_checked": 8},
+        },
+    )
+    _write_latest(
+        latest_dir,
+        "asn-visibility-by-country",
+        {
+            "observer": "asn-visibility-by-country",
+            "status": "unavailable",
+            "data_status": "unavailable",
+            "summary_stats": {"countries_evaluated": 0},
+        },
+    )
+    metadata_path = tmp_path / "observer_metadata.json"
+    metadata_path.write_text(
+        json.dumps(
+            {
+                "observers": [
+                    {"observer": "http-reachability-index", "display_name": "HTTP Reachability Index", "category": "internet", "dashboard_priority": 11, "planned": False},
+                    {"observer": "asn-visibility-by-country", "display_name": "ASN Visibility By Country", "category": "internet", "dashboard_priority": 11, "planned": True},
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(export_dashboard, "METADATA_PATH", str(metadata_path))
+    monkeypatch.setattr(export_dashboard, "OBSERVERS", ["http-reachability-index", "asn-visibility-by-country"])
+
+    export_dashboard.export_dashboard(latest_dir=latest_dir, dashboard_dir=dashboard_dir, daily_dir=tmp_path / "daily", heartbeat_dir=tmp_path / "heartbeat")
+
+    internet = json.loads((dashboard_dir / "internet.json").read_text(encoding="utf-8"))
+    observers = [card["observer"] for card in internet["observers"]]
+    assert "http-reachability-index" in observers
+    assert "asn-visibility-by-country" not in observers
+    http_card = next(card for card in internet["observers"] if card["observer"] == "http-reachability-index")
+    assert http_card["dashboard_priority"] == 11

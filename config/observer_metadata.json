@@ -12,15 +12,27 @@
       "planned": false
     },
     {
-      "observer": "asn-visibility-by-country",
-      "display_name": "ASN Visibility By Country",
+      "observer": "http-reachability-index",
+      "display_name": "HTTP Reachability Index",
       "category": "internet",
-      "description": "ASN Visibility By Country observer.",
+      "description": "Stable HTTP/HTTPS reachability checks for major public targets.",
       "tags": [
         "internet"
       ],
       "dashboard_priority": 11,
       "planned": false
+    },
+    {
+      "observer": "asn-visibility-by-country",
+      "display_name": "ASN Visibility By Country",
+      "category": "internet",
+      "description": "Inactive ASN Visibility By Country observer; retained in code but excluded from active dashboard export until it produces a usable signal.",
+      "tags": [
+        "internet",
+        "planned"
+      ],
+      "dashboard_priority": 11,
+      "planned": true
     },
     {
       "observer": "cuba-internet-weather",
