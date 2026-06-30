@@ -21,6 +21,30 @@ OUTPUT_FILES = ("summary.json", "internet.json", "media.json", "society.json", "
 HISTORY_FILES = ("history/media-language-germany.json", "history/internet-observers.json")
 METADATA_PATH = "config/observer_metadata.json"
 
+
+INTERNET_DASHBOARD_METADATA: dict[str, dict[str, Any]] = {
+    "area51-reachability": {"display_name": "Area51 Reachability", "dashboard_priority": 10, "primary_metric": "au.total", "primary_metric_label": "Reachability score", "primary_metric_unit": "score", "secondary_metrics": [("au.janet_like", "JANET-like aircraft", "count"), ("au.other", "Other aircraft", "count"), ("bucket_count", "Time buckets", "count")], "trend_metric": "au.total", "trend_metric_label": "Reachability score", "trend_metric_unit": "score"},
+    "cuba-internet-weather": {"display_name": "Cuba Internet Weather", "dashboard_priority": 20, "primary_metric": "targets.1.ping.rtt_avg_ms", "primary_metric_label": "Average ping time", "primary_metric_unit": "ms", "secondary_metrics": [("weather_summary.reachable_targets", "Reachable targets", "count"), ("weather_summary.total_targets", "Targets checked", "count")], "trend_metric": "targets.1.ping.rtt_avg_ms", "trend_metric_label": "Average ping time", "trend_metric_unit": "ms"},
+    "dns-time-to-answer-index": {"display_name": "DNS Time To Answer Index", "dashboard_priority": 30, "primary_metric": "summary.avg_query_ms", "primary_metric_label": "Average DNS response", "primary_metric_unit": "ms", "secondary_metrics": [("summary.total_queries", "Queries checked", "count"), ("summary.successful", "Successful queries", "count"), ("summary.timeouts", "DNS timeouts", "count")], "trend_metric": "summary.avg_query_ms", "trend_metric_label": "Average DNS response", "trend_metric_unit": "ms"},
+    "dns-tta-stress-index": {"display_name": "DNS TTA Stress Index", "dashboard_priority": 40, "primary_metric": "countries.0.dns_stress_score", "primary_metric_label": "DNS stress score", "primary_metric_unit": "score", "secondary_metrics": [("summary_stats.countries_evaluated", "Countries evaluated", "count"), ("diagnostics.timeouts", "DNS timeouts", "count")], "trend_metric": "countries.0.dns_stress_score", "trend_metric_label": "DNS stress score", "trend_metric_unit": "score"},
+    "global-reachability-long-horizon": {"display_name": "Global Reachability Long Horizon", "dashboard_priority": 50, "primary_metric": "global.avg_score_today", "primary_metric_label": "Average reachability score", "primary_metric_unit": "score", "secondary_metrics": [("summary_stats.countries_evaluated", "Countries evaluated", "count"), ("summary_stats.significant_count", "Significant events", "count")], "trend_metric": "global.avg_score_today", "trend_metric_label": "Average reachability score", "trend_metric_unit": "score"},
+    "global-reachability-score": {"display_name": "Global Reachability Score", "dashboard_priority": 60, "primary_metric": "countries.0.score", "primary_metric_label": "Reachability score", "primary_metric_unit": "score", "secondary_metrics": [("countries.0.score_percent", "Reachability percent", "%")], "trend_metric": "countries.0.score", "trend_metric_label": "Reachability score", "trend_metric_unit": "score"},
+    "http-reachability-index": {"display_name": "HTTP Reachability Index", "dashboard_priority": 70, "primary_metric": "summary.success_rate_percent", "primary_metric_label": "HTTP success rate", "primary_metric_unit": "%", "secondary_metrics": [("summary.avg_response_ms", "Average response time", "ms"), ("summary.targets_reachable", "Reachable targets", "count"), ("summary.targets_checked", "Targets checked", "count")], "trend_metric": "summary.success_rate_percent", "trend_metric_label": "HTTP success rate", "trend_metric_unit": "%"},
+    "internet-shrinkage-index": {"display_name": "Internet Shrinkage Index", "dashboard_priority": 80, "primary_metric": "global.global_shrinkage_index", "primary_metric_label": "Shrinkage index", "primary_metric_unit": "score", "secondary_metrics": [("summary_stats.countries_evaluated", "Countries evaluated", "count"), ("summary_stats.significant_count", "Significant events", "count")], "trend_metric": "global.global_shrinkage_index", "trend_metric_label": "Shrinkage index", "trend_metric_unit": "score"},
+    "ipv6-adoption-locked-states": {"display_name": "IPv6 Adoption Locked States", "dashboard_priority": 90, "primary_metric": "countries.0.ipv6_capable_rate", "primary_metric_label": "IPv6 capable rate", "primary_metric_unit": "%", "secondary_metrics": [("countries.0.total_domains", "Domains checked", "count")], "trend_metric": "countries.0.ipv6_capable_rate", "trend_metric_label": "IPv6 capable rate", "trend_metric_unit": "%"},
+    "ipv6-global-compare": {"display_name": "IPv6 Global Compare", "dashboard_priority": 100, "primary_metric": "summary_stats.countries_evaluated", "primary_metric_label": "Countries evaluated", "primary_metric_unit": "count", "secondary_metrics": [("summary_stats.significant_count", "Significant events", "count"), ("countries.0.ipv6_capable_rate", "IPv6 capable rate", "%")], "trend_metric": "summary_stats.countries_evaluated", "trend_metric_label": "Countries evaluated", "trend_metric_unit": "count"},
+    "ipv6-locked-states": {"display_name": "IPv6 Locked States", "dashboard_priority": 110, "primary_metric": "summary_stats.countries_evaluated", "primary_metric_label": "Countries evaluated", "primary_metric_unit": "count", "secondary_metrics": [("summary_stats.significant_count", "Significant events", "count"), ("countries.0.ipv6_capable_rate", "IPv6 capable rate", "%")], "trend_metric": "summary_stats.countries_evaluated", "trend_metric_label": "Countries evaluated", "trend_metric_unit": "count"},
+    "iran-dns-behavior": {"display_name": "Iran DNS Behavior", "dashboard_priority": 120, "primary_metric": "summary.answered", "primary_metric_label": "DNS answers", "primary_metric_unit": "count", "secondary_metrics": [("summary.total_queries", "Queries checked", "count"), ("summary.servfail", "SERVFAIL responses", "count")], "trend_metric": "summary.answered", "trend_metric_label": "DNS answers", "trend_metric_unit": "count"},
+    "mx-presence-by-country": {"display_name": "MX Presence By Country", "dashboard_priority": 130, "primary_metric": "results.0.mx_present_count", "primary_metric_label": "MX records present", "primary_metric_unit": "count", "secondary_metrics": [("results.0.domain_count", "Domains checked", "count")], "trend_metric": "results.0.mx_present_count", "trend_metric_label": "MX records present", "trend_metric_unit": "count"},
+    "mx-presence-per-country": {"display_name": "MX Presence Per Country", "dashboard_priority": 140, "primary_metric": "countries.0.mx_present_count", "primary_metric_label": "MX records present", "primary_metric_unit": "count", "secondary_metrics": [("summary_stats.countries_evaluated", "Countries evaluated", "count")], "trend_metric": "countries.0.mx_present_count", "trend_metric_label": "MX records present", "trend_metric_unit": "count"},
+    "north-korea-connectivity": {"display_name": "North Korea Connectivity", "dashboard_priority": 150, "primary_metric": "layers.tcp.probe_count", "primary_metric_label": "TCP probes", "primary_metric_unit": "count", "secondary_metrics": [("layers.tcp.success_count", "Successful TCP probes", "count"), ("layers.icmp.probe_count", "ICMP probes", "count")], "trend_metric": "layers.tcp.probe_count", "trend_metric_label": "TCP probes", "trend_metric_unit": "count"},
+    "silent-countries-list": {"display_name": "Silent Countries List", "dashboard_priority": 160, "primary_metric": "summary_stats.countries_evaluated", "primary_metric_label": "Countries evaluated", "primary_metric_unit": "count", "secondary_metrics": [("summary_stats.significant_count", "Significant events", "count"), ("top_silent_countries", "Silent countries listed", "count")], "trend_metric": "summary_stats.countries_evaluated", "trend_metric_label": "Countries evaluated", "trend_metric_unit": "count"},
+    "tls-fingerprint-change": {"display_name": "TLS Fingerprint Change", "dashboard_priority": 170, "primary_metric": "summary_stats.significant_count", "primary_metric_label": "Significant events", "primary_metric_unit": "count", "secondary_metrics": [("summary_stats.countries_evaluated", "Countries evaluated", "count"), ("countries.0.tls_change_score", "TLS change score", "score")], "trend_metric": "summary_stats.significant_count", "trend_metric_label": "Significant events", "trend_metric_unit": "count"},
+    "traceroute-to-nowhere": {"display_name": "Traceroute To Nowhere", "dashboard_priority": 180, "primary_metric": "metrics.trace_count", "primary_metric_label": "Trace count", "primary_metric_unit": "count", "secondary_metrics": [("metrics.anomaly_count", "Anomaly count", "count")], "trend_metric": "metrics.trace_count", "trend_metric_label": "Trace count", "trend_metric_unit": "count"},
+    "undersea-cable-dependency": {"display_name": "Undersea Cable Dependency", "dashboard_priority": 190, "primary_metric": "countries.0.cable_count", "primary_metric_label": "Cable count", "primary_metric_unit": "count", "secondary_metrics": [("countries.0.landing_count", "Landing points", "count")], "trend_metric": "countries.0.cable_count", "trend_metric_label": "Cable count", "trend_metric_unit": "count"},
+    "undersea-cable-dependency-map": {"display_name": "Undersea Cable Dependency Map", "dashboard_priority": 200, "primary_metric": "countries.0.cable_count", "primary_metric_label": "Cable count", "primary_metric_unit": "count", "secondary_metrics": [("countries.0.landing_count", "Landing points", "count"), ("summary_stats.countries_evaluated", "Countries evaluated", "count")], "trend_metric": "countries.0.cable_count", "trend_metric_label": "Cable count", "trend_metric_unit": "count"},
+}
+
 PREFERRED_INTERNET_HISTORY_METRICS: dict[str, tuple[tuple[str, ...], ...]] = {
     "area51-reachability": (("au", "total"),),
     "dns-time-to-answer-index": (("summary", "avg_query_ms"),),
@@ -134,6 +158,9 @@ def _metadata_active(metadata: Dict[str, Dict[str, Any]], observer: str) -> bool
 
 
 def _metadata_priority(metadata: Dict[str, Dict[str, Any]], observer: str) -> int:
+    dashboard_value = INTERNET_DASHBOARD_METADATA.get(observer, {}).get("dashboard_priority")
+    if isinstance(dashboard_value, int) and not isinstance(dashboard_value, bool):
+        return dashboard_value
     value = _metadata_value(metadata, observer, "dashboard_priority")
     if isinstance(value, int) and not isinstance(value, bool):
         return value
@@ -362,6 +389,9 @@ def _display_name(observer: str) -> str:
 
 
 def _metadata_display_name(metadata: Dict[str, Dict[str, Any]], observer: str) -> str:
+    dashboard_value = INTERNET_DASHBOARD_METADATA.get(observer, {}).get("display_name")
+    if isinstance(dashboard_value, str) and dashboard_value:
+        return dashboard_value
     value = _metadata_value(metadata, observer, "display_name")
     return value if isinstance(value, str) and value else _display_name(observer)
 
@@ -383,6 +413,26 @@ def _find_path(payload: Any, path: tuple[str, ...]) -> Any:
     return value
 
 
+
+
+def _path_tuple(path: str) -> tuple[str, ...]:
+    return tuple(part for part in path.split(".") if part)
+
+
+def _configured_metric_value(observer: str, payload: Dict[str, Any], key: str) -> tuple[str, float | int] | None:
+    path = INTERNET_DASHBOARD_METADATA.get(observer, {}).get(key)
+    if not isinstance(path, str) or not path:
+        return None
+    value = _as_number(_find_path(payload, _path_tuple(path)))
+    if value is None:
+        return None
+    return path, value
+
+
+def _friendly_label(observer: str, key: str, fallback: str) -> str:
+    value = INTERNET_DASHBOARD_METADATA.get(observer, {}).get(key)
+    return value if isinstance(value, str) and value else fallback
+
 def _first_numeric_path(payload: Dict[str, Any], paths: tuple[tuple[str, ...], ...]) -> tuple[str, float | int] | None:
     for path in paths:
         value = _as_number(_find_path(payload, path))
@@ -396,6 +446,9 @@ def _preferred_internet_history_metric(observer: str, payload: Dict[str, Any]) -
 
 
 def _internet_history_metric(observer: str, payload: Dict[str, Any]) -> tuple[str, float | int] | None:
+    configured = _configured_metric_value(observer, payload, "trend_metric")
+    if configured is not None:
+        return configured
     preferred = _preferred_internet_history_metric(observer, payload)
     if preferred is not None:
         return preferred
@@ -516,6 +569,37 @@ def _internet_metric(observer: str, payload: Dict[str, Any]) -> tuple[str, float
     return "data_status", _status(payload)
 
 
+
+def _configured_secondary_metrics(observer: str, payload: Dict[str, Any], primary_path: str) -> Dict[str, float | int]:
+    metrics: Dict[str, float | int] = {}
+    configured = INTERNET_DASHBOARD_METADATA.get(observer, {}).get("secondary_metrics")
+    if not isinstance(configured, list):
+        return metrics
+    for entry in configured:
+        if not isinstance(entry, (tuple, list)) or len(entry) < 2:
+            continue
+        path, label = entry[0], entry[1]
+        if not isinstance(path, str) or not isinstance(label, str) or path == primary_path:
+            continue
+        value = _as_number(_find_path(payload, _path_tuple(path)))
+        if value is not None:
+            metrics[label] = value
+    return metrics
+
+
+def _configured_secondary_metric_units(observer: str, primary_path: str) -> Dict[str, str]:
+    units: Dict[str, str] = {}
+    configured = INTERNET_DASHBOARD_METADATA.get(observer, {}).get("secondary_metrics")
+    if not isinstance(configured, list):
+        return units
+    for entry in configured:
+        if not isinstance(entry, (tuple, list)) or len(entry) < 3:
+            continue
+        path, label, unit = entry[0], entry[1], entry[2]
+        if isinstance(path, str) and isinstance(label, str) and isinstance(unit, str) and path != primary_path:
+            units[label] = unit
+    return units
+
 def _secondary_metrics(payload: Dict[str, Any], primary_name: str, limit: int = 3) -> Dict[str, float | int]:
     metrics: Dict[str, float | int] = {}
     for name, value in _iter_named_numbers(payload, ("score", "index", "count", "percent", "total", "median", "avg", "evaluated", "significant")):
@@ -588,7 +672,13 @@ def _normalized_internet_payload(
 
 
 def _internet_observer(observer: str, payload: Dict[str, Any], metadata: Dict[str, Dict[str, Any]]) -> Dict[str, Any]:
-    primary_name, primary_value = _internet_metric(observer, payload)
+    configured_primary = _configured_metric_value(observer, payload, "primary_metric")
+    if configured_primary is not None:
+        primary_path, primary_value = configured_primary
+        primary_name = _friendly_label(observer, "primary_metric_label", primary_path)
+    else:
+        primary_path, primary_value = _internet_metric(observer, payload)
+        primary_name = primary_path
     status, data_status = _internet_status_fields(observer, payload)
     item: Dict[str, Any] = {
         "observer": observer,
@@ -599,8 +689,15 @@ def _internet_observer(observer: str, payload: Dict[str, Any], metadata: Dict[st
         "data_status": data_status,
         "primary_metric_name": primary_name,
         "primary_metric_value": primary_value,
-        "secondary_metrics": _secondary_metrics(payload, primary_name),
+        "primary_metric_path": primary_path,
+        "secondary_metrics": _configured_secondary_metrics(observer, payload, primary_path) if observer in INTERNET_DASHBOARD_METADATA else _secondary_metrics(payload, primary_path),
     }
+    primary_unit = INTERNET_DASHBOARD_METADATA.get(observer, {}).get("primary_metric_unit")
+    if configured_primary is not None and isinstance(primary_unit, str) and primary_unit:
+        item["primary_metric_unit"] = primary_unit
+    secondary_units = _configured_secondary_metric_units(observer, primary_path)
+    if secondary_units:
+        item["secondary_metric_units"] = secondary_units
     last_seen = _last_seen_date(payload)
     if last_seen is not None:
         item["last_seen_date"] = last_seen
@@ -677,10 +774,19 @@ def _internet_history(daily_dir: Path, generated_at: str, metadata: Dict[str, Di
             if metric is not None:
                 name, value = metric
                 point["metric_name"] = name
+                point["metric_label"] = _friendly_label(observer, "trend_metric_label", name)
+                unit = INTERNET_DASHBOARD_METADATA.get(observer, {}).get("trend_metric_unit")
+                if isinstance(unit, str) and unit:
+                    point["metric_unit"] = unit
                 point["value"] = value
             points.append(point)
+        metric_label = _friendly_label(observer, "trend_metric_label", "value")
+        metric_unit = INTERNET_DASHBOARD_METADATA.get(observer, {}).get("trend_metric_unit")
         observer_payload: Dict[str, Any] = {
             "display_name": _metadata_display_name(metadata, observer),
+            "metric_label": metric_label,
+            "numeric_point_count": sum(1 for point in points if isinstance(point.get("value"), (int, float)) and not isinstance(point.get("value"), bool)),
+            "total_point_count": len(points),
             "points": points,
             "windows": {
                 "7d": _window_summary(points, 7, "value"),
@@ -688,9 +794,15 @@ def _internet_history(daily_dir: Path, generated_at: str, metadata: Dict[str, Di
                 "90d": _window_summary(points, 90, "value"),
             },
         }
-        preferred_paths = PREFERRED_INTERNET_HISTORY_METRICS.get(observer)
-        if preferred_paths:
-            observer_payload["preferred_metric_paths"] = [".".join(path) for path in preferred_paths]
+        if isinstance(metric_unit, str) and metric_unit:
+            observer_payload["metric_unit"] = metric_unit
+        configured_trend = INTERNET_DASHBOARD_METADATA.get(observer, {}).get("trend_metric")
+        if isinstance(configured_trend, str) and configured_trend:
+            observer_payload["preferred_metric_paths"] = [configured_trend]
+        else:
+            preferred_paths = PREFERRED_INTERNET_HISTORY_METRICS.get(observer)
+            if preferred_paths:
+                observer_payload["preferred_metric_paths"] = [".".join(path) for path in preferred_paths]
         observers[observer] = observer_payload
     return {"generated_at": generated_at, "observers": observers}
 

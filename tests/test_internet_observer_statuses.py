@@ -67,11 +67,11 @@ def test_dashboard_export_uses_countries_evaluated_for_ipv6_and_excludes_planned
     cards = {card["observer"]: card for card in internet["observers"]}
 
     assert "asn-visibility-by-country" not in cards
-    assert cards["ipv6-global-compare"]["primary_metric_name"] == "countries evaluated"
+    assert cards["ipv6-global-compare"]["primary_metric_name"] == "Countries evaluated"
     assert cards["ipv6-global-compare"]["primary_metric_value"] == 3
-    assert cards["ipv6-locked-states"]["primary_metric_name"] == "countries evaluated"
+    assert cards["ipv6-locked-states"]["primary_metric_name"] == "Countries evaluated"
     assert cards["ipv6-locked-states"]["primary_metric_value"] == 3
-    assert cards["ipv6-locked-states"]["secondary_metrics"]["significant_count"] == 0
+    assert cards["ipv6-locked-states"]["secondary_metrics"]["Significant events"] == 0
 
 
 def test_ipv6_global_compare_keeps_true_no_data_unavailable(tmp_path, monkeypatch) -> None:
@@ -107,9 +107,9 @@ def test_dashboard_export_normalizes_ipv6_global_evaluated_unavailable_to_partia
 
     assert card["status"] == "ok"
     assert card["data_status"] == "partial"
-    assert card["primary_metric_name"] == "countries evaluated"
+    assert card["primary_metric_name"] == "Countries evaluated"
     assert card["primary_metric_value"] == 3
-    assert card["secondary_metrics"]["significant_count"] == 1
+    assert card["secondary_metrics"]["Significant events"] == 1
 
 
 def test_dashboard_export_uses_ipv6_locked_count_for_empty_global_compare(tmp_path) -> None:
@@ -138,7 +138,7 @@ def test_dashboard_export_uses_ipv6_locked_count_for_empty_global_compare(tmp_pa
 
     assert card["status"] == "ok"
     assert card["data_status"] == "partial"
-    assert card["primary_metric_name"] == "countries evaluated"
+    assert card["primary_metric_name"] == "Countries evaluated"
     assert card["primary_metric_value"] == 3
 
 
@@ -160,9 +160,9 @@ def test_dashboard_export_normalizes_ipv6_locked_evaluated_unavailable_to_ok(tmp
 
     assert card["status"] == "ok"
     assert card["data_status"] == "ok"
-    assert card["primary_metric_name"] == "countries evaluated"
+    assert card["primary_metric_name"] == "Countries evaluated"
     assert card["primary_metric_value"] == 3
-    assert card["secondary_metrics"]["significant_count"] == 0
+    assert card["secondary_metrics"]["Significant events"] == 0
 
 
 def test_dashboard_export_asn_no_data_is_not_active_internet_card(tmp_path) -> None:
