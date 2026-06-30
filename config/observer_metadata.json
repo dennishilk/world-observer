@@ -350,6 +350,19 @@
       ],
       "dashboard_priority": 102,
       "planned": true
+    },
+    {
+      "observer": "germany-fuel-prices",
+      "display_name": "Germany Fuel Price Observer",
+      "category": "society",
+      "description": "Daily descriptive observer for public German fuel prices (Super E5, Diesel, Super E10).",
+      "tags": [
+        "society",
+        "fuel",
+        "germany"
+      ],
+      "dashboard_priority": 10,
+      "planned": false
     }
   ]
 }
