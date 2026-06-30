@@ -123,6 +123,8 @@ def test_export_dashboard_writes_empty_media_history(tmp_path) -> None:
     assert history["observer"] == export_dashboard.MEDIA_OBSERVER
     assert history["points"] == []
     assert history["windows"] == {"7d": {"count": 0}, "30d": {"count": 0}}
+    assert history["trend"]["history_points"] == 0
+    assert history["import_diagnostics"] == []
 
 
 def test_export_dashboard_writes_one_media_history_point(tmp_path) -> None:
@@ -161,10 +163,13 @@ def test_export_dashboard_writes_one_media_history_point(tmp_path) -> None:
             "headline_count": 266,
             "private_media": 5.1,
             "public_broadcast": 3.8,
+            "term_counts": {"extra": 7, "hitze": 10, "krieg": 9, "streit": 8},
             "top_terms": ["hitze", "krieg", "streit"],
         }
     ]
     assert history["windows"]["7d"] == {"count": 1, "latest": 4.17, "min": 4.17, "max": 4.17, "avg": 4.17}
+    assert history["trend"]["latest_fear_index"] == 4.17
+    assert history["public_private_comparison"]["public_private_spread"] == 1.3
 
 
 def test_export_dashboard_writes_multiple_points_with_7d_trend(tmp_path) -> None:
@@ -203,7 +208,7 @@ def test_export_dashboard_history_is_compact(tmp_path) -> None:
     assert history_text.endswith("\n")
     assert "\n " not in history_text
     assert ": " not in history_text
-    assert "diagnostics" not in history_text
+    assert "not exported" not in history_text
     assert "headlines" not in history_text
 
 
@@ -633,3 +638,82 @@ def test_export_dashboard_internet_history_uses_area51_state_bucket_totals(tmp_p
             "value": 100,
         }
     ]
+
+
+def test_media_history_trend_averages_and_public_private_spread(tmp_path) -> None:
+    daily_dir = tmp_path / "daily"
+    for index in range(1, 32):
+        _write_daily_media(
+            daily_dir,
+            f"2026-05-{index:02d}",
+            {
+                "fear_index_overall": float(index),
+                "source_groups": {
+                    "public_broadcast": {"fear_index": float(index)},
+                    "private_media": {"fear_index": float(index + 2)},
+                },
+                "top_terms": [{"term": "hitze", "count": index}],
+            },
+        )
+
+    history = export_dashboard._media_history(daily_dir, "2026-06-01T00:00:00+00:00")
+
+    assert history["trend"]["latest_fear_index"] == 31.0
+    assert history["trend"]["previous_fear_index"] == 30.0
+    assert history["trend"]["delta"] == 1.0
+    assert history["trend"]["delta_percent"] == 3.33
+    assert history["trend"]["trend_direction"] == "rising"
+    assert history["trend"]["seven_day_average"] == 28.0
+    assert history["trend"]["thirty_day_average"] == 16.5
+    assert history["trend"]["min_available"] == 1.0
+    assert history["trend"]["max_available"] == 31.0
+    assert history["public_private_comparison"] == {
+        "public_broadcast_fear_index": 31.0,
+        "private_media_fear_index": 33.0,
+        "public_private_spread": 2.0,
+        "spread_delta": 0.0,
+        "spread_trend_direction": "flat",
+    }
+
+
+def test_media_history_term_changes_and_neutral_wording(tmp_path) -> None:
+    daily_dir = tmp_path / "daily"
+    _write_daily_media(
+        daily_dir,
+        "2026-06-01",
+        {"fear_index_overall": 10, "top_terms": [{"term": "krieg", "count": 5}, {"term": "polizei", "count": 4}]},
+    )
+    _write_daily_media(
+        daily_dir,
+        "2026-06-02",
+        {"fear_index_overall": 8, "top_terms": [{"term": "krieg", "count": 2}, {"term": "hitze", "count": 7}]},
+    )
+
+    history = export_dashboard._media_history(daily_dir, "2026-06-03T00:00:00+00:00")
+
+    assert history["term_changes"]["rising_terms"] == [{"term": "hitze", "current_count": 7, "previous_count": 0, "delta": 7}]
+    assert {item["term"] for item in history["term_changes"]["falling_terms"]} == {"krieg", "polizei"}
+    assert history["term_changes"]["new_terms"] == [{"term": "hitze", "current_count": 7, "previous_count": 0, "delta": 7}]
+    assert history["term_changes"]["disappeared_terms"] == [{"term": "polizei", "current_count": 0, "previous_count": 4, "delta": -4}]
+    wording = " ".join(history["neutral_summaries"]).lower()
+    assert "decreased compared with the previous observation" in wording
+    assert "cause" not in wording
+    assert "causal" not in wording
+    assert "manipulat" not in wording
+
+
+def test_media_import_malformed_ignored_and_duplicate_daily_precedence(tmp_path) -> None:
+    daily_dir = tmp_path / "daily"
+    imports_dir = tmp_path / "imports"
+    imports_dir.mkdir()
+    _write_daily_media(daily_dir, "2026-06-01", {"fear_index_overall": 9})
+    (imports_dir / "older.json").write_text(json.dumps({"date": "2026-05-31", "fear_index_overall": 4}), encoding="utf-8")
+    (imports_dir / "duplicate.json").write_text(json.dumps({"date": "2026-06-01", "fear_index_overall": 1}), encoding="utf-8")
+    (imports_dir / "malformed.json").write_text(json.dumps({"date": "2026-05-30"}), encoding="utf-8")
+
+    history = export_dashboard._media_history(daily_dir, "2026-06-02T00:00:00+00:00", imports_dir)
+
+    assert [(point["date"], point["fear_index_overall"]) for point in history["points"]] == [("2026-05-31", 4), ("2026-06-01", 9)]
+    reasons = [entry["reason"] for entry in history["import_diagnostics"]]
+    assert "duplicate date; existing history takes precedence" in reasons
+    assert "fear_index_overall or fear_index must be numeric" in reasons

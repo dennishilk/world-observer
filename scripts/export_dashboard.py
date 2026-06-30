@@ -22,6 +22,10 @@ HISTORY_FILES = ("history/media-language-germany.json", "history/internet-observ
 METADATA_PATH = "config/observer_metadata.json"
 
 
+FORBIDDEN_SUMMARY_TERMS = ("cause", "caused", "causal", "manipulation", "manipulate", "manipulated")
+MEDIA_IMPORTS_DIR = "imports/media-language-germany"
+
+
 INTERNET_DASHBOARD_METADATA: dict[str, dict[str, Any]] = {
     "area51-reachability": {"display_name": "Area51 Reachability", "dashboard_priority": 10, "primary_metric": "au.total", "primary_metric_label": "Reachability score", "primary_metric_unit": "score", "secondary_metrics": [("au.janet_like", "JANET-like aircraft", "count"), ("au.other", "Other aircraft", "count"), ("bucket_count", "Time buckets", "count")], "trend_metric": "au.total", "trend_metric_label": "Reachability score", "trend_metric_unit": "score"},
     "cuba-internet-weather": {"display_name": "Cuba Internet Weather", "dashboard_priority": 20, "primary_metric": "targets.1.ping.rtt_avg_ms", "primary_metric_label": "Average ping time", "primary_metric_unit": "ms", "secondary_metrics": [("weather_summary.reachable_targets", "Reachable targets", "count"), ("weather_summary.total_targets", "Targets checked", "count")], "trend_metric": "targets.1.ping.rtt_avg_ms", "trend_metric_label": "Average ping time", "trend_metric_unit": "ms"},
@@ -251,6 +255,20 @@ def _top_term_strings(value: Any, limit: int = 3) -> list[str]:
     return terms
 
 
+def _top_term_counts(value: Any) -> dict[str, int | float]:
+    counts: dict[str, int | float] = {}
+    if not isinstance(value, list):
+        return counts
+    for item in value:
+        if not isinstance(item, dict):
+            continue
+        term = item.get("term")
+        count = _as_number(item.get("count"))
+        if isinstance(term, str) and term and count is not None:
+            counts[term] = count
+    return counts
+
+
 def _media_history_point(date: str, payload: Dict[str, Any]) -> Dict[str, Any]:
     source_groups = payload.get("source_groups") if isinstance(payload.get("source_groups"), dict) else {}
     point: Dict[str, Any] = {"date": date}
@@ -266,6 +284,9 @@ def _media_history_point(date: str, payload: Dict[str, Any]) -> Dict[str, Any]:
     terms = _top_term_strings(payload.get("top_terms"))
     if terms:
         point["top_terms"] = terms
+    term_counts = _top_term_counts(payload.get("top_terms"))
+    if term_counts:
+        point["term_counts"] = term_counts
     return point
 
 
@@ -307,13 +328,185 @@ def _iter_daily_media_files(daily_dir: Path) -> Iterable[tuple[str, Path]]:
     return sorted(files)
 
 
-def _media_history(daily_dir: Path, generated_at: str) -> Dict[str, Any]:
+def _media_import_payload_date(payload: Dict[str, Any]) -> str | None:
+    value = payload.get("date") or payload.get("date_utc") or payload.get("observation_date")
+    if not isinstance(value, str):
+        return None
+    date = value[:10]
+    try:
+        datetime.strptime(date, "%Y-%m-%d")
+    except ValueError:
+        return None
+    return date
+
+
+def _valid_media_import_payload(payload: Dict[str, Any]) -> str | None:
+    if payload.get("observer") not in (None, MEDIA_OBSERVER):
+        return "observer must be media-language-germany when provided"
+    if _media_import_payload_date(payload) is None:
+        return "date, date_utc, or observation_date must contain YYYY-MM-DD"
+    if _as_number(payload.get("fear_index_overall", payload.get("fear_index"))) is None:
+        return "fear_index_overall or fear_index must be numeric"
+    for key in ("source_groups", "top_terms"):
+        if key in payload and not isinstance(payload[key], (dict if key == "source_groups" else list)):
+            return f"{key} has invalid type"
+    return None
+
+
+def _iter_import_media_files(imports_dir: Path) -> Iterable[Path]:
+    if not imports_dir.exists():
+        return []
+    return sorted(path for path in imports_dir.glob("*.json") if path.is_file())
+
+
+def _media_import_points(imports_dir: Path, existing_dates: set[str]) -> tuple[list[Dict[str, Any]], list[Dict[str, str]]]:
+    points: list[Dict[str, Any]] = []
+    diagnostics: list[Dict[str, str]] = []
+    for path in _iter_import_media_files(imports_dir):
+        payload, error = _read_json(path)
+        if payload is None:
+            diagnostics.append({"file": path.name, "status": "ignored", "reason": error or "invalid JSON"})
+            continue
+        validation_error = _valid_media_import_payload(payload)
+        if validation_error is not None:
+            diagnostics.append({"file": path.name, "status": "ignored", "reason": validation_error})
+            continue
+        date = _media_import_payload_date(payload)
+        if date is None:
+            diagnostics.append({"file": path.name, "status": "ignored", "reason": "missing valid date"})
+            continue
+        if date in existing_dates:
+            diagnostics.append({"file": path.name, "status": "ignored", "reason": "duplicate date; existing history takes precedence"})
+            continue
+        points.append(_media_history_point(date, payload))
+        existing_dates.add(date)
+    return points, diagnostics
+
+
+def _trend_direction(delta: float | int | None) -> str:
+    if delta is None or delta == 0:
+        return "flat"
+    return "rising" if delta > 0 else "falling"
+
+
+def _average_latest(points: list[Dict[str, Any]], days: int, key: str = "fear_index_overall") -> float | int | None:
+    values = [point[key] for point in points[-days:] if isinstance(point.get(key), (int, float)) and not isinstance(point.get(key), bool)]
+    if not values:
+        return None
+    return round(sum(values) / len(values), 2)
+
+
+def _media_trend(points: list[Dict[str, Any]]) -> Dict[str, Any]:
+    values = [point for point in points if isinstance(point.get("fear_index_overall"), (int, float))]
+    latest = values[-1] if values else None
+    previous = values[-2] if len(values) >= 2 else None
+    latest_value = latest.get("fear_index_overall") if latest else None
+    previous_value = previous.get("fear_index_overall") if previous else None
+    delta = round(latest_value - previous_value, 2) if isinstance(latest_value, (int, float)) and isinstance(previous_value, (int, float)) else None
+    delta_percent = round((delta / previous_value) * 100, 2) if delta is not None and previous_value not in (None, 0) else None
+    all_values = [point["fear_index_overall"] for point in values]
+    return {
+        "latest_fear_index": latest_value,
+        "previous_fear_index": previous_value,
+        "delta": delta,
+        "delta_percent": delta_percent,
+        "trend_direction": _trend_direction(delta),
+        "seven_day_average": _average_latest(points, 7),
+        "thirty_day_average": _average_latest(points, 30),
+        "min_available": round(min(all_values), 2) if all_values else None,
+        "max_available": round(max(all_values), 2) if all_values else None,
+        "history_points": len(points),
+        "latest_date": latest.get("date") if latest else None,
+        "previous_date": previous.get("date") if previous else None,
+    }
+
+
+def _public_private_comparison(points: list[Dict[str, Any]]) -> Dict[str, Any]:
+    comparable = [p for p in points if isinstance(p.get("public_broadcast"), (int, float)) and isinstance(p.get("private_media"), (int, float))]
+    latest = comparable[-1] if comparable else None
+    previous = comparable[-2] if len(comparable) >= 2 else None
+    spread = round(latest["private_media"] - latest["public_broadcast"], 2) if latest else None
+    previous_spread = round(previous["private_media"] - previous["public_broadcast"], 2) if previous else None
+    spread_delta = round(spread - previous_spread, 2) if spread is not None and previous_spread is not None else None
+    return {
+        "public_broadcast_fear_index": latest.get("public_broadcast") if latest else None,
+        "private_media_fear_index": latest.get("private_media") if latest else None,
+        "public_private_spread": spread,
+        "spread_delta": spread_delta,
+        "spread_trend_direction": _trend_direction(spread_delta),
+    }
+
+
+def _term_changes(points: list[Dict[str, Any]]) -> Dict[str, list[Dict[str, Any]]]:
+    latest_index = next((index for index in range(len(points) - 1, -1, -1) if isinstance(points[index].get("term_counts"), dict)), None)
+    latest = points[latest_index] if latest_index is not None else None
+    previous = (
+        next((points[index] for index in range(latest_index - 1, -1, -1) if isinstance(points[index].get("term_counts"), dict)), None)
+        if latest_index is not None
+        else None
+    )
+    current_counts = latest.get("term_counts", {}) if latest else {}
+    previous_counts = previous.get("term_counts", {}) if previous else {}
+
+    def item(term: str) -> Dict[str, Any]:
+        current = current_counts.get(term, 0)
+        previous_count = previous_counts.get(term, 0)
+        return {"term": term, "current_count": current, "previous_count": previous_count, "delta": round(current - previous_count, 2)}
+
+    shared = set(current_counts) | set(previous_counts)
+    rising = sorted([item(term) for term in shared if item(term)["delta"] > 0], key=lambda x: (-x["delta"], x["term"]))
+    falling = sorted([item(term) for term in shared if item(term)["delta"] < 0], key=lambda x: (x["delta"], x["term"]))
+    return {
+        "rising_terms": rising,
+        "falling_terms": falling,
+        "new_terms": sorted([item(term) for term in set(current_counts) - set(previous_counts)], key=lambda x: x["term"]),
+        "disappeared_terms": sorted([item(term) for term in set(previous_counts) - set(current_counts)], key=lambda x: x["term"]),
+    }
+
+
+def _neutral_summaries(trend: Dict[str, Any], comparison: Dict[str, Any], points: list[Dict[str, Any]]) -> list[str]:
+    summaries: list[str] = []
+    direction = trend.get("trend_direction")
+    if direction == "rising":
+        summaries.append("Fear-language indicator increased compared with the previous observation.")
+    elif direction == "falling":
+        summaries.append("Fear-language indicator decreased compared with the previous observation.")
+    elif trend.get("latest_fear_index") is not None:
+        summaries.append("Fear-language indicator is flat compared with the previous observation.")
+    spread = comparison.get("public_private_spread")
+    if isinstance(spread, (int, float)):
+        if spread > 0:
+            summaries.append("Private media indicator is currently higher than public broadcast indicator.")
+        elif spread < 0:
+            summaries.append("Public broadcast indicator is currently higher than private media indicator.")
+        else:
+            summaries.append("Private media and public broadcast indicators are currently equal.")
+    latest_terms = points[-1].get("top_terms", []) if points else []
+    if latest_terms:
+        if len(latest_terms) == 1:
+            terms_text = latest_terms[0]
+        else:
+            terms_text = ", ".join(latest_terms[:-1]) + f", and {latest_terms[-1]}"
+        summaries.append(f"Top observed terms include {terms_text}.")
+    return [s for s in summaries if not any(term in s.lower() for term in FORBIDDEN_SUMMARY_TERMS)]
+
+
+def _media_history(daily_dir: Path, generated_at: str, imports_dir: Path | None = None) -> Dict[str, Any]:
     points: list[Dict[str, Any]] = []
     for date, path in _iter_daily_media_files(daily_dir):
         payload, _error = _read_json(path)
         if payload is None:
             continue
         points.append(_media_history_point(date, payload))
+    existing_dates = {point["date"] for point in points}
+    import_diagnostics: list[Dict[str, str]] = []
+    if imports_dir is not None:
+        imported_points, import_diagnostics = _media_import_points(imports_dir, existing_dates)
+        points.extend(imported_points)
+        points.sort(key=lambda point: point["date"])
+    trend = _media_trend(points)
+    comparison = _public_private_comparison(points)
+    term_changes = _term_changes(points)
     return {
         "observer": MEDIA_OBSERVER,
         "generated_at": generated_at,
@@ -322,6 +515,11 @@ def _media_history(daily_dir: Path, generated_at: str) -> Dict[str, Any]:
             "7d": _window_summary(points, 7),
             "30d": _window_summary(points, 30),
         },
+        "trend": trend,
+        "public_private_comparison": comparison,
+        "term_changes": term_changes,
+        "neutral_summaries": _neutral_summaries(trend, comparison, points),
+        "import_diagnostics": import_diagnostics,
     }
 
 
@@ -890,6 +1088,7 @@ def export_dashboard(
     daily_dir = daily_dir or (_repo_root() / "data" / "daily")
     heartbeat_dir = heartbeat_dir or (_repo_root() / "state" / "heartbeat")
     state_dir = state_dir or ((_repo_root() / "state") if using_default_daily_dir else (daily_dir.parent / "state"))
+    media_imports_dir = _repo_root() / MEDIA_IMPORTS_DIR
     dashboard_dir.mkdir(parents=True, exist_ok=True)
 
     generated_at = _utc_now()
@@ -902,7 +1101,7 @@ def export_dashboard(
         "society.json": {"status": "placeholder", "items": _planned_items(metadata, "society")},
         "environment.json": {"status": "placeholder", "items": _planned_items(metadata, "environment")},
         "heartbeat.json": _heartbeat(heartbeat_dir, generated_at),
-        "history/media-language-germany.json": _media_history(daily_dir, generated_at),
+        "history/media-language-germany.json": _media_history(daily_dir, generated_at, media_imports_dir),
         "history/internet-observers.json": _internet_history(daily_dir, state_dir, generated_at, metadata),
     }
     written: Dict[str, Path] = {}
