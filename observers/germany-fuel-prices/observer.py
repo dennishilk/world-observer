@@ -30,10 +30,9 @@ SUPPORTED_FUELS = {
     "super_e10": "Super E10",
 }
 API_URL = "https://creativecommons.tankerkoenig.de/json/list.php"
-PUBLIC_AVERAGE_URLS = (
-    "https://www.ndr.de/nachrichten/info/spritpreise-aktuell-so-entwickeln-sich-benzin-und-dieselpreise%2Cspritpreise-128.html",
-    "https://www.tagesschau.de/wirtschaft/verbraucher/spritpreis-entwicklung-104.html",
-)
+NDR_PUBLIC_AVERAGE_URL = "https://www.ndr.de/nachrichten/info/spritpreise-aktuell-so-entwickeln-sich-benzin-und-dieselpreise%2Cspritpreise-128.html"
+SWR_PUBLIC_AVERAGE_URL = "https://www.tagesschau.de/wirtschaft/verbraucher/spritpreis-entwicklung-104.html"
+PUBLIC_AVERAGE_URLS = (NDR_PUBLIC_AVERAGE_URL, SWR_PUBLIC_AVERAGE_URL)
 USER_AGENT = "world-observer/1.0 (+https://github.com/dennishilk/world-observer)"
 IMPORTS_DIR = Path("imports/fuel-prices-germany")
 MANUAL_API_ENV = "WORLD_OBSERVER_FUEL_ENABLE_TANKERKOENIG_API"
@@ -281,46 +280,95 @@ def _parse_public_average_prices(content: str) -> dict[str, float]:
     return prices
 
 
-def _fetch_public_average_prices() -> tuple[dict[str, float], dict[str, Any], str | None]:
-    configured = os.environ.get(PUBLIC_URL_ENV, "").strip()
-    urls = (configured,) if configured else PUBLIC_AVERAGE_URLS
+def _fetch_public_average_url(url: str, source_label: str) -> tuple[dict[str, float], dict[str, Any], str | None]:
     diagnostics: dict[str, Any] = {
-        "source": "public fuel average page",
-        "fetch_url": None,
+        "source": source_label,
+        "fetch_url": url,
         "fetched_at_utc": None,
         "parse_status": "not_started",
+        "api_attempts": 1,
+        "retries": 0,
+        "http_status": None,
+    }
+    req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
+    try:
+        with urllib.request.urlopen(req, timeout=20) as response:
+            diagnostics["http_status"] = getattr(response, "status", None)
+            html = response.read(2_000_000).decode("utf-8", errors="replace")
+            diagnostics["fetched_at_utc"] = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+    except urllib.error.HTTPError as exc:
+        diagnostics["http_status"] = exc.code
+        diagnostics["parse_status"] = "fetch_failed"
+        return {}, diagnostics, f"{url}: HTTP {exc.code}"
+    except (OSError, urllib.error.URLError) as exc:
+        diagnostics["parse_status"] = "fetch_failed"
+        return {}, diagnostics, f"{url}: {type(exc).__name__}: {exc}"
+
+    prices = _parse_public_average_prices(html)
+    diagnostics["priced_fuel_count"] = len(prices)
+    diagnostics["parse_status"] = "ok" if prices else "no_supported_prices"
+    if not prices:
+        return {}, diagnostics, f"{url}: page did not contain supported nationwide average fuel prices"
+    host = urllib.parse.urlparse(url).netloc
+    diagnostics["source"] = host or source_label
+    return prices, diagnostics, None
+
+
+def _fetch_public_average_prices() -> tuple[dict[str, float], dict[str, Any], str | None]:
+    configured = os.environ.get(PUBLIC_URL_ENV, "").strip()
+    primary_url = configured or NDR_PUBLIC_AVERAGE_URL
+    fallback_url = SWR_PUBLIC_AVERAGE_URL
+    diagnostics: dict[str, Any] = {
+        "source": "public fuel average page",
+        "primary_source": urllib.parse.urlparse(primary_url).netloc or primary_url,
+        "fallback_source": urllib.parse.urlparse(fallback_url).netloc or fallback_url,
+        "fetch_url": primary_url,
+        "fallback_fetch_url": None,
+        "fetched_at_utc": None,
+        "parse_status": "not_started",
+        "fallback_parse_status": "not_started",
         "fallback_used": False,
         "api_attempts": 0,
         "retries": 0,
         "http_status": None,
+        "fallback_http_status": None,
+        "missing_fuels_after_primary": [],
+        "priced_fuel_count": 0,
     }
-    errors: list[str] = []
-    for url in urls:
-        diagnostics["fetch_url"] = url
-        diagnostics["api_attempts"] += 1
-        req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
-        try:
-            with urllib.request.urlopen(req, timeout=20) as response:
-                diagnostics["http_status"] = getattr(response, "status", None)
-                html = response.read(2_000_000).decode("utf-8", errors="replace")
-                diagnostics["fetched_at_utc"] = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
-        except urllib.error.HTTPError as exc:
-            diagnostics["http_status"] = exc.code
-            diagnostics["parse_status"] = "fetch_failed"
-            errors.append(f"{url}: HTTP {exc.code}")
-            continue
-        except (OSError, urllib.error.URLError) as exc:
-            diagnostics["parse_status"] = "fetch_failed"
-            errors.append(f"{url}: {type(exc).__name__}: {exc}")
-            continue
-        prices = _parse_public_average_prices(html)
-        diagnostics["priced_fuel_count"] = len(prices)
-        diagnostics["parse_status"] = "ok" if prices else "no_supported_prices"
-        if prices:
-            host = urllib.parse.urlparse(url).netloc
-            diagnostics["source"] = host or "public fuel average page"
-            return prices, diagnostics, None
-        errors.append(f"{url}: page did not contain supported nationwide average fuel prices")
+
+    primary_prices, primary_diag, primary_error = _fetch_public_average_url(primary_url, "NDR public fuel average page")
+    diagnostics["api_attempts"] += primary_diag.get("api_attempts", 0)
+    diagnostics["source"] = primary_diag.get("source") or diagnostics["source"]
+    diagnostics["fetch_url"] = primary_diag.get("fetch_url")
+    diagnostics["fetched_at_utc"] = primary_diag.get("fetched_at_utc")
+    diagnostics["parse_status"] = primary_diag.get("parse_status")
+    diagnostics["http_status"] = primary_diag.get("http_status")
+    missing = [fuel for fuel in SUPPORTED_FUELS if fuel not in primary_prices]
+    diagnostics["missing_fuels_after_primary"] = missing
+
+    prices = dict(primary_prices)
+    errors = [primary_error] if primary_error else []
+    if missing:
+        fallback_prices, fallback_diag, fallback_error = _fetch_public_average_url(fallback_url, "SWR public fuel average page")
+        diagnostics["api_attempts"] += fallback_diag.get("api_attempts", 0)
+        diagnostics["fallback_fetch_url"] = fallback_diag.get("fetch_url")
+        diagnostics["fallback_parse_status"] = fallback_diag.get("parse_status")
+        diagnostics["fallback_http_status"] = fallback_diag.get("http_status")
+        diagnostics["fallback_fetched_at_utc"] = fallback_diag.get("fetched_at_utc")
+        filled = []
+        for fuel in missing:
+            if fuel in fallback_prices:
+                prices[fuel] = fallback_prices[fuel]
+                filled.append(fuel)
+        diagnostics["fallback_used"] = bool(filled)
+        diagnostics["fallback_filled_fuels"] = filled
+        if fallback_error:
+            errors.append(fallback_error)
+
+    diagnostics["priced_fuel_count"] = len(prices)
+    diagnostics["parse_status"] = "ok" if prices else diagnostics.get("parse_status") or "no_supported_prices"
+    if prices:
+        return prices, diagnostics, None
     return {}, diagnostics, "; ".join(errors) if errors else "public fuel average page did not contain supported prices"
 
 def _avg(values: list[float]) -> float | None:
@@ -420,6 +468,7 @@ def build_payload(date: str, current_prices: dict[str, float], diagnostics: dict
         effective_source = source if current_prices else ("imports/fuel-prices-germany" if effective_prices else None)
         if not current_prices and effective_prices:
             diagnostics["fallback_used"] = True
+    diagnostics["priced_fuel_count"] = len(effective_prices)
     data_status = "ok" if effective_prices else "unavailable"
     status = "ok" if effective_prices else "unavailable"
     if not effective_prices and degraded_reason is None:
