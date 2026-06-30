@@ -27,12 +27,9 @@ OBSERVER = "germany-fuel-prices"
 SUPPORTED_FUELS = {
     "benzin": "Super E5",
     "diesel": "Diesel",
-    "super_e10": "Super E10",
 }
 API_URL = "https://creativecommons.tankerkoenig.de/json/list.php"
 NDR_PUBLIC_AVERAGE_URL = "https://www.ndr.de/nachrichten/info/spritpreise-aktuell-so-entwickeln-sich-benzin-und-dieselpreise%2Cspritpreise-128.html"
-SWR_PUBLIC_AVERAGE_URL = "https://www.tagesschau.de/wirtschaft/verbraucher/spritpreis-entwicklung-104.html"
-PUBLIC_AVERAGE_URLS = (NDR_PUBLIC_AVERAGE_URL, SWR_PUBLIC_AVERAGE_URL)
 USER_AGENT = "world-observer/1.0 (+https://github.com/dennishilk/world-observer)"
 IMPORTS_DIR = Path("imports/fuel-prices-germany")
 MANUAL_API_ENV = "WORLD_OBSERVER_FUEL_ENABLE_TANKERKOENIG_API"
@@ -189,7 +186,7 @@ def _fetch_current_prices(api_key: str) -> tuple[dict[str, float], dict[str, Any
     for station in stations:
         if not isinstance(station, dict):
             continue
-        mapping = {"benzin": station.get("e5"), "diesel": station.get("diesel"), "super_e10": station.get("e10")}
+        mapping = {"benzin": station.get("e5"), "diesel": station.get("diesel")}
         for fuel, value in mapping.items():
             price = _as_price(value)
             if price is not None:
@@ -244,7 +241,7 @@ def _price_from_match(match: re.Match[str]) -> float | None:
 
 
 def _parse_public_average_prices(content: str) -> dict[str, float]:
-    """Parse nationwide German daily average prices from SWR/tagesschau or NDR text.
+    """Parse nationwide German daily average prices from public page text.
 
     The parser only accepts explicit fuel labels near euro/liter prices. It does not
     infer missing fuels from unlabeled numbers, avoiding fabricated values.
@@ -255,11 +252,6 @@ def _parse_public_average_prices(content: str) -> dict[str, float]:
             r"(?:Liter\s+)?Super(?:-?Benzin)?\s*(?:\(\s*Sorte\s*E5\s*\)|E5)?[^.]{0,180}?(\d+[,.]\d{2,3})\s*Euro",
             r"(\d+[,.]\d{2,3})\s*Euro\s+kostete[^.]{0,120}?Liter\s+Super(?!\s*E10)",
             r"Super\s*(?:E5)?\s*(\d+[,.]\d{2,3})\s*€",
-        ),
-        "super_e10": (
-            r"(?:mittlere\s+)?E10-?Preis[^.]{0,180}?(\d+[,.]\d{2,3})\s*Euro",
-            r"(?:Liter\s+)?Super\s*E10[^.]{0,180}?(\d+[,.]\d{2,3})\s*Euro",
-            r"Super\s*E10\s*(\d+[,.]\d{2,3})\s*€",
         ),
         "diesel": (
             r"(?:beim|für|Liter\s+)?Diesel[^.]{0,180}?(\d+[,.]\d{2,3})\s*Euro",
@@ -317,59 +309,32 @@ def _fetch_public_average_url(url: str, source_label: str) -> tuple[dict[str, fl
 def _fetch_public_average_prices() -> tuple[dict[str, float], dict[str, Any], str | None]:
     configured = os.environ.get(PUBLIC_URL_ENV, "").strip()
     primary_url = configured or NDR_PUBLIC_AVERAGE_URL
-    fallback_url = SWR_PUBLIC_AVERAGE_URL
     diagnostics: dict[str, Any] = {
         "source": "public fuel average page",
         "primary_source": urllib.parse.urlparse(primary_url).netloc or primary_url,
-        "fallback_source": urllib.parse.urlparse(fallback_url).netloc or fallback_url,
         "fetch_url": primary_url,
-        "fallback_fetch_url": None,
         "fetched_at_utc": None,
         "parse_status": "not_started",
-        "fallback_parse_status": "not_started",
         "fallback_used": False,
         "api_attempts": 0,
         "retries": 0,
         "http_status": None,
-        "fallback_http_status": None,
         "missing_fuels_after_primary": [],
         "priced_fuel_count": 0,
     }
 
-    primary_prices, primary_diag, primary_error = _fetch_public_average_url(primary_url, "NDR public fuel average page")
+    prices, primary_diag, primary_error = _fetch_public_average_url(primary_url, "NDR public fuel average page")
     diagnostics["api_attempts"] += primary_diag.get("api_attempts", 0)
     diagnostics["source"] = primary_diag.get("source") or diagnostics["source"]
     diagnostics["fetch_url"] = primary_diag.get("fetch_url")
     diagnostics["fetched_at_utc"] = primary_diag.get("fetched_at_utc")
     diagnostics["parse_status"] = primary_diag.get("parse_status")
     diagnostics["http_status"] = primary_diag.get("http_status")
-    missing = [fuel for fuel in SUPPORTED_FUELS if fuel not in primary_prices]
-    diagnostics["missing_fuels_after_primary"] = missing
-
-    prices = dict(primary_prices)
-    errors = [primary_error] if primary_error else []
-    if missing:
-        fallback_prices, fallback_diag, fallback_error = _fetch_public_average_url(fallback_url, "SWR public fuel average page")
-        diagnostics["api_attempts"] += fallback_diag.get("api_attempts", 0)
-        diagnostics["fallback_fetch_url"] = fallback_diag.get("fetch_url")
-        diagnostics["fallback_parse_status"] = fallback_diag.get("parse_status")
-        diagnostics["fallback_http_status"] = fallback_diag.get("http_status")
-        diagnostics["fallback_fetched_at_utc"] = fallback_diag.get("fetched_at_utc")
-        filled = []
-        for fuel in missing:
-            if fuel in fallback_prices:
-                prices[fuel] = fallback_prices[fuel]
-                filled.append(fuel)
-        diagnostics["fallback_used"] = bool(filled)
-        diagnostics["fallback_filled_fuels"] = filled
-        if fallback_error:
-            errors.append(fallback_error)
-
+    diagnostics["missing_fuels_after_primary"] = [fuel for fuel in SUPPORTED_FUELS if fuel not in prices]
     diagnostics["priced_fuel_count"] = len(prices)
-    diagnostics["parse_status"] = "ok" if prices else diagnostics.get("parse_status") or "no_supported_prices"
     if prices:
         return prices, diagnostics, None
-    return {}, diagnostics, "; ".join(errors) if errors else "public fuel average page did not contain supported prices"
+    return {}, diagnostics, primary_error or "public fuel average page did not contain supported prices"
 
 def _avg(values: list[float]) -> float | None:
     return round(sum(values) / len(values), 3) if values else None
@@ -450,6 +415,7 @@ def _latest_import_prices(points: list[dict[str, Any]], date: str) -> dict[str, 
 
 def build_payload(date: str, current_prices: dict[str, float], diagnostics: dict[str, Any], degraded_reason: str | None = None, root: Path | None = None, source: str | None = None) -> dict[str, Any]:
     root = root or _repo_root()
+    current_prices = {fuel: price for fuel, price in current_prices.items() if fuel in SUPPORTED_FUELS}
     manual_api = source == "Tankerkoenig/MTS-K API"
     daily_points = _daily_price_points(root) if manual_api else []
     daily_keys = {(p["date"], p["fuel_type"]) for p in daily_points}

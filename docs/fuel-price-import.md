@@ -10,9 +10,8 @@ Only fuel types emitted by the daily observer are accepted:
 | --- | --- |
 | `benzin` | Super E5 |
 | `diesel` | Diesel |
-| `super_e10` | Super E10 |
 
-Super Plus is not accepted unless a reliable public source is added later.
+Super E10 and Super Plus are not accepted. Super E10 fallback parsing is intentionally disabled because fallback values are not reliable enough for publication.
 
 ## Daily data source and compliance behavior
 
@@ -20,7 +19,7 @@ Public World Observer Fuel automatically attempts one public nationwide daily av
 
 Default production behavior:
 
-- The observer fetches public daily average pages once per daily run from `WORLD_OBSERVER_FUEL_PUBLIC_URL` or the built-in NDR/SWR-tagesschau page list.
+- The observer fetches public daily average pages once per daily run from `WORLD_OBSERVER_FUEL_PUBLIC_URL` or the built-in NDR public average page.
 - The observer does **not** automatically fetch Tankerkönig/MTS-K API data, even if `WORLD_OBSERVER_FUEL_API_KEY` is present.
 - A local import row for the run date wins over a public-page fetched value for the same fuel.
 - If public-page fetch or parsing fails, the observer falls back to permitted local imports.
@@ -46,7 +45,7 @@ JSON imports may be either a list of records or an object with a `records` list.
 Required fields:
 
 - `date` — `YYYY-MM-DD`.
-- `fuel_type` — one of `benzin`, `diesel`, `super_e10`.
+- `fuel_type` — one of `benzin`, `diesel`.
 - `price_eur_per_liter` — numeric euro-per-liter price.
 - `source` — source label.
 - `granularity` — `daily`, `monthly`, or `yearly`.
@@ -86,7 +85,7 @@ Manual API results for the current run win over imported duplicate `(date, fuel_
 
 ## Validation and diagnostics
 
-Malformed files, malformed rows, unsupported fuel types, invalid prices, invalid granularities, and duplicate imported dates are ignored. Import diagnostics are reported in `import_diagnostics` in the observer payload and dashboard society export. Fetch diagnostics include `source`, `fetch_url`, `fetched_at_utc`, `parse_status`, `fallback_used`, and `degraded_reason` when unavailable or degraded.
+Malformed files, malformed rows, unsupported fuel types, invalid prices, invalid granularities, and duplicate imported dates are ignored. Import diagnostics are reported in `import_diagnostics` in the observer payload and dashboard society export. Fetch diagnostics include `source`, `fetch_url`, `fetched_at_utc`, `parse_status`, `fallback_used`, and `degraded_reason` when unavailable or degraded. The production observer does not perform E10 fallback parsing and never publishes suspicious fallback values.
 
 ## How Cthulhu can prepare files
 
