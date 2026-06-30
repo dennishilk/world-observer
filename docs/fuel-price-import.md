@@ -14,16 +14,28 @@ Only fuel types emitted by the daily observer are accepted:
 
 Super Plus is not accepted unless a reliable public source is added later.
 
-## Daily data source and environment
+## Daily data source and compliance behavior
 
-Current daily observations use the public Tankerkoenig/MTS-K-derived API when configured:
+Public World Observer Fuel uses `imports/fuel-prices-germany/` as the safe data source until a permitted daily source is available. Historical imports are the primary path for public dashboard data.
 
-- `WORLD_OBSERVER_FUEL_API_KEY` — required for live fuel API access.
+Default production behavior:
+
+- The observer does **not** automatically fetch Tankerkönig/MTS-K API data, even if `WORLD_OBSERVER_FUEL_API_KEY` is present.
+- If no permitted import exists, the observer exports `status: unavailable`, `data_status: unavailable`, and a clear `degraded_reason`.
+- The observer does not invent, synthesize, or fake fuel prices.
+- Public automated aggregation requires a permitted data source or explicit permission/contact with the data provider.
+
+## Optional manual/local Tankerkönig API mode
+
+Tankerkönig API support is retained only for optional manual/local tests. Do not use it for public automated daily dashboard aggregation unless you have explicit permission for that use.
+
+- `WORLD_OBSERVER_FUEL_API_KEY` — optional for manual local API access only; it must never be committed.
+- `WORLD_OBSERVER_FUEL_ENABLE_TANKERKOENIG_API=1` — required opt-in for a manual/local API fetch.
 - `WORLD_OBSERVER_FUEL_LAT` — optional sample center latitude, default `51.1657`.
 - `WORLD_OBSERVER_FUEL_LNG` — optional sample center longitude, default `10.4515`.
 - `WORLD_OBSERVER_FUEL_RADIUS_KM` — optional sample radius, default `25`.
 
-When the API key is absent or the source cannot be fetched, the observer exports `status: unavailable`, `data_status: unavailable`, and a clear `degraded_reason`. It does not invent prices.
+Tankerkönig-derived data is licensed under CC BY 4.0, so World Observer outputs or imports that use Tankerkönig-derived data must include the required attribution.
 
 ## Import formats
 
@@ -68,7 +80,7 @@ date,fuel_type,price_eur_per_liter,source,source_url,granularity,notes
 
 ## Duplicate precedence
 
-Daily generated observer state wins over imported duplicate `(date, fuel_type)` records. Imports are never allowed to overwrite `state/germany-fuel-prices/YYYY-MM-DD.json`.
+Manual API results for the current run win over imported duplicate `(date, fuel_type)` records. In default production mode, imports are preferred and old generated state is not used as a public dashboard source.
 
 ## Validation and diagnostics
 
@@ -89,4 +101,4 @@ jq '.observers[] | select(.observer=="germany-fuel-prices")' dashboard/society.j
 cat data/latest/germany-fuel-prices.json | jq .
 ```
 
-Imported history affects historical averages, min/max, record high/low, and long-term comparisons only.
+Imported history is the default public dashboard source and affects current displayed import-derived prices, historical averages, min/max, record high/low, and long-term comparisons.

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -11,19 +12,31 @@ assert spec.loader is not None
 spec.loader.exec_module(fuel)
 
 
-def test_missing_api_key_degrades_cleanly(monkeypatch, tmp_path):
+def test_missing_import_degrades_cleanly(monkeypatch, tmp_path):
     monkeypatch.delenv("WORLD_OBSERVER_FUEL_API_KEY", raising=False)
-    payload = fuel.build_payload("2026-06-30", {}, {"api_attempts": 0, "retries": 0, "http_status": None}, "WORLD_OBSERVER_FUEL_API_KEY is not configured", tmp_path)
+    payload = fuel.build_payload("2026-06-30", {}, {"api_attempts": 0, "retries": 0, "http_status": None}, None, tmp_path)
     assert payload["status"] == "unavailable"
     assert payload["data_status"] == "unavailable"
-    assert "WORLD_OBSERVER_FUEL_API_KEY" in payload["degraded_reason"]
+    assert "No permitted fuel price import" in payload["degraded_reason"]
     assert payload["fuels"]["diesel"]["current_price"] is None
+
+
+def test_imports_are_default_dashboard_source(tmp_path):
+    imports = tmp_path / "imports" / "fuel-prices-germany"
+    imports.mkdir(parents=True)
+    (imports / "history.json").write_text('[{"date":"2026-06-29","fuel_type":"diesel","price_eur_per_liter":1.6,"source":"test","granularity":"daily"}]')
+    payload = fuel.build_payload("2026-06-30", {}, {"api_attempts": 0}, root=tmp_path)
+    assert payload["status"] == "ok"
+    assert payload["data_status"] == "ok"
+    assert payload["source"] == "imports/fuel-prices-germany"
+    assert payload["fuels"]["diesel"]["current_price"] == 1.6
+    assert payload["fuels"]["diesel"]["last_seen_date"] == "2026-06-30"
 
 
 def test_successful_output_shape_and_neutral_changes(tmp_path):
     (tmp_path / "imports" / "fuel-prices-germany").mkdir(parents=True)
     (tmp_path / "imports" / "fuel-prices-germany" / "history.json").write_text('[{"date":"2026-06-29","fuel_type":"diesel","price_eur_per_liter":1.6,"source":"test","granularity":"daily"}]')
-    payload = fuel.build_payload("2026-06-30", {"diesel": 1.7, "benzin": 1.8, "super_e10": 1.75}, {"api_attempts": 1}, root=tmp_path)
+    payload = fuel.build_payload("2026-06-30", {"diesel": 1.7, "benzin": 1.8, "super_e10": 1.75}, {"api_attempts": 1}, root=tmp_path, source="Tankerkoenig/MTS-K API")
     diesel = payload["fuels"]["diesel"]
     for key in ("current_price", "average_30d", "average_365d", "record_low", "record_high", "trend_delta", "trend_delta_percent", "compared_with_365d_percent", "historical_min", "historical_max", "observed_changes", "last_seen_date", "status", "data_status"):
         assert key in diesel
@@ -47,3 +60,20 @@ def test_malformed_import_duplicate_precedence_and_unsupported_ignored(tmp_path)
     assert "unsupported fuel_type" in reasons
     assert "duplicate date" in reasons
     assert any(d["file"] == "bad.json" and d["status"] == "ignored" for d in diagnostics)
+
+
+def test_main_does_not_fetch_tankerkoenig_without_manual_opt_in(monkeypatch, tmp_path, capsys):
+    monkeypatch.setenv("WORLD_OBSERVER_FUEL_API_KEY", "dummy")
+    monkeypatch.delenv("WORLD_OBSERVER_FUEL_ENABLE_TANKERKOENIG_API", raising=False)
+    monkeypatch.setenv("WORLD_OBSERVER_DATE_UTC", "2026-06-30")
+    monkeypatch.setattr(fuel, "_repo_root", lambda: tmp_path)
+
+    def fail_fetch(api_key):  # pragma: no cover - should never run
+        raise AssertionError("Tankerkönig API should not be fetched without manual opt-in")
+
+    monkeypatch.setattr(fuel, "_fetch_current_prices", fail_fetch)
+    fuel.main()
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["diagnostics"]["api_attempts"] == 0
+    assert payload["status"] == "unavailable"
+    assert "WORLD_OBSERVER_FUEL_ENABLE_TANKERKOENIG_API" in payload["degraded_reason"]
