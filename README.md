@@ -1,308 +1,296 @@
-![status](https://img.shields.io/badge/status-active-blue?style=flat)
-![updates](https://img.shields.io/badge/updates-daily-blue?style=flat)
-![language](https://img.shields.io/badge/language-python-blue?style=flat)
-![license](https://img.shields.io/badge/license-MIT-gray?style=flat)
-![scope](https://img.shields.io/badge/scope-observational-lightgrey?style=flat)
+<div align="center">
 
-# World Observer
+# 🌍 World Observer
 
-World Observer is a long-term, passive observation project focused on global
-network reachability, silence, and instability. The project is designed to be
-conservative and predictable: it favors consistency over novelty and prioritizes
-repeatable, low-risk observations that can be sustained for years.
+**An automated observational platform for long-term public indicators.**
 
-## Project Philosophy
-- **Passive by design**: Observers rely only on publicly observable, non-invasive
-  signals. No scanning, probing, exploitation, or interference.
-- **Consistency over discovery**: Repeatable measurements, taken on a stable
-  cadence, are more valuable than one-off findings.
-- **Separation of concerns**: Observers emit JSON only. Aggregation and
-  visualization are separate, downstream activities.
-- **Boring and durable**: Code should be minimal, readable, and stable over time.
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+![Python](https://img.shields.io/badge/Python-3.12%2B-3776AB?logo=python&logoColor=white)
+![Status](https://img.shields.io/badge/Status-active-blue)
+![Platform](https://img.shields.io/badge/Platform-Linux%20%7C%20Static%20Web-lightgrey)
+![Static Website](https://img.shields.io/badge/Website-static%20JSON-0f766e)
+![Last commit](https://img.shields.io/github/last-commit/dennishilk/world-observer)
 
-## Operation Cadence
-### Daily
-- Execute observers on a fixed schedule.
-- Store raw JSON outputs in the `data/` directory.
-- Ensure logs are consistent and auditable.
+</div>
 
-### Weekly
-- Validate data continuity and detect missing observation windows.
-- Summarize stability or instability trends without altering core observer logic.
+---
 
-### Long-Term
-- Maintain unchanged observer semantics for comparability across years.
-- Add new observers only when they meet strict passive and ethical requirements.
-- Preserve the full historical record of observation outputs.
+World Observer records repeatable, long-running observations of public indicators and publishes them as small JSON archives and static-dashboard exports. It is built for durability: a stable observer pipeline, conservative public-data sources, historical state retention, and descriptive dashboards that can be maintained for years.
 
-### Periodic GitHub Heartbeat
-The repository publishes a minimal heartbeat as a liveness indicator only. These
-hourly commits are not observation results and should not be interpreted as
-signals, anomalies, or summaries.
+> **Observational only:** World Observer records what public sources reported at a point in time. It does **not** predict, speculate, attribute causes, track people, or profile users.
 
-- **Purpose**: confirm the automation is alive and pushing on schedule.
-- **Frequency**: every hour.
-- **Retention**: keep only the last 12 heartbeat files.
+<p align="center">
+  <img src="docs/screenshots/overview.svg" alt="World Observer dashboard overview" width="92%">
+</p>
 
-Example usage:
-```sh
-cat state/heartbeat/2026-02-19T14Z.json
+## ✨ What it does
+
+| Capability | Description |
+| --- | --- |
+| 🕒 Automated daily observations | Runs observer modules on a fixed daily UTC cadence and stores canonical outputs. |
+| 🧩 Modular observer framework | Each observer is a self-contained Python module that emits one JSON object. |
+| 🗃️ Historical archives | Daily archives under `data/daily/YYYY-MM-DD/` preserve time-indexed observations. |
+| 📊 Interactive dashboard data | Compact dashboard exports in `dashboard/` power a static website without coupling to raw schemas. |
+| 📈 Reusable trend charts | Internet and media history exports provide ready-to-chart time series. |
+| 💓 Heartbeat monitoring | Minimal hourly heartbeat files indicate automation liveness only. |
+| 🔓 Public data only | Observers use public, non-invasive signals and avoid private or user-level data. |
+| 🌐 Static website friendly | The publishing helper copies exported JSON into a GitHub Pages-style website checkout. |
+
+## 🧭 Project scope
+
+World Observer is a descriptive archive, not an intelligence product. The platform is designed around these constraints:
+
+- **Public sources only** — no private datasets, user tracking, fingerprinting, or account-level collection.
+- **No surveillance** — observers describe aggregate public indicators, not individuals.
+- **No prediction** — outputs describe historical and current observations rather than forecasting future events.
+- **No speculation** — dashboards avoid causal claims and keep interpretation separate from measurement.
+- **Historical preservation** — daily JSON outputs are retained so changes can be reviewed over time.
+- **Stable semantics** — observer behavior should remain consistent so long-horizon comparisons stay meaningful.
+
+For more detail, see [`ethics.md`](ethics.md), [`methodology.md`](methodology.md), and [`SIGNIFICANCE_MODEL.md`](SIGNIFICANCE_MODEL.md).
+
+## 📸 Screenshots
+
+### Overview
+
+The dashboard export summarizes observer health, category counts, latest dates, and website-safe status fields.
+
+<p align="center">
+  <img src="docs/screenshots/overview.svg" alt="World Observer dashboard overview" width="88%">
+</p>
+
+### Internet Observers
+
+Internet observers cover reachability, DNS behavior, IPv6 adoption, mail exchange visibility, TLS changes, traceroute-style indicators, and cable-dependency metadata.
+
+<p align="center">
+  <img src="docs/screenshots/internet-observers.svg" alt="World Observer Internet observers dashboard" width="88%">
+</p>
+
+### Germany Media Language Observer
+
+The Germany media-language observer exports website-safe descriptive fields and historical trend points for public media-language monitoring.
+
+<p align="center">
+  <img src="docs/screenshots/media-language-germany.svg" alt="World Observer Germany media language dashboard" width="88%">
+</p>
+
+### Society Observers: Fuel and East Frisian Tea
+
+Society observers track public cost-of-living style indicators, currently including German fuel-price infrastructure and an East Frisian tea retail-price series.
+
+<p align="center">
+  <img src="docs/screenshots/society-observers.svg" alt="World Observer society observers dashboard" width="88%">
+</p>
+
+## 🗂️ Current observer categories
+
+### Running observers
+
+| Category | Observers |
+| --- | --- |
+| 🌐 Internet | Area51 Reachability; HTTP Reachability Index; Cuba Internet Weather; DNS Time To Answer Index; DNS TTA Stress Index; Global Reachability Long Horizon; Global Reachability Score; Internet Shrinkage Index; IPv6 Adoption Locked States; IPv6 Global Compare; IPv6 Locked States; Iran DNS Behavior; MX Presence By Country; MX Presence Per Country; North Korea Connectivity; Silent Countries List; TLS Fingerprint Change; Traceroute To Nowhere; Undersea Cable Dependency; Undersea Cable Dependency Map |
+| 📰 Media | Media Language Germany |
+| 🏘️ Society | Germany Fuel Price Observer; East Frisian Tea Observer |
+| 🌱 Environment | _No running environment observers yet_ |
+
+### Planned observers
+
+| Category | Planned observers |
+| --- | --- |
+| 🌐 Internet | ASN Visibility By Country |
+| 🏘️ Society | Fuel Prices Germany, Electricity Prices Germany, Food Prices Germany, Housing Costs Germany, Deutsche Bahn Punctuality, Deutsche Post Reliability |
+| 🌱 Environment | Weather Germany, Climate Germany, Natural Disasters Germany |
+
+The canonical category metadata lives in [`config/observer_metadata.json`](config/observer_metadata.json). The canonical daily runner list lives in [`scripts/run_daily.py`](scripts/run_daily.py).
+
+## 🏗️ Architecture
+
+```text
+Observer
+  ↓
+State / latest JSON
+  ↓
+Dashboard export
+  ↓
+Static website
 ```
 
-Heartbeat commits:
-- do **not** indicate unusual events,
-- are **not** significance indicators,
-- are **not** daily summaries.
+### Pipeline responsibilities
 
-## Repository Layout
-- `observers/`: Passive observer modules emitting JSON.
-- `data/`: Aggregated daily outputs, rolling latest snapshots, and local-only raw capture folders (ignored by Git for raw data).
-- `visualizations/`: Downstream visual analysis (separate from observers).
-- `reports/`: Periodic summaries and research notes.
-- `scripts/`: Helper scripts for scheduling or data hygiene.
-- `cron/`: Example schedules for long-running operation.
+| Layer | Responsibility | Main paths |
+| --- | --- | --- |
+| Observer | Collect one public observation and emit one JSON object on stdout. | `observers/*/observer.py` |
+| Daily runner | Execute canonical observers, normalize outputs, write daily archives, and run the meta observer. | `scripts/run_daily.py`, `data/daily/`, `data/latest/` |
+| State | Preserve observer-specific historical state needed for continuity. | `state/` |
+| Dashboard export | Convert latest and daily raw observer outputs into compact, website-safe JSON. | `scripts/export_dashboard.py`, `dashboard/` |
+| Static website publish | Copy exported dashboard JSON into a separate website checkout. | `scripts/publish_dashboard_to_pages.py` |
+| Heartbeat | Publish liveness-only hourly heartbeat files. | `scripts/heartbeat_push.py`, `state/heartbeat/` |
 
-## Data Hygiene and Automation
-### Raw vs Aggregated Data in Git
-Raw observer output is intentionally retained on the server but ignored by Git.
-The repository `.gitignore` excludes these local-only raw directories:
+## 📁 Repository structure
 
-- `data/*-reachability/`
-- `data/*-connectivity/`
-- `data/*-weather/`
-- `data/*-trace/`
+```text
+world-observer/
+├── observers/                 # Self-contained observer modules
+├── data/
+│   ├── daily/YYYY-MM-DD/       # Immutable daily JSON archives
+│   └── latest/                 # Rolling latest observer snapshots
+├── dashboard/                  # Static-website JSON export files
+│   └── history/                # Compact trend-history exports
+├── state/                      # Local observer state and heartbeat files
+├── scripts/                    # Daily runner, exporter, publishing, health checks
+├── visualizations/             # Significance visualization helpers
+├── docs/                       # Operational and dashboard documentation
+├── tests/                      # Pytest suite and fixtures
+├── cron/                       # Example cron schedule
+├── reports/                    # Operational reports and audits
+├── ethics.md                   # Ethical scope and collection constraints
+└── methodology.md              # Measurement methodology
+```
 
-This keeps raw capture storage available for local analysis and troubleshooting
-without bloating repository history.
+Raw local capture directories are intentionally ignored where appropriate so the repository can retain durable aggregate archives without bloating Git history.
 
-### Directory Layout
-- `data/daily/YYYY-MM-DD/`: immutable daily aggregated JSON/summary artifacts
-  intended for long-term tracking in Git.
-- `data/latest/`: rolling latest aggregate snapshots in Git for quick inspection.
-- `data/*-(reachability|connectivity|weather|trace)/`: raw observer output,
-  generated locally and ignored by Git.
+## 🚀 Running the project
 
-### Heartbeat and Cron Schedule
-The automation layer installs two cron jobs for the observer user:
+### Requirements
 
-Daily observer execution time is **02:00 UTC** and considered contractual.
+- Python 3.12+
+- Linux or another cron-capable Unix-like environment for long-running automation
+- `pip` and a virtual environment
 
-- **Hourly heartbeat at minute 0**
-  - Runs `python scripts/heartbeat_push.py`.
-  - Appends output to `logs/cron.log`.
-- **Daily UTC run at 02:00**
-  - Runs aggregation (`scripts/run_daily.py`).
-  - Generates significance PNG (`visualizations/generate_significance_png.py`).
-  - Stages changes, creates a date-based commit if needed, and pushes.
-  - Appends output to `logs/cron.log`.
+### Install locally
 
-Cron entries are installed idempotently by `setup_world_observer.sh`, so
-re-running setup will not duplicate jobs.
+```sh
+git clone https://github.com/dennishilk/world-observer.git
+cd world-observer
+python -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt -r requirements-dev.txt
+```
 
-### Daily Automation Workflow
-1. Observers produce raw local JSON output under ignored `data/*-.../` folders.
-2. Daily aggregation writes canonical outputs to `data/daily/YYYY-MM-DD/`.
-3. Latest snapshots are refreshed in `data/latest/`.
-4. PNG significance output is generated from aggregated state.
-5. Git commit/push only occurs when there is a real staged change.
+### Run the daily observer pipeline
 
-### Inspecting Cron Logs
-Use the shared log file under the repo to inspect automation health:
+```sh
+python scripts/run_daily.py --date 2026-07-01
+```
+
+This writes per-observer outputs to `data/daily/2026-07-01/`, refreshes `data/latest/`, and writes the meta summary as `summary.json` and `summary.md`.
+
+### Export dashboard JSON
+
+```sh
+python scripts/export_dashboard.py
+```
+
+The exporter writes compact static-website files to `dashboard/`, including category summaries and history exports.
+
+### Publish dashboard JSON to a local Pages checkout
+
+```sh
+python scripts/publish_dashboard_to_pages.py --pages-repo /path/to/dennishilk.github.io
+```
+
+The publish helper validates the target checkout and replaces only `world-observer/dashboard/` inside that website repository.
+
+### Install automation on a server
+
+```sh
+sudo ./setup_world_observer.sh
+```
+
+The setup script installs idempotent cron jobs for:
+
+- hourly heartbeat commits at minute `0`, and
+- daily observer execution at **02:00 UTC**.
+
+## 💓 Heartbeat semantics
+
+Heartbeat commits are liveness indicators only. They are not observations, anomaly signals, daily summaries, or significance indicators.
+
+```sh
+cat state/heartbeat/2026-07-01T10Z.json
+```
+
+Only recent heartbeat files are retained, while observer archives remain under `data/daily/` and latest snapshots remain under `data/latest/`.
+
+## 🧪 Development and checks
+
+```sh
+python -m pytest
+python scripts/verify_repository_health.py
+python scripts/export_dashboard.py
+```
+
+The test suite covers observer contracts, dashboard export behavior, metadata consistency, publishing safety, and selected observer parsers.
+
+<details>
+<summary><strong>Operational notes: cron, deploy keys, and data contracts</strong></summary>
+
+### Daily directory contract
+
+For a run date `YYYY-MM-DD`, `scripts/run_daily.py` treats `data/daily/YYYY-MM-DD/` as the canonical daily directory. Each observer listed in the runner emits one JSON object on stdout, the runner writes it to `data/daily/YYYY-MM-DD/<observer>.json`, and `world-observer-meta` reads that same directory through `WORLD_OBSERVER_DAILY_DIR`. The meta observer output is persisted as `summary.json` and rendered as `summary.md`; there is intentionally no `world-observer-meta.json` artifact.
+
+### Meta observer success rules
+
+`world-observer-meta` treats an observer as successful when its file exists, the JSON root is an object, and the top-level `status` is not `"error"`. Missing files, invalid JSON, non-object roots, and explicit error statuses are counted as missing/degraded.
+
+### Cron and logs
+
+The automation layer installs an hourly heartbeat and a daily 02:00 UTC observer run. Inspect repository-level cron output with:
 
 ```sh
 tail -f ~/world-observer/logs/cron.log
 ```
 
-For scheduler-level issues:
+For scheduler-level problems, check:
 
 ```sh
 sudo systemctl status cron
 crontab -l
 ```
 
-## Observers
-Canonical daily observers executed by `scripts/run_daily.py` (authoritative `OBSERVERS` list):
+### Deploy key setup
 
-- `area51-reachability`
-- `asn-visibility-by-country`
-- `cuba-internet-weather`
-- `dns-time-to-answer-index`
-- `dns-tta-stress-index`
-- `global-reachability-long-horizon`
-- `global-reachability-score`
-- `internet-shrinkage-index`
-- `ipv6-adoption-locked-states`
-- `ipv6-global-compare`
-- `ipv6-locked-states`
-- `iran-dns-behavior`
-- `media-language-germany`
-- `mx-presence-by-country`
-- `mx-presence-per-country`
-- `north-korea-connectivity`
-- `silent-countries-list`
-- `tls-fingerprint-change`
-- `traceroute-to-nowhere`
-- `undersea-cable-dependency`
-- `undersea-cable-dependency-map`
+Long-running automation usually pushes with a dedicated GitHub deploy key:
 
-`world-observer-meta` is intentionally excluded from the `OBSERVERS` list. It is
-invoked after all daily observers complete.
-
-### Daily Directory Contract
-For a run date `YYYY-MM-DD`, the runner uses `data/daily/YYYY-MM-DD/` as the
-canonical daily directory.
-
-- Each observer in `OBSERVERS` must emit one JSON object on stdout.
-- `scripts/run_daily.py` writes each observer payload to
-  `data/daily/YYYY-MM-DD/<observer>.json`.
-- `scripts/run_daily.py` then runs `world-observer-meta` with
-  `WORLD_OBSERVER_DAILY_DIR` set to that same daily directory.
-- `world-observer-meta` reads per-observer JSON files from
-  `WORLD_OBSERVER_DAILY_DIR`, prints a single JSON summary object to stdout, and
-  does not write files directly.
-- The runner persists meta stdout as `data/daily/YYYY-MM-DD/summary.json` and
-  also renders `summary.md` from that summary payload.
-
-There is intentionally no `world-observer-meta.json` artifact.
-
-### Meta Observer Behavior
-`world-observer-meta` determines observer success using the per-observer output
-contract:
-
-- success: file exists, JSON root is an object, and top-level `status` is not
-  `"error"`.
-- missing: file is absent, root JSON is non-object, parse/read fails, or
-  top-level `status` is `"error"`.
-
-Observers without explicit `status: "ok"` are still treated as successful as
-long as they meet the success criteria above.
-
-Example `summary.json` shape:
-
-```json
-{
-  "observer": "world-observer-meta",
-  "date": "2026-02-14",
-  "observers_run": ["..."],
-  "observers_missing": [],
-  "highlights": {
-    "internet_shrinkage_index": 0.12,
-    "global_reachability_score": 0.98,
-    "silent_countries_count": 3
-  },
-  "notes": ""
-}
-```
-
-### Area 51 Reachability
-The Area 51 observer uses a bounded airspace aggregation model with 15-minute
-UTC buckets and daily Activity Unit (AU) totals:
-
-- `janet_like`: JANET-like transponder movement segments (heuristic class only)
-- `other`: non-JANET-like movement segments
-- `total`: all movement segments in-bbox
-
-The observer writes daily JSON with rolling 30-day baseline (`mean`, `std`) and
-significance (`observed > mean + 2σ` by default). It writes `data/latest/summary.json`
-on every run and writes `data/latest/chart.png` only when any AU class is significant.
-
-Privacy constraints are strict: tracked outputs never contain callsigns, tail
-numbers, routes, or per-aircraft identifiers.
-
-## Getting Started
-Each observer is a self-contained module with a stub `observer.py` file. The
-stubs are intentionally conservative and produce placeholder JSON to be replaced
-by approved passive data sources in the future.
-
-
-### Global Reachability Long Horizon
-The `global-reachability-long-horizon` observer computes 90-day and 180-day
-trend metrics from `global-reachability-score` daily outputs and flags major
-long-term events (new 180d highs/lows, mass low events, and trend breaks).
-
-It writes `data/latest/chart.png` only on significant days and removes the PNG
-on normal days.
-
-### IPv6 Global Compare
-The `ipv6-global-compare` observer derives a daily global IPv6 rate from
-`ipv6-locked-states` outputs and compares each country against that baseline.
-
-It computes per-country `delta_vs_global`, 30-day baseline z-scores, and a
-trend divergence signal (country flat/down while global rises). It writes
-`data/latest/chart.png` only when significance is detected.
-
-## Fresh Clone and Merge-Resilient Workflow
-1. Clone as the observer user and switch to the repository directory.
-2. Run setup as root:
-   ```sh
-   sudo ./setup_world_observer.sh
-   ```
-3. Setup auto-configures:
-   - `origin` to SSH (when currently GitHub HTTPS),
-   - repository-local `core.sshCommand` with the deploy key,
-   - idempotent cron jobs that always execute inside `.venv`.
-4. Re-run setup after merges/pulls to safely re-apply system dependencies and cron entries.
-
-## Deploy Key Setup (GitHub)
-1. Generate a key (or let setup generate it):
-   ```sh
-   ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519_world_observer -C "world-observer-deploy-key"
-   ```
-2. Add the **public** key to GitHub repo **Deploy keys** with **Allow write access**.
-3. Confirm non-interactive SSH auth:
-   ```sh
-   ssh -o BatchMode=yes -T git@github.com
-   ```
-4. Confirm git is SSH-only:
-   ```sh
-   git remote -v
-   git config --local --get core.sshCommand
-   ```
-
-## Cron Schedule Contract
-Installed by `setup_world_observer.sh`:
-- Hourly heartbeat (minute `0`): `scripts/heartbeat_push.py`
-- Daily run (UTC `02:00`): `scripts/run_daily.py`, `visualizations/generate_significance_png.py`, then `scripts/git_publish.sh`
-- Shared logs: `logs/cron.log`
-
-Example validation:
 ```sh
-crontab -l
- tail -n 100 logs/cron.log
+ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519_world_observer -C "world-observer-deploy-key"
+ssh -o BatchMode=yes -T git@github.com
 ```
 
-## High-Level Verification Script
-Run repository-level checks with:
-```sh
-python scripts/verify_repository_health.py
-```
-Optional push-path validation:
-```sh
-python scripts/verify_repository_health.py --check-push
-```
+Add the public key to the repository deploy keys with write access, then configure the local checkout's SSH command as needed.
 
-Checks performed:
-- heartbeat execution (idempotent commit behavior, optional push),
-- daily runner output generation for all configured observers,
-- daily JSON presence + minimal schema contract checks,
-- restricted identifier-key scan (IP/domain/cert/raw-route style keys),
-- significance behavior simulation (`tls-fingerprint-change`) including PNG creation on forced significance.
+### Area 51 privacy constraint
 
-## Manual Recovery Steps
-- If cron appears idle: check `systemctl status cron`, `crontab -l`, and `logs/cron.log`.
-- If push fails: verify deploy key in GitHub and local `core.sshCommand`.
-- If observer output is missing: run `python scripts/run_daily.py --date YYYY-MM-DD` manually and inspect stderr in generated error JSON.
-- If PNG behavior is unexpected: run the high-level verification script and inspect `data/latest/chart.png` lifecycle.
+The Area51 observer aggregates bounded airspace activity into daily activity units and rolling baselines. Tracked outputs intentionally do not contain callsigns, tail numbers, routes, or per-aircraft identifiers.
 
-## Python Environment and Dependencies
-- Python runtime is pinned via `.python-version` (`3.12.12`).
-- Create and activate venv:
-  ```sh
-  python3 -m venv .venv
-  . .venv/bin/activate
-  ```
-- Install dependencies:
-  ```sh
-  pip install -r requirements.txt
-  pip install -r requirements-dev.txt
-  ```
+</details>
+
+## 🛣️ Roadmap
+
+World Observer is expanding from Internet-focused indicators into broader public-observation categories.
+
+| Area | Planned work |
+| --- | --- |
+| ⚡ Electricity | Public electricity-price observer and chart-ready dashboard export. |
+| 🍞 Food | Additional representative public food-price indicators. |
+| 🏠 Housing | Descriptive public housing-cost indicators. |
+| 🚆 Deutsche Bahn | Public punctuality/reliability observer. |
+| 📮 Deutsche Post | Public postal-reliability observer. |
+| 🌱 Environment | Weather, climate, and natural-disaster public-data observers. |
+| 📊 Dashboard | Richer static website cards and reusable trend visualizations. |
+
+## 🤝 Contributing principles
+
+Contributions should preserve the project's observational scope:
+
+1. Prefer public, stable, low-risk data sources.
+2. Keep observers small, deterministic, and readable.
+3. Emit one JSON object per observer run.
+4. Separate collection from dashboard export and presentation.
+5. Do not add user tracking, private data, invasive probing, or speculative claims.
+
+## 📜 License
+
+World Observer is released under the [MIT License](LICENSE).

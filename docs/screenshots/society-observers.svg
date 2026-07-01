@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="418" viewBox="0 0 1200 418">
+<defs><linearGradient id="g" x1="0" x2="1"><stop stop-color="#0f172a"/><stop offset="1" stop-color="#1e3a8a"/></linearGradient><filter id="s"><feDropShadow dx="0" dy="12" stdDeviation="18" flood-opacity=".18"/></filter></defs>
+<rect width="1200" height="418" fill="#f8fafc"/>
+<rect x="40" y="36" width="1120" height="346" rx="28" fill="white" filter="url(#s)"/>
+<rect x="40" y="36" width="1120" height="96" rx="28" fill="url(#g)"/>
+<text x="80" y="92" font-family="Inter,Segoe UI,Arial" font-size="34" font-weight="700" fill="white">Society Observers</text>
+<text x="80" y="120" font-family="Inter,Segoe UI,Arial" font-size="16" fill="#bfdbfe">Fuel prices and East Frisian tea with planned cost-of-living observers</text>
+
+<rect x="80" y="126" width="1040" height="30" rx="15" fill="#f1f5f9"/>
+<circle cx="102" cy="141" r="7" fill="#64748b"/>
+<text x="124" y="147" font-family="Inter,Segoe UI,Arial" font-size="18" font-weight="600" fill="#0f172a">Germany Fuel Price Observer</text>
+<text x="760" y="147" font-family="Inter,Segoe UI,Arial" font-size="16" fill="#475569">WORLD_OBSERVER_FUEL_API_KEY is not configured</text>
+<rect x="80" y="164" width="1040" height="30" rx="15" fill="#f1f5f9"/>
+<circle cx="102" cy="179" r="7" fill="#16a34a"/>
+<text x="124" y="185" font-family="Inter,Segoe UI,Arial" font-size="18" font-weight="600" fill="#0f172a">East Frisian Tea Observer</text>
+<text x="760" y="185" font-family="Inter,Segoe UI,Arial" font-size="16" fill="#475569">EUR per 500 g loose tea</text>
+<rect x="80" y="202" width="1040" height="30" rx="15" fill="#f1f5f9"/>
+<circle cx="102" cy="217" r="7" fill="#7c3aed"/>
+<text x="124" y="223" font-family="Inter,Segoe UI,Arial" font-size="18" font-weight="600" fill="#0f172a">Fuel Prices Germany</text>
+<text x="760" y="223" font-family="Inter,Segoe UI,Arial" font-size="16" fill="#475569">Planned Fuel Prices Germany observer.</text>
+<rect x="80" y="240" width="1040" height="30" rx="15" fill="#f1f5f9"/>
+<circle cx="102" cy="255" r="7" fill="#7c3aed"/>
+<text x="124" y="261" font-family="Inter,Segoe UI,Arial" font-size="18" font-weight="600" fill="#0f172a">Electricity Prices Germany</text>
+<text x="760" y="261" font-family="Inter,Segoe UI,Arial" font-size="16" fill="#475569">Planned Electricity Prices Germany observer.</text>
+<rect x="80" y="278" width="1040" height="30" rx="15" fill="#f1f5f9"/>
+<circle cx="102" cy="293" r="7" fill="#7c3aed"/>
+<text x="124" y="299" font-family="Inter,Segoe UI,Arial" font-size="18" font-weight="600" fill="#0f172a">Food Prices Germany</text>
+<text x="760" y="299" font-family="Inter,Segoe UI,Arial" font-size="16" fill="#475569">Planned Food Prices Germany observer.</text>
+<rect x="80" y="316" width="1040" height="30" rx="15" fill="#f1f5f9"/>
+<circle cx="102" cy="331" r="7" fill="#7c3aed"/>
+<text x="124" y="337" font-family="Inter,Segoe UI,Arial" font-size="18" font-weight="600" fill="#0f172a">Housing Costs Germany</text>
+<text x="760" y="337" font-family="Inter,Segoe UI,Arial" font-size="16" fill="#475569">Planned Housing Costs Germany observer.</text>
+</svg>
