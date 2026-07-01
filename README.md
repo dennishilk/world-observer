@@ -11,6 +11,12 @@
 ![Static Website](https://img.shields.io/badge/Website-static%20JSON-0f766e)
 ![Last commit](https://img.shields.io/github/last-commit/dennishilk/world-observer)
 
+## 🌐 Live Dashboard
+
+Explore the latest public observations published by World Observer:
+
+[https://dennishilk.com/world-observer.html](https://dennishilk.com/world-observer.html)
+
 </div>
 
 ---
