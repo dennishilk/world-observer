@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="494" viewBox="0 0 1200 494">
+<defs><linearGradient id="g" x1="0" x2="1"><stop stop-color="#0f172a"/><stop offset="1" stop-color="#1e3a8a"/></linearGradient><filter id="s"><feDropShadow dx="0" dy="12" stdDeviation="18" flood-opacity=".18"/></filter></defs>
+<rect width="1200" height="494" fill="#f8fafc"/>
+<rect x="40" y="36" width="1120" height="422" rx="28" fill="white" filter="url(#s)"/>
+<rect x="40" y="36" width="1120" height="96" rx="28" fill="url(#g)"/>
+<text x="80" y="92" font-family="Inter,Segoe UI,Arial" font-size="34" font-weight="700" fill="white">Internet Observers</text>
+<text x="80" y="120" font-family="Inter,Segoe UI,Arial" font-size="16" fill="#bfdbfe">Reachability, DNS, IPv6, mail, TLS, traceroute and cable indicators</text>
+
+<rect x="80" y="126" width="1040" height="30" rx="15" fill="#f1f5f9"/>
+<circle cx="102" cy="141" r="7" fill="#d97706"/>
+<text x="124" y="147" font-family="Inter,Segoe UI,Arial" font-size="18" font-weight="600" fill="#0f172a">Area51 Reachability</text>
+<text x="760" y="147" font-family="Inter,Segoe UI,Arial" font-size="16" fill="#475569">None: 71</text>
+<rect x="80" y="164" width="1040" height="30" rx="15" fill="#f1f5f9"/>
+<circle cx="102" cy="179" r="7" fill="#16a34a"/>
+<text x="124" y="185" font-family="Inter,Segoe UI,Arial" font-size="18" font-weight="600" fill="#0f172a">Cuba Internet Weather</text>
+<text x="760" y="185" font-family="Inter,Segoe UI,Arial" font-size="16" fill="#475569">None: 299.59</text>
+<rect x="80" y="202" width="1040" height="30" rx="15" fill="#f1f5f9"/>
+<circle cx="102" cy="217" r="7" fill="#16a34a"/>
+<text x="124" y="223" font-family="Inter,Segoe UI,Arial" font-size="18" font-weight="600" fill="#0f172a">DNS Time To Answer Index</text>
+<text x="760" y="223" font-family="Inter,Segoe UI,Arial" font-size="16" fill="#475569">None: 45.68</text>
+<rect x="80" y="240" width="1040" height="30" rx="15" fill="#f1f5f9"/>
+<circle cx="102" cy="255" r="7" fill="#16a34a"/>
+<text x="124" y="261" font-family="Inter,Segoe UI,Arial" font-size="18" font-weight="600" fill="#0f172a">DNS TTA Stress Index</text>
+<text x="760" y="261" font-family="Inter,Segoe UI,Arial" font-size="16" fill="#475569">None: 0.13</text>
+<rect x="80" y="278" width="1040" height="30" rx="15" fill="#f1f5f9"/>
+<circle cx="102" cy="293" r="7" fill="#d97706"/>
+<text x="124" y="299" font-family="Inter,Segoe UI,Arial" font-size="18" font-weight="600" fill="#0f172a">Global Reachability Long Horizon</text>
+<text x="760" y="299" font-family="Inter,Segoe UI,Arial" font-size="16" fill="#475569">None: 100.0</text>
+<rect x="80" y="316" width="1040" height="30" rx="15" fill="#f1f5f9"/>
+<circle cx="102" cy="331" r="7" fill="#16a34a"/>
+<text x="124" y="337" font-family="Inter,Segoe UI,Arial" font-size="18" font-weight="600" fill="#0f172a">Global Reachability Score</text>
+<text x="760" y="337" font-family="Inter,Segoe UI,Arial" font-size="16" fill="#475569">None: 3</text>
+<rect x="80" y="354" width="1040" height="30" rx="15" fill="#f1f5f9"/>
+<circle cx="102" cy="369" r="7" fill="#d97706"/>
+<text x="124" y="375" font-family="Inter,Segoe UI,Arial" font-size="18" font-weight="600" fill="#0f172a">Internet Shrinkage Index</text>
+<text x="760" y="375" font-family="Inter,Segoe UI,Arial" font-size="16" fill="#475569">None: 0.02</text>
+<rect x="80" y="392" width="1040" height="30" rx="15" fill="#f1f5f9"/>
+<circle cx="102" cy="407" r="7" fill="#16a34a"/>
+<text x="124" y="413" font-family="Inter,Segoe UI,Arial" font-size="18" font-weight="600" fill="#0f172a">IPv6 Adoption Locked States</text>
+<text x="760" y="413" font-family="Inter,Segoe UI,Arial" font-size="16" fill="#475569">None: ok</text>
+</svg>

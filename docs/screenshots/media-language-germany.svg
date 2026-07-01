@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="304" viewBox="0 0 1200 304">
+<defs><linearGradient id="g" x1="0" x2="1"><stop stop-color="#0f172a"/><stop offset="1" stop-color="#1e3a8a"/></linearGradient><filter id="s"><feDropShadow dx="0" dy="12" stdDeviation="18" flood-opacity=".18"/></filter></defs>
+<rect width="1200" height="304" fill="#f8fafc"/>
+<rect x="40" y="36" width="1120" height="232" rx="28" fill="white" filter="url(#s)"/>
+<rect x="40" y="36" width="1120" height="96" rx="28" fill="url(#g)"/>
+<text x="80" y="92" font-family="Inter,Segoe UI,Arial" font-size="34" font-weight="700" fill="white">Germany Media Language Observer</text>
+<text x="80" y="120" font-family="Inter,Segoe UI,Arial" font-size="16" fill="#bfdbfe">Descriptive media-language fields prepared for trend charts</text>
+
+<rect x="80" y="126" width="1040" height="30" rx="15" fill="#f1f5f9"/>
+<circle cx="102" cy="141" r="7" fill="#dc2626"/>
+<text x="124" y="147" font-family="Inter,Segoe UI,Arial" font-size="18" font-weight="600" fill="#0f172a">Fear index overall</text>
+<text x="760" y="147" font-family="Inter,Segoe UI,Arial" font-size="16" fill="#475569">n/a</text>
+<rect x="80" y="164" width="1040" height="30" rx="15" fill="#f1f5f9"/>
+<circle cx="102" cy="179" r="7" fill="#dc2626"/>
+<text x="124" y="185" font-family="Inter,Segoe UI,Arial" font-size="18" font-weight="600" fill="#0f172a">Headline count</text>
+<text x="760" y="185" font-family="Inter,Segoe UI,Arial" font-size="16" fill="#475569">n/a</text>
+<rect x="80" y="202" width="1040" height="30" rx="15" fill="#f1f5f9"/>
+<circle cx="102" cy="217" r="7" fill="#d97706"/>
+<text x="124" y="223" font-family="Inter,Segoe UI,Arial" font-size="18" font-weight="600" fill="#0f172a">Top terms</text>
+<text x="760" y="223" font-family="Inter,Segoe UI,Arial" font-size="16" fill="#475569">waiting for latest observation</text>
+</svg>
