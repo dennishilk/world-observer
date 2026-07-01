@@ -240,35 +240,43 @@ def _price_from_match(match: re.Match[str]) -> float | None:
     return _as_price(groups[-1].replace(",", "."))
 
 
-def _parse_public_average_prices(content: str) -> dict[str, float]:
-    """Parse nationwide German daily average prices from public page text.
-
-    The parser only accepts explicit fuel labels near euro/liter prices. It does not
-    infer missing fuels from unlabeled numbers, avoiding fabricated values.
-    """
+def _parse_public_average_price_details(content: str) -> tuple[dict[str, float], dict[str, dict[str, Any]]]:
+    """Parse nationwide German daily average prices and explain each accepted match."""
     text = re.sub(r"\s+", " ", _page_text(content))
-    patterns: dict[str, tuple[str, ...]] = {
+    patterns: dict[str, tuple[tuple[str, str], ...]] = {
         "benzin": (
-            r"(?:Liter\s+)?Super(?:-?Benzin)?\s*(?:\(\s*Sorte\s*E5\s*\)|E5)?[^.]{0,180}?(\d+[,.]\d{2,3})\s*Euro",
-            r"(\d+[,.]\d{2,3})\s*Euro\s+kostete[^.]{0,120}?Liter\s+Super(?!\s*E10)",
-            r"Super\s*(?:E5)?\s*(\d+[,.]\d{2,3})\s*€",
+            ("current average sentence", r"(\d+[,.]\d{2,3})\s*Euro\s+kostete[^.]{0,120}?Liter\s+Super(?!\s*E10)"),
+            ("labeled current average", r"(?:Liter\s+)?Super(?:-?Benzin)?\s*(?:\(\s*Sorte\s*E5\s*\)|E5)?[^.]{0,180}?(\d+[,.]\d{2,3})\s*Euro"),
+            ("compact euro label", r"Super\s*(?:E5)?\s*(\d+[,.]\d{2,3})\s*€"),
         ),
         "diesel": (
-            r"(?:beim|für|Liter\s+)?Diesel[^.]{0,180}?(\d+[,.]\d{2,3})\s*Euro",
-            r"(?:Preis\s+für\s+einen\s+Liter\s+)?Diesel[^.]{0,180}?(?:lag|liegt|sind|kostete)[^.]{0,80}?(\d+[,.]\d{2,3})\s*Euro",
-            r"Diesel\s*(\d+[,.]\d{2,3})\s*€",
+            ("current average sentence", r"(?:Preis\s+für\s+einen\s+Liter\s+)?Diesel[^.]{0,180}?(?:lag|liegt|sind|kostete)[^.]{0,80}?(\d+[,.]\d{2,3})\s*Euro"),
+            ("labeled current average", r"(?:beim|für|Liter\s+)?Diesel[^.]{0,180}?(\d+[,.]\d{2,3})\s*Euro"),
+            ("compact euro label", r"Diesel\s*(\d+[,.]\d{2,3})\s*€"),
         ),
     }
     prices: dict[str, float] = {}
+    details: dict[str, dict[str, Any]] = {}
     for fuel, fuel_patterns in patterns.items():
-        for pattern in fuel_patterns:
+        for label, pattern in fuel_patterns:
             match = re.search(pattern, text, flags=re.IGNORECASE)
             if not match:
                 continue
             price = _price_from_match(match)
             if price is not None:
                 prices[fuel] = price
+                details[fuel] = {"pattern": label, "matched_text": match.group(0)[:220]}
                 break
+    return prices, details
+
+
+def _parse_public_average_prices(content: str) -> dict[str, float]:
+    """Parse nationwide German daily average prices from public page text.
+
+    The parser only accepts explicit fuel labels near euro/liter prices. It does not
+    infer missing fuels from unlabeled numbers, avoiding fabricated values.
+    """
+    prices, _details = _parse_public_average_price_details(content)
     return prices
 
 
@@ -296,7 +304,8 @@ def _fetch_public_average_url(url: str, source_label: str) -> tuple[dict[str, fl
         diagnostics["parse_status"] = "fetch_failed"
         return {}, diagnostics, f"{url}: {type(exc).__name__}: {exc}"
 
-    prices = _parse_public_average_prices(html)
+    prices, parse_matches = _parse_public_average_price_details(html)
+    diagnostics["parse_matches"] = parse_matches
     diagnostics["priced_fuel_count"] = len(prices)
     diagnostics["parse_status"] = "ok" if prices else "no_supported_prices"
     if not prices:
