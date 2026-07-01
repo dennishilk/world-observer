@@ -20,6 +20,7 @@ FUEL_OBSERVER = "germany-fuel-prices"
 SUMMARY_NAME = "summary.json"
 OUTPUT_FILES = ("summary.json", "internet.json", "media.json", "society.json", "environment.json", "heartbeat.json")
 HISTORY_FILES = ("history/media-language-germany.json", "history/internet-observers.json")
+FUEL_HISTORY_LIMIT = 365
 METADATA_PATH = "config/observer_metadata.json"
 
 
@@ -926,7 +927,64 @@ def _internet(loaded: Dict[str, Dict[str, Any]], metadata: Dict[str, Dict[str, A
 
 
 
-def _society(loaded: Dict[str, Dict[str, Any]], metadata: Dict[str, Dict[str, Any]]) -> Dict[str, Any]:
+def _fuel_price_value(item: Any) -> float | int | None:
+    if not isinstance(item, dict):
+        return None
+    value = item.get("current_price")
+    if isinstance(value, (int, float)) and not isinstance(value, bool):
+        return round(value, 3)
+    return None
+
+
+def normalizeFuelHistory(points: Iterable[Dict[str, Any]], limit: int = FUEL_HISTORY_LIMIT) -> list[Dict[str, Any]]:
+    latest_by_date: dict[str, float | int] = {}
+    for point in points:
+        date = point.get("date")
+        value = point.get("value")
+        if not isinstance(date, str) or not isinstance(value, (int, float)) or isinstance(value, bool):
+            continue
+        try:
+            datetime.strptime(date, "%Y-%m-%d")
+        except ValueError:
+            continue
+        latest_by_date[date] = round(value, 3)
+    normalized = [{"date": date, "value": value} for date, value in sorted(latest_by_date.items())]
+    return normalized[-limit:]
+
+
+def collectFuelHistory(state_dir: Path, observer: str = FUEL_OBSERVER) -> dict[str, list[Dict[str, Any]]]:
+    points_by_fuel: dict[str, list[Dict[str, Any]]] = {}
+    for date, path in _iter_state_observer_files(state_dir, observer):
+        payload, _error = _read_json(path)
+        if payload is None:
+            continue
+        fuels = payload.get("fuels")
+        if not isinstance(fuels, dict):
+            continue
+        for fuel, item in fuels.items():
+            if not isinstance(fuel, str):
+                continue
+            value = _fuel_price_value(item)
+            if value is None:
+                continue
+            points_by_fuel.setdefault(fuel, []).append({"date": date, "value": value})
+    return {fuel: normalizeFuelHistory(points) for fuel, points in points_by_fuel.items()}
+
+
+def buildFuelHistory(fuels: Any, state_dir: Path) -> Dict[str, Any]:
+    if not isinstance(fuels, dict):
+        return {}
+    history_by_fuel = collectFuelHistory(state_dir)
+    exported: Dict[str, Any] = {}
+    for fuel, item in fuels.items():
+        if isinstance(item, dict):
+            exported[fuel] = {**item, "history": history_by_fuel.get(fuel, [])}
+        else:
+            exported[fuel] = item
+    return exported
+
+
+def _society(loaded: Dict[str, Dict[str, Any]], metadata: Dict[str, Dict[str, Any]], state_dir: Path) -> Dict[str, Any]:
     observers: list[Dict[str, Any]] = []
     for observer in sorted(
         (item for item in OBSERVERS if _metadata_category(metadata, item) == "society" and _metadata_active(metadata, item)),
@@ -942,7 +1000,7 @@ def _society(loaded: Dict[str, Dict[str, Any]], metadata: Dict[str, Dict[str, An
                 "status": _status(payload),
                 "data_status": payload.get("data_status", _status(payload)),
                 "last_seen_date": payload.get("date") or payload.get("date_utc"),
-                "fuels": payload.get("fuels", {}),
+                "fuels": buildFuelHistory(payload.get("fuels", {}), state_dir),
                 "source": payload.get("source"),
                 "fetch_url": (payload.get("diagnostics") or {}).get("fetch_url") if isinstance(payload.get("diagnostics"), dict) else None,
                 "fetched_at_utc": (payload.get("diagnostics") or {}).get("fetched_at_utc") if isinstance(payload.get("diagnostics"), dict) else None,
@@ -1133,7 +1191,7 @@ def export_dashboard(
         "summary.json": _summary(latest_dir, generated_at, loaded, metadata),
         "internet.json": _internet(loaded, metadata),
         "media.json": _media(loaded.get(MEDIA_OBSERVER)),
-        "society.json": _society(loaded, metadata),
+        "society.json": _society(loaded, metadata, state_dir),
         "environment.json": {"status": "placeholder", "items": _planned_items(metadata, "environment")},
         "heartbeat.json": _heartbeat(heartbeat_dir, generated_at),
         "history/media-language-germany.json": _media_history(daily_dir, generated_at, media_imports_dir),

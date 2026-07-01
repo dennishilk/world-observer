@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from datetime import date as date_type, timedelta
 from pathlib import Path
 
 from scripts import export_dashboard
@@ -63,6 +64,70 @@ def test_export_dashboard_succeeds_and_writes_valid_json(tmp_path) -> None:
         "top_terms": [{"term": "krise", "count": 2}],
     }
 
+
+
+def test_export_dashboard_adds_fuel_history_from_state(tmp_path) -> None:
+    latest_dir = tmp_path / "latest"
+    dashboard_dir = tmp_path / "dashboard"
+    state_dir = tmp_path / "state"
+    fuel_state_dir = state_dir / export_dashboard.FUEL_OBSERVER
+    latest_dir.mkdir()
+    fuel_state_dir.mkdir(parents=True)
+    _write_latest(
+        latest_dir,
+        export_dashboard.FUEL_OBSERVER,
+        {
+            "observer": export_dashboard.FUEL_OBSERVER,
+            "date": "2026-07-01",
+            "data_status": "ok",
+            "fuels": {
+                "benzin": {"label": "Super E5", "current_price": 1.98},
+                "diesel": {"label": "Diesel", "current_price": 1.86},
+            },
+        },
+    )
+    (fuel_state_dir / "2026-06-30.json").write_text(
+        json.dumps({"fuels": {"benzin": {"current_price": 1.83}, "diesel": {"current_price": 1.79}}}),
+        encoding="utf-8",
+    )
+    (fuel_state_dir / "2026-07-01.json").write_text(
+        json.dumps({"fuels": {"benzin": {"current_price": 1.98}, "diesel": {"current_price": 1.86}}}),
+        encoding="utf-8",
+    )
+
+    export_dashboard.export_dashboard(latest_dir, dashboard_dir, state_dir=state_dir)
+
+    society = json.loads((dashboard_dir / "society.json").read_text(encoding="utf-8"))
+    fuel = next(observer for observer in society["observers"] if observer["observer"] == export_dashboard.FUEL_OBSERVER)
+    assert fuel["fuels"]["benzin"]["history"] == [
+        {"date": "2026-06-30", "value": 1.83},
+        {"date": "2026-07-01", "value": 1.98},
+    ]
+    assert fuel["fuels"]["diesel"]["history"] == [
+        {"date": "2026-06-30", "value": 1.79},
+        {"date": "2026-07-01", "value": 1.86},
+    ]
+    assert fuel["fuels"]["benzin"]["label"] == "Super E5"
+
+
+
+def test_collect_fuel_history_limits_to_newest_365_observations(tmp_path) -> None:
+    state_dir = tmp_path / "state"
+    fuel_state_dir = state_dir / export_dashboard.FUEL_OBSERVER
+    fuel_state_dir.mkdir(parents=True)
+    for day in range(366):
+        date = (date_type(2025, 1, 1) + timedelta(days=day)).isoformat()
+        (fuel_state_dir / f"{date}.json").write_text(
+            json.dumps({"fuels": {"benzin": {"current_price": 1 + (day / 1000)}, "diesel": {"current_price": True}}}),
+            encoding="utf-8",
+        )
+
+    history = export_dashboard.collectFuelHistory(state_dir)
+
+    assert len(history["benzin"]) == 365
+    assert history["benzin"][0]["date"] == "2025-01-02"
+    assert history["benzin"][-1]["date"] == "2026-01-01"
+    assert "diesel" not in history
 
 def test_export_dashboard_handles_missing_observer(tmp_path) -> None:
     latest_dir = tmp_path / "latest"
