@@ -92,6 +92,17 @@ def test_ndr_parser_extracts_supported_fuels_without_fake_values():
     assert fuel._parse_public_average_prices(html) == {"benzin": 1.92, "diesel": 1.79}
 
 
+def test_ndr_parser_prefers_current_average_over_baseline_values():
+    html = (ROOT / "tests" / "fixtures" / "germany-fuel-prices" / "ndr-current-average-with-baseline.html").read_text(encoding="utf-8")
+
+    prices, details = fuel._parse_public_average_price_details(html)
+
+    assert prices == {"benzin": 1.98, "diesel": 1.86}
+    assert details["benzin"]["pattern"] == "current average sentence"
+    assert "1,98 Euro kostete gestern ein Liter Super" in details["benzin"]["matched_text"]
+    assert "1,83" not in details["benzin"]["matched_text"]
+
+
 def test_same_date_import_overrides_public_average_fetch(tmp_path):
     imports = tmp_path / "imports" / "fuel-prices-germany"
     imports.mkdir(parents=True)
