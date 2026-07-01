@@ -17,6 +17,7 @@ from scripts.run_daily import OBSERVERS
 DASHBOARD_VERSION = 1
 MEDIA_OBSERVER = "media-language-germany"
 FUEL_OBSERVER = "germany-fuel-prices"
+TEA_OBSERVER = "east-frisian-tea-prices"
 SUMMARY_NAME = "summary.json"
 OUTPUT_FILES = ("summary.json", "internet.json", "media.json", "society.json", "environment.json", "heartbeat.json")
 HISTORY_FILES = ("history/media-language-germany.json", "history/internet-observers.json")
@@ -991,7 +992,17 @@ def _society(loaded: Dict[str, Dict[str, Any]], metadata: Dict[str, Dict[str, An
         key=lambda item: (_metadata_priority(metadata, item), _metadata_display_name(metadata, item), item),
     ):
         payload = loaded.get(observer)
-        if observer == FUEL_OBSERVER and isinstance(payload, dict):
+        if observer == TEA_OBSERVER and isinstance(payload, dict):
+            item: Dict[str, Any] = {**payload}
+            item["observer"] = observer
+            item["display_name"] = _metadata_display_name(metadata, observer)
+            item["category"] = "society"
+            item["dashboard_priority"] = _metadata_priority(metadata, observer)
+            item.setdefault("status", _status(payload))
+            item.setdefault("data_status", payload.get("data_status", _status(payload)))
+            item.setdefault("last_seen_date", payload.get("date") or payload.get("date_utc"))
+            observers.append(item)
+        elif observer == FUEL_OBSERVER and isinstance(payload, dict):
             item: Dict[str, Any] = {
                 "observer": observer,
                 "display_name": _metadata_display_name(metadata, observer),

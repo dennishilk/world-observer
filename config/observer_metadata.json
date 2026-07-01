@@ -363,6 +363,20 @@
       ],
       "dashboard_priority": 10,
       "planned": false
+    },
+    {
+      "observer": "east-frisian-tea-prices",
+      "display_name": "East Frisian Tea Observer",
+      "category": "society",
+      "description": "Tracks the retail price development of a representative 500 g loose East Frisian black tea product over time. The observer is descriptive only and does not rate brands or product quality.",
+      "tags": [
+        "society",
+        "food",
+        "tea",
+        "germany"
+      ],
+      "dashboard_priority": 20,
+      "planned": false
     }
   ]
 }
