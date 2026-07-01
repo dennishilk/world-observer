@@ -105,6 +105,31 @@ def test_same_date_import_overrides_public_average_fetch(tmp_path):
     assert payload["diagnostics"]["local_import_override"] == ["diesel"]
 
 
+def test_public_average_uses_state_history_for_trends(tmp_path):
+    state_dir = tmp_path / "state" / "germany-fuel-prices"
+    state_dir.mkdir(parents=True)
+    (state_dir / "2026-06-30.json").write_text(json.dumps({
+        "date": "2026-06-30",
+        "fuels": {
+            "benzin": {"current_price": 1.83},
+            "diesel": {"current_price": 1.79},
+        },
+    }))
+    diagnostics = {"source": "www.ndr.de", "fallback_used": False}
+
+    payload = fuel.build_payload("2026-07-01", {"benzin": 1.83, "diesel": 1.86}, diagnostics, root=tmp_path, source="public fuel average page")
+
+    assert payload["fuels"]["benzin"]["trend_delta"] == 0.0
+    assert payload["fuels"]["benzin"]["trend_delta_percent"] == 0.0
+    assert payload["fuels"]["benzin"]["observed_changes"] == ["Price is unchanged compared with the previous observation."]
+    assert payload["fuels"]["diesel"]["trend_delta"] == 0.07
+    assert payload["fuels"]["diesel"]["trend_delta_percent"] == 3.91
+    assert "Price increased compared with the previous observation." in payload["fuels"]["diesel"]["observed_changes"]
+    assert payload["diagnostics"]["daily_state_history_count"] == 2
+    assert payload["diagnostics"]["daily_state_history_dates"] == ["2026-06-30"]
+    assert "prices absent from state/import history are not reconstructed" in payload["diagnostics"]["state_history_note"]
+
+
 def test_main_uses_public_average_not_tankerkoenig_without_manual_opt_in(monkeypatch, tmp_path, capsys):
     monkeypatch.setenv("WORLD_OBSERVER_FUEL_API_KEY", "dummy")
     monkeypatch.delenv("WORLD_OBSERVER_FUEL_ENABLE_TANKERKOENIG_API", raising=False)
