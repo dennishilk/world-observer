@@ -416,13 +416,16 @@ def _latest_import_prices(points: list[dict[str, Any]], date: str) -> dict[str, 
 def build_payload(date: str, current_prices: dict[str, float], diagnostics: dict[str, Any], degraded_reason: str | None = None, root: Path | None = None, source: str | None = None) -> dict[str, Any]:
     root = root or _repo_root()
     current_prices = {fuel: price for fuel, price in current_prices.items() if fuel in SUPPORTED_FUELS}
-    manual_api = source == "Tankerkoenig/MTS-K API"
-    daily_points = _daily_price_points(root) if manual_api else []
+    daily_points = _daily_price_points(root)
     daily_keys = {(p["date"], p["fuel_type"]) for p in daily_points}
     public_auto = source == "public fuel average page"
     duplicate_current_keys = set() if public_auto else {(date, f) for f in current_prices}
     import_points, import_diagnostics = import_price_points(root / IMPORTS_DIR, daily_keys | duplicate_current_keys)
     history = sorted(import_points + daily_points, key=lambda p: (p["date"], p["fuel_type"]))
+    if daily_points:
+        diagnostics["daily_state_history_count"] = len(daily_points)
+        diagnostics["daily_state_history_dates"] = sorted({p["date"] for p in daily_points})
+        diagnostics["state_history_note"] = "Trend calculations use repository state snapshots as recorded; prices absent from state/import history are not reconstructed."
     same_date_imports = {p["fuel_type"]: p["price"] for p in import_points if p["date"] == date}
     if public_auto and same_date_imports:
         effective_prices = {**current_prices, **same_date_imports}
