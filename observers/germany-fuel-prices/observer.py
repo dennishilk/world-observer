@@ -368,14 +368,15 @@ def _window_values(points: list[dict[str, Any]], end_date: str, days: int) -> li
 
 def _fuel_stats(fuel: str, current: float | None, date: str, history: list[dict[str, Any]], data_status: str, degraded_reason: str | None) -> dict[str, Any]:
     fuel_points = sorted([p for p in history if p["fuel_type"] == fuel], key=lambda p: p["date"])
-    values = [p["price"] for p in fuel_points]
     latest_prev = next((p for p in reversed(fuel_points) if p["date"] < date), None)
-    current_values = values + ([current] if current is not None and (date, fuel) not in {(p["date"], p["fuel_type"]) for p in fuel_points} else [])
+    stats_points = [p for p in fuel_points if current is None or p["date"] != date]
+    values = [p["price"] for p in stats_points]
+    current_values = values + ([] if current is None else [current])
     item: dict[str, Any] = {
         "label": SUPPORTED_FUELS[fuel],
         "current_price": current,
-        "average_30d": _avg(_window_values(fuel_points, date, 30) + ([] if current is None else [current])),
-        "average_365d": _avg(_window_values(fuel_points, date, 365) + ([] if current is None else [current])),
+        "average_30d": _avg(_window_values(stats_points, date, 30) + ([] if current is None else [current])),
+        "average_365d": _avg(_window_values(stats_points, date, 365) + ([] if current is None else [current])),
         "record_low": min(current_values) if current_values else None,
         "record_high": max(current_values) if current_values else None,
         "historical_min": min(current_values) if current_values else None,

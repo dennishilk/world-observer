@@ -141,6 +141,34 @@ def test_public_average_uses_state_history_for_trends(tmp_path):
     assert "prices absent from state/import history are not reconstructed" in payload["diagnostics"]["state_history_note"]
 
 
+def test_current_observation_replaces_same_date_stale_state_for_stats(tmp_path):
+    state_dir = tmp_path / "state" / "germany-fuel-prices"
+    state_dir.mkdir(parents=True)
+    (state_dir / "2026-06-30.json").write_text(json.dumps({
+        "date": "2026-06-30",
+        "fuels": {
+            "benzin": {"current_price": 1.9},
+        },
+    }))
+    (state_dir / "2026-07-01.json").write_text(json.dumps({
+        "date": "2026-07-01",
+        "fuels": {
+            "benzin": {"current_price": 1.83},
+        },
+    }))
+    diagnostics = {"source": "www.ndr.de", "fallback_used": False}
+
+    payload = fuel.build_payload("2026-07-01", {"benzin": 1.98}, diagnostics, root=tmp_path, source="public fuel average page")
+    benzin = payload["fuels"]["benzin"]
+
+    assert benzin["current_price"] == 1.98
+    assert benzin["record_high"] == 1.98
+    assert benzin["historical_max"] == 1.98
+    assert benzin["trend_delta"] == 0.08
+    assert benzin["trend_delta_percent"] == 4.21
+    assert benzin["average_30d"] == 1.94
+
+
 def test_main_uses_public_average_not_tankerkoenig_without_manual_opt_in(monkeypatch, tmp_path, capsys):
     monkeypatch.setenv("WORLD_OBSERVER_FUEL_API_KEY", "dummy")
     monkeypatch.delenv("WORLD_OBSERVER_FUEL_ENABLE_TANKERKOENIG_API", raising=False)
