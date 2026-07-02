@@ -19,6 +19,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
 OBSERVERS: List[str] = [
+    "arch-package-count",
     "area51-reachability",
     "asn-visibility-by-country",
     "cuba-internet-weather",
