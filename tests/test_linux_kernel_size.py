@@ -213,3 +213,104 @@ def test_unavailable_output_does_not_publish_invalid_guessed_v7_source_url(monke
     assert payload["release_date"] is None
     assert payload["source_url"] is None
     assert invalid_url not in json.dumps({key: payload[key] for key in ("version", "release_date", "source_url")})
+
+
+def test_head_request_sends_kernel_org_friendly_headers(monkeypatch) -> None:
+    captured = {}
+
+    class FakeResponse:
+        status = 200
+        headers = {"Content-Length": "145500000"}
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return False
+
+    def fake_urlopen(req, timeout):
+        captured["method"] = req.get_method()
+        captured["timeout"] = timeout
+        captured["user_agent"] = req.get_header("User-agent")
+        captured["accept"] = req.get_header("Accept")
+        return FakeResponse()
+
+    monkeypatch.setattr(lks.urllib.request, "urlopen", fake_urlopen)
+
+    assert lks.head_content_length("https://cdn.kernel.org/linux.tar.xz") == (145_500_000, 200)
+    assert captured == {"method": "HEAD", "timeout": lks.TIMEOUT_S, "user_agent": "WorldObserver/1.0", "accept": "*/*"}
+
+
+def test_head_404_falls_back_to_range_206_content_range(monkeypatch, tmp_path: Path) -> None:
+    tarball_url = "https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-6.16.1.tar.xz"
+    calls: list[dict[str, str | None]] = []
+
+    def fake_fetch(_url: str):
+        return {"releases": [{"moniker": "stable", "version": "6.16.1", "source": tarball_url}]}
+
+    class FakeResponse:
+        status = 206
+        headers = {"Content-Range": "bytes 0-0/123456789", "Content-Length": "1"}
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return False
+
+        def read(self, *_args):
+            raise AssertionError("range response body should not be read")
+
+    def fake_urlopen(req, timeout):
+        calls.append({
+            "method": req.get_method(),
+            "range": req.get_header("Range"),
+            "user_agent": req.get_header("User-agent"),
+            "accept": req.get_header("Accept"),
+        })
+        if req.get_method() == "HEAD":
+            raise urllib.error.HTTPError(req.full_url, 404, "Not Found", hdrs=None, fp=None)
+        return FakeResponse()
+
+    monkeypatch.setattr(lks, "fetch_json", fake_fetch)
+    monkeypatch.setattr(lks.urllib.request, "urlopen", fake_urlopen)
+
+    payload = lks.run("2026-07-02", root=tmp_path)
+
+    assert payload["status"] == "ok"
+    assert payload["current_size_bytes"] == 123_456_789
+    assert payload["source_url"] == tarball_url
+    assert calls == [
+        {"method": "HEAD", "range": None, "user_agent": "WorldObserver/1.0", "accept": "*/*"},
+        {"method": "GET", "range": "bytes=0-0", "user_agent": "WorldObserver/1.0", "accept": "*/*"},
+    ]
+    attempt = payload["diagnostics"]["tarball_head_attempts"][0]
+    assert attempt["head"]["http_status"] == 404
+    assert attempt["range"] == {"http_status": 206, "content_length": 123_456_789}
+
+
+def test_head_without_numeric_content_length_falls_back_to_range(monkeypatch, tmp_path: Path) -> None:
+    tarball_url = "https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-6.16.1.tar.xz"
+
+    def fake_fetch(_url: str):
+        return {"releases": [{"moniker": "stable", "version": "6.16.1", "source": tarball_url}]}
+
+    def fake_head(url: str):
+        assert url == tarball_url
+        return None, 200
+
+    def fake_range(url: str):
+        assert url == tarball_url
+        return 222_000_000, 206
+
+    monkeypatch.setattr(lks, "fetch_json", fake_fetch)
+    monkeypatch.setattr(lks, "head_content_length", fake_head)
+    monkeypatch.setattr(lks, "range_content_length", fake_range)
+
+    payload = lks.run("2026-07-02", root=tmp_path)
+
+    assert payload["status"] == "ok"
+    assert payload["current_size_bytes"] == 222_000_000
+    attempt = payload["diagnostics"]["tarball_head_attempts"][0]
+    assert attempt["head"] == {"http_status": 200, "content_length": None}
+    assert attempt["range"] == {"http_status": 206, "content_length": 222_000_000}
