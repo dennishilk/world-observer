@@ -22,6 +22,7 @@ OBSERVERS: List[str] = [
     "area51-reachability",
     "asn-visibility-by-country",
     "cuba-internet-weather",
+    "debian-package-count",
     "dns-time-to-answer-index",
     "dns-tta-stress-index",
     "east-frisian-tea-prices",
