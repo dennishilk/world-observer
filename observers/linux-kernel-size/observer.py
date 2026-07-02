@@ -163,13 +163,11 @@ def resolve_tarball_head(release: dict[str, Any]) -> tuple[int | None, int | Non
         try:
             size_bytes, status = head_content_length(url)
         except urllib.error.HTTPError as exc:
-            attempts.append({"url": url, "http_status": exc.code})
-            if exc.code == 404:
-                continue
-            return None, exc.code, url, f"tarball HEAD failed: HTTPError: {exc}", attempts
+            attempts.append({"url": url, "http_status": exc.code, "error": f"HTTPError: {exc}"})
+            continue
         except (OSError, urllib.error.URLError) as exc:
             attempts.append({"url": url, "error": f"{type(exc).__name__}: {exc}"})
-            return None, None, url, f"tarball HEAD failed: {type(exc).__name__}: {exc}", attempts
+            continue
         attempts.append({"url": url, "http_status": status, "content_length": size_bytes})
         if isinstance(size_bytes, int) and size_bytes > 0:
             return size_bytes, status, url, None, attempts
@@ -194,27 +192,35 @@ def _release_date(release: dict[str, Any] | None) -> str | None:
     return None
 
 
-def _is_supported_stable_release(item: Any) -> bool:
+SUPPORTED_RELEASE_MONIKERS = ("stable", "longterm")
+
+
+def _is_supported_release(item: Any) -> bool:
     if not isinstance(item, dict):
         return False
     moniker = str(item.get("moniker") or item.get("name") or "").lower()
     version = item.get("version")
-    if moniker != "stable" or not isinstance(version, str) or not version:
+    if moniker not in SUPPORTED_RELEASE_MONIKERS or not isinstance(version, str) or not version:
         return False
     if item.get("iseol") is True:
         return False
     return not re.search(r"(?:^|[-.])(?:rc|pre|next)", version, flags=re.IGNORECASE)
 
 
-def stable_release_candidates(payload: dict[str, Any]) -> list[dict[str, Any]]:
+def supported_release_candidates(payload: dict[str, Any]) -> list[dict[str, Any]]:
     releases = payload.get("releases")
     if not isinstance(releases, list):
         return []
-    return [item for item in releases if _is_supported_stable_release(item)]
+    return [item for item in releases if _is_supported_release(item)]
+
+
+def stable_release_candidates(payload: dict[str, Any]) -> list[dict[str, Any]]:
+    """Backward-compatible alias for supported release candidates."""
+    return supported_release_candidates(payload)
 
 
 def latest_stable_release(payload: dict[str, Any]) -> dict[str, Any] | None:
-    stable = stable_release_candidates(payload)
+    stable = [item for item in supported_release_candidates(payload) if str(item.get("moniker") or item.get("name") or "").lower() == "stable"]
     if not stable:
         return None
     return max(stable, key=lambda item: _version_key(str(item.get("version") or "0")))
@@ -222,15 +228,15 @@ def latest_stable_release(payload: dict[str, Any]) -> dict[str, Any] | None:
 
 def select_verified_stable_release(payload: dict[str, Any]) -> tuple[dict[str, Any] | None, int | None, dict[str, Any]]:
     diagnostics: dict[str, Any] = {"tarball_head_attempts": []}
-    candidates = stable_release_candidates(payload)
+    candidates = supported_release_candidates(payload)
     if not candidates:
-        diagnostics["reason"] = "no supported stable release in kernel.org metadata"
+        diagnostics["reason"] = "no supported stable or longterm release in kernel.org metadata"
         return None, None, diagnostics
 
     for release in candidates:
         size_bytes, http_status, source_url, reason, attempts = resolve_tarball_head(release)
         diagnostics["tarball_head_attempts"].extend(
-            {"version": release.get("version"), **attempt} for attempt in attempts
+            {"moniker": release.get("moniker") or release.get("name"), "version": release.get("version"), **attempt} for attempt in attempts
         )
         diagnostics["http_status"] = http_status
         if isinstance(size_bytes, int) and size_bytes > 0 and isinstance(source_url, str):
@@ -240,7 +246,7 @@ def select_verified_stable_release(payload: dict[str, Any]) -> tuple[dict[str, A
 
     diagnostics.pop("tarball_url", None)
     if len(candidates) != 1 or diagnostics.get("tarball_head_attempts"):
-        diagnostics["reason"] = "no verified supported stable kernel source archive URL with numeric Content-Length"
+        diagnostics["reason"] = "no verified supported stable or longterm kernel source archive URL with numeric Content-Length"
     return None, None, diagnostics
 
 
