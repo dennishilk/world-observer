@@ -220,6 +220,61 @@ def test_collect_fuel_history_limits_to_newest_365_observations(tmp_path) -> Non
     assert history["benzin"][-1]["date"] == "2026-01-01"
     assert "diesel" not in history
 
+
+def test_summary_timestamps_ignore_stale_legacy_summary_when_current_observers_exist(tmp_path, monkeypatch) -> None:
+    latest_dir = tmp_path / "latest"
+    dashboard_dir = tmp_path / "dashboard"
+    latest_dir.mkdir()
+
+    monkeypatch.setattr(
+        export_dashboard,
+        "OBSERVERS",
+        ["legacy-internet", "technology-dashboard", "society-dashboard"],
+    )
+    monkeypatch.setattr(export_dashboard, "_utc_now", lambda: "2026-07-02T12:00:00+00:00")
+    monkeypatch.setattr(
+        export_dashboard,
+        "_load_metadata",
+        lambda: {
+            "legacy-internet": {"observer": "legacy-internet", "category": "internet", "active": True},
+            "technology-dashboard": {"observer": "technology-dashboard", "category": "technology", "active": True},
+            "society-dashboard": {"observer": "society-dashboard", "category": "society", "active": True},
+        },
+    )
+
+    (latest_dir / export_dashboard.SUMMARY_NAME).write_text(
+        json.dumps({"last_run_utc": "2026-04-29T03:00:00+00:00", "latest_date_utc": "2026-04-28"}),
+        encoding="utf-8",
+    )
+    _write_latest(
+        latest_dir,
+        "legacy-internet",
+        {"observer": "legacy-internet", "data_status": "ok", "date_utc": "2026-04-29"},
+    )
+    _write_latest(
+        latest_dir,
+        "technology-dashboard",
+        {"observer": "technology-dashboard", "data_status": "ok", "date_utc": "2026-07-02"},
+    )
+    _write_latest(
+        latest_dir,
+        "society-dashboard",
+        {"observer": "society-dashboard", "data_status": "ok", "date": "2026-07-02"},
+    )
+
+    export_dashboard.export_dashboard(latest_dir, dashboard_dir, heartbeat_dir=tmp_path / "heartbeat")
+
+    summary = json.loads((dashboard_dir / "summary.json").read_text(encoding="utf-8"))
+    assert summary["generated_at"] == "2026-07-02T12:00:00+00:00"
+    assert summary["last_run_utc"] == "2026-07-02T12:00:00+00:00"
+    assert summary["latest_date_utc"] == "2026-07-02"
+    summary_freshness = {
+        "last_run_utc": summary["last_run_utc"],
+        "latest_date_utc": summary["latest_date_utc"],
+    }
+    assert "2026-04-29" not in json.dumps(summary_freshness)
+
+
 def test_export_dashboard_handles_missing_observer(tmp_path) -> None:
     latest_dir = tmp_path / "latest"
     dashboard_dir = tmp_path / "dashboard"

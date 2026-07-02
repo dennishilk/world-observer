@@ -195,9 +195,11 @@ def _summary(
     for observer in OBSERVERS:
         category = _metadata_category(metadata, observer)
         categories[category] = categories.get(category, 0) + 1
-    latest_summary, _ = _read_json(latest_dir / SUMMARY_NAME) if (latest_dir / SUMMARY_NAME).exists() else (None, None)
+    last_run_utc, latest_date_utc = _summary_update_timestamps(generated_at, loaded)
     payload: Dict[str, Any] = {
         "generated_at": generated_at,
+        "last_run_utc": last_run_utc,
+        "latest_date_utc": latest_date_utc,
         "observer_count": len(OBSERVERS),
         "observers_ok": len(ok),
         "degraded_count": len(degraded),
@@ -205,15 +207,34 @@ def _summary(
         "categories": categories,
         "dashboard_version": DASHBOARD_VERSION,
     }
-    if latest_summary:
-        for key in ("last_run_utc", "latest_date_utc"):
-            if key in latest_summary:
-                payload[key] = latest_summary[key]
     if missing:
         payload["missing_observers"] = missing
     if degraded:
         payload["degraded_observers"] = degraded
     return payload
+
+
+def _summary_update_timestamps(generated_at: str, loaded: Dict[str, Dict[str, Any]]) -> tuple[str, str]:
+    """Return dashboard summary freshness fields from current export data.
+
+    Older dashboard summary snapshots may contain legacy Internet observer dates.
+    Summary freshness should be based on this export and the newest valid date in
+    currently loaded observer payloads, never copied from stale summary input.
+    """
+    generated_date = _date_sort_key(generated_at) or generated_at[:10]
+    date_fields = ("date_utc", "date", "timestamp_utc", "timestamp", "last_seen_date", "fetched_at_utc")
+    observer_dates = [
+        date
+        for payload in loaded.values()
+        for key in date_fields
+        if (date := _date_sort_key(payload.get(key)))
+    ]
+    latest_date_utc = (
+        max([generated_date, *observer_dates])
+        if generated_date
+        else (max(observer_dates) if observer_dates else generated_at[:10])
+    )
+    return generated_at, latest_date_utc
 
 
 def _media(payload: Dict[str, Any] | None) -> Dict[str, Any]:
