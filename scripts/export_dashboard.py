@@ -955,7 +955,7 @@ def _fuel_price_value(item: Any) -> float | int | None:
 
 
 def normalizeFuelHistory(points: Iterable[Dict[str, Any]], limit: int = FUEL_HISTORY_LIMIT) -> list[Dict[str, Any]]:
-    latest_by_date: dict[str, float | int] = {}
+    latest_by_date: dict[str, tuple[int, float | int]] = {}
     for point in points:
         date = point.get("date")
         value = point.get("value")
@@ -965,8 +965,13 @@ def normalizeFuelHistory(points: Iterable[Dict[str, Any]], limit: int = FUEL_HIS
             datetime.strptime(date, "%Y-%m-%d")
         except ValueError:
             continue
-        latest_by_date[date] = round(value, 3)
-    normalized = [{"date": date, "value": value} for date, value in sorted(latest_by_date.items())]
+        priority = point.get("priority", 0)
+        if not isinstance(priority, int) or isinstance(priority, bool):
+            priority = 0
+        existing = latest_by_date.get(date)
+        if existing is None or priority >= existing[0]:
+            latest_by_date[date] = (priority, round(value, 3))
+    normalized = [{"date": date, "value": value} for date, (_priority, value) in sorted(latest_by_date.items())]
     return normalized[-limit:]
 
 
@@ -980,13 +985,21 @@ def collectFuelHistory(state_dir: Path, observer: str = FUEL_OBSERVER) -> dict[s
         if not isinstance(fuels, dict):
             continue
         for fuel, item in fuels.items():
-            if not isinstance(fuel, str):
+            if not isinstance(fuel, str) or not isinstance(item, dict):
                 continue
+            fuel_points = points_by_fuel.setdefault(fuel, [])
+            history = item.get("history")
+            if isinstance(history, list):
+                for point in history:
+                    if not isinstance(point, dict):
+                        continue
+                    history_date = point.get("date")
+                    history_value = point.get("value")
+                    fuel_points.append({"date": history_date, "value": history_value, "priority": 0})
             value = _fuel_price_value(item)
-            if value is None:
-                continue
-            points_by_fuel.setdefault(fuel, []).append({"date": date, "value": value})
-    return {fuel: normalizeFuelHistory(points) for fuel, points in points_by_fuel.items()}
+            if value is not None:
+                fuel_points.append({"date": date, "value": value, "priority": 1})
+    return {fuel: history for fuel, points in points_by_fuel.items() if (history := normalizeFuelHistory(points))}
 
 
 def _date_sort_key(value: Any) -> str | None:

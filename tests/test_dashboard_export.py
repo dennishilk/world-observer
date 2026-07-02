@@ -110,6 +110,58 @@ def test_export_dashboard_adds_fuel_history_from_state(tmp_path) -> None:
     assert fuel["fuels"]["benzin"]["label"] == "Super E5"
 
 
+def test_export_dashboard_keeps_unavailable_fuel_snapshot_history(tmp_path) -> None:
+    latest_dir = tmp_path / "latest"
+    dashboard_dir = tmp_path / "dashboard"
+    state_dir = tmp_path / "state"
+    fuel_state_dir = state_dir / export_dashboard.FUEL_OBSERVER
+    latest_dir.mkdir()
+    fuel_state_dir.mkdir(parents=True)
+    _write_latest(
+        latest_dir,
+        export_dashboard.FUEL_OBSERVER,
+        {
+            "observer": export_dashboard.FUEL_OBSERVER,
+            "date": "2026-07-02",
+            "data_status": "ok",
+            "fuels": {
+                "benzin": {"label": "Super E5", "current_price": 2.08},
+            },
+        },
+    )
+    (fuel_state_dir / "2026-06-30.json").write_text(
+        json.dumps(
+            {
+                "data_status": "unavailable",
+                "fuels": {
+                    "benzin": {
+                        "current_price": None,
+                        "history": [{"date": "2026-06-30", "value": 1.83}],
+                    }
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    (fuel_state_dir / "2026-07-01.json").write_text(
+        json.dumps({"fuels": {"benzin": {"current_price": 1.98, "history": [{"date": "2026-07-01", "value": 9.99}]}}}),
+        encoding="utf-8",
+    )
+    (fuel_state_dir / "2026-07-02.json").write_text(
+        json.dumps({"fuels": {"benzin": {"current_price": 2.08}}}),
+        encoding="utf-8",
+    )
+
+    export_dashboard.export_dashboard(latest_dir, dashboard_dir, state_dir=state_dir)
+
+    society = json.loads((dashboard_dir / "society.json").read_text(encoding="utf-8"))
+    fuel = next(observer for observer in society["observers"] if observer["observer"] == export_dashboard.FUEL_OBSERVER)
+    assert fuel["fuels"]["benzin"]["history"] == [
+        {"date": "2026-06-30", "value": 1.83},
+        {"date": "2026-07-01", "value": 1.98},
+        {"date": "2026-07-02", "value": 2.08},
+    ]
+
 
 def test_export_dashboard_uses_latest_fuel_history_for_last_seen(tmp_path) -> None:
     latest_dir = tmp_path / "latest"
