@@ -1,0 +1,34 @@
+{
+  "observer": "germany-electricity-prices",
+  "category": "society",
+  "date": "2026-07-02",
+  "date_utc": "2026-07-02",
+  "status": "unavailable",
+  "data_status": "unavailable",
+  "current_price_eur_per_kwh": null,
+  "unit": "EUR per kWh",
+  "representative_household": {
+    "country": "Germany",
+    "location": "Wiesmoor",
+    "postal_code": "26628",
+    "annual_consumption_kwh": 3500,
+    "households_represented": 1,
+    "observation_frequency": "daily",
+    "observation_type": "descriptive"
+  },
+  "source": null,
+  "source_url": null,
+  "history": [],
+  "average_30d": null,
+  "average_365d": null,
+  "import_diagnostics": [],
+  "diagnostics": {
+    "api_attempts": 0,
+    "retries": 0,
+    "http_status": null,
+    "source_status": "placeholder",
+    "validation_note": "No stable redistributable public tariff source is configured; only validated local imports are accepted.",
+    "daily_state_history_count": 0
+  },
+  "degraded_reason": "No stable public source or permitted local import is available for the representative household."
+}

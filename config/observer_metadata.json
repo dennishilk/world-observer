@@ -256,16 +256,17 @@
       "planned": true
     },
     {
-      "observer": "electricity-prices-germany",
-      "display_name": "Electricity Prices Germany",
+      "observer": "germany-electricity-prices",
+      "display_name": "Germany Electricity Price Observer",
       "category": "society",
-      "description": "Planned Electricity Prices Germany observer.",
+      "description": "Daily descriptive observer for a representative household electricity price in Wiesmoor, Germany (3,500 kWh/year).",
       "tags": [
         "society",
-        "planned"
+        "electricity",
+        "germany"
       ],
-      "dashboard_priority": 101,
-      "planned": true
+      "dashboard_priority": 15,
+      "planned": false
     },
     {
       "observer": "food-prices-germany",
