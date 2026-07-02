@@ -393,6 +393,37 @@
       ],
       "dashboard_priority": 20,
       "planned": false
+    },
+    {
+      "observer": "linux-kernel-size",
+      "display_name": "Linux Kernel Size Observer",
+      "category": "technology",
+      "description": "Tracks the latest stable Linux kernel source archive size from kernel.org release metadata and official tarball HEAD Content-Length.",
+      "tags": [
+        "technology",
+        "linux",
+        "kernel"
+      ],
+      "dashboard_priority": 10,
+      "planned": false,
+      "primary_metric": "current_size_mb",
+      "primary_metric_label": "Kernel source archive size",
+      "primary_metric_unit": "MB",
+      "secondary_metrics": [
+        [
+          "current_size_bytes",
+          "Archive size",
+          "bytes"
+        ],
+        [
+          "trend_delta",
+          "Change",
+          "MB"
+        ]
+      ],
+      "trend_metric": "current_size_mb",
+      "trend_metric_label": "Kernel source archive size",
+      "trend_metric_unit": "MB"
     }
   ]
 }

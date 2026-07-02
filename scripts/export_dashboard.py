@@ -19,7 +19,7 @@ MEDIA_OBSERVER = "media-language-germany"
 FUEL_OBSERVER = "germany-fuel-prices"
 TEA_OBSERVER = "east-frisian-tea-prices"
 SUMMARY_NAME = "summary.json"
-OUTPUT_FILES = ("summary.json", "internet.json", "media.json", "society.json", "environment.json", "heartbeat.json")
+OUTPUT_FILES = ("summary.json", "internet.json", "media.json", "society.json", "environment.json", "technology.json", "heartbeat.json")
 HISTORY_FILES = ("history/media-language-germany.json", "history/internet-observers.json")
 FUEL_HISTORY_LIMIT = 365
 METADATA_PATH = "config/observer_metadata.json"
@@ -191,7 +191,7 @@ def _summary(
     missing = sorted(observer for observer in OBSERVERS if observer not in loaded)
     degraded = sorted(observer for observer, status in observer_statuses.items() if _is_degraded(status))
     ok = sorted(observer for observer, status in observer_statuses.items() if _is_ok(status))
-    categories = {category: 0 for category in ("internet", "media", "society", "environment")}
+    categories = {category: 0 for category in ("internet", "media", "society", "environment", "technology")}
     for observer in OBSERVERS:
         category = _metadata_category(metadata, observer)
         categories[category] = categories.get(category, 0) + 1
@@ -1097,6 +1097,18 @@ def _society(loaded: Dict[str, Dict[str, Any]], metadata: Dict[str, Dict[str, An
     planned = _planned_items(metadata, "society")
     return {"observer_count": len(observers), "observers": observers, "items": planned}
 
+
+def _category_dashboard(category: str, loaded: Dict[str, Dict[str, Any]], metadata: Dict[str, Dict[str, Any]]) -> Dict[str, Any]:
+    observers = [
+        _internet_observer(observer, loaded[observer], metadata)
+        for observer in sorted(
+            loaded,
+            key=lambda item: (_metadata_priority(metadata, item), _metadata_display_name(metadata, item), item),
+        )
+        if _metadata_category(metadata, observer) == category and _metadata_active(metadata, observer)
+    ]
+    return {"observer_count": len(observers), "observers": observers, "items": _planned_items(metadata, category)}
+
 def _planned_items(metadata: Dict[str, Dict[str, Any]], category: str) -> list[Dict[str, Any]]:
     items: list[Dict[str, Any]] = []
     for observer, entry in sorted(
@@ -1273,6 +1285,7 @@ def export_dashboard(
         "media.json": _media(loaded.get(MEDIA_OBSERVER)),
         "society.json": _society(loaded, metadata, state_dir),
         "environment.json": {"status": "placeholder", "items": _planned_items(metadata, "environment")},
+        "technology.json": _category_dashboard("technology", loaded, metadata),
         "heartbeat.json": _heartbeat(heartbeat_dir, generated_at),
         "history/media-language-germany.json": _media_history(daily_dir, generated_at, media_imports_dir),
         "history/internet-observers.json": _internet_history(daily_dir, state_dir, generated_at, metadata),
