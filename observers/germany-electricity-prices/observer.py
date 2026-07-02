@@ -2,8 +2,8 @@
 """Germany household electricity price observer.
 
 The observer intentionally does not scrape tariff-comparison websites by
-fallback. Until a stable, redistributable public source is configured, it emits
-an unavailable skeleton and can ingest explicitly permitted local imports.
+fallback. It currently emits a documented static tariff observation and can
+ingest explicitly permitted local imports for future source integrations.
 """
 from __future__ import annotations
 
@@ -19,13 +19,25 @@ IMPORTS_DIR = Path("imports/germany-electricity-prices")
 REPRESENTATIVE_HOUSEHOLD = {
     "country": "Germany",
     "location": "Wiesmoor",
-    "postal_code": "26628",
+    "postal_code": "26639",
     "annual_consumption_kwh": 3500,
     "households_represented": 1,
     "observation_frequency": "daily",
     "observation_type": "descriptive",
 }
 UNIT = "EUR per kWh"
+
+STATIC_TARIFF_OBSERVATION = {
+    "source_type": "static_tariff_observation",
+    "supplier": "EWE",
+    "tariff": "Grundversorgung / EWE Strom comfort",
+    "location": "Wiesmoor",
+    "postal_code": "26639",
+    "annual_consumption_kwh": 3500,
+    "work_price_ct_per_kwh": 29.63,
+    "base_price_eur_per_year": 224.80,
+    "source_note": "manually configured documented tariff values",
+}
 
 
 def _repo_root() -> Path:
@@ -76,6 +88,28 @@ def _daily_price_points(root: Path) -> list[dict[str, Any]]:
         if price is not None:
             points.append({"date": date, "price": price, "source": "daily"})
     return points
+
+
+def _static_tariff_point(date: str) -> dict[str, Any]:
+    work_price_eur_per_kwh = round(STATIC_TARIFF_OBSERVATION["work_price_ct_per_kwh"] / 100, 4)
+    annual_cost = round(
+        work_price_eur_per_kwh * STATIC_TARIFF_OBSERVATION["annual_consumption_kwh"]
+        + STATIC_TARIFF_OBSERVATION["base_price_eur_per_year"],
+        2,
+    )
+    return {
+        "date": date,
+        "price": work_price_eur_per_kwh,
+        "source": STATIC_TARIFF_OBSERVATION["source_type"],
+        "source_url": None,
+        "source_type": STATIC_TARIFF_OBSERVATION["source_type"],
+        "supplier": STATIC_TARIFF_OBSERVATION["supplier"],
+        "tariff": STATIC_TARIFF_OBSERVATION["tariff"],
+        "source_note": STATIC_TARIFF_OBSERVATION["source_note"],
+        "work_price_ct_per_kwh": STATIC_TARIFF_OBSERVATION["work_price_ct_per_kwh"],
+        "base_price_eur_per_year": STATIC_TARIFF_OBSERVATION["base_price_eur_per_year"],
+        "annual_cost_eur": annual_cost,
+    }
 
 
 def _validate_import_row(row: dict[str, Any], file_name: str) -> tuple[dict[str, Any] | None, str | None]:
@@ -147,7 +181,8 @@ def build_payload(date: str, root: Path | None = None) -> dict[str, Any]:
     root = root or _repo_root()
     daily_points = _daily_price_points(root)
     import_points, import_diagnostics = import_price_points(root / IMPORTS_DIR, {p["date"] for p in daily_points})
-    history = sorted(import_points + daily_points, key=lambda p: p["date"])
+    static_point = _static_tariff_point(date)
+    history = sorted(import_points + daily_points + [static_point], key=lambda p: p["date"])
     latest = next((p for p in reversed(history) if p["date"] <= date), None)
     current = latest["price"] if latest else None
     data_status = "ok" if current is not None else "unavailable"
@@ -155,11 +190,13 @@ def build_payload(date: str, root: Path | None = None) -> dict[str, Any]:
         "api_attempts": 0,
         "retries": 0,
         "http_status": None,
-        "source_status": "placeholder",
-        "validation_note": "No stable redistributable public tariff source is configured; only validated local imports are accepted.",
+        "source_status": "static_tariff_loaded" if latest else "unavailable",
+        "validation_note": "Static tariff values are manually configured; validated local CSV/JSON imports remain supported.",
         "daily_state_history_count": len(daily_points),
     }
-    annual_cost = round(current * REPRESENTATIVE_HOUSEHOLD["annual_consumption_kwh"], 2) if current is not None else None
+    annual_cost = latest.get("annual_cost_eur") if latest else None
+    if annual_cost is None and current is not None:
+        annual_cost = round(current * REPRESENTATIVE_HOUSEHOLD["annual_consumption_kwh"], 2)
     monthly_cost = round(annual_cost / 12, 2) if annual_cost is not None else None
     payload: dict[str, Any] = {
         "observer": OBSERVER,
@@ -175,6 +212,12 @@ def build_payload(date: str, root: Path | None = None) -> dict[str, Any]:
         "representative_household": REPRESENTATIVE_HOUSEHOLD,
         "source": latest["source"] if latest else None,
         "source_url": latest.get("source_url") if latest else None,
+        "source_type": latest.get("source_type") if latest else None,
+        "supplier": latest.get("supplier") if latest else None,
+        "tariff": latest.get("tariff") if latest else None,
+        "source_note": latest.get("source_note") if latest else None,
+        "work_price_ct_per_kwh": latest.get("work_price_ct_per_kwh") if latest else None,
+        "base_price_eur_per_year": latest.get("base_price_eur_per_year") if latest else None,
         "history": [{"date": p["date"], "value": p["price"], "source": p["source"]} for p in history],
         "average_30d": _average(history, 30, date),
         "average_365d": _average(history, 365, date),
