@@ -6,7 +6,7 @@ Daily descriptive backend/data observer for the existing Electricity Observer we
 
 - Country: Germany
 - Location: Wiesmoor
-- Postal code: 26628
+- Postal code: 26639
 - Annual consumption: 3,500 kWh
 - Representative unit: one household
 - Observation frequency: daily
@@ -14,7 +14,7 @@ Daily descriptive backend/data observer for the existing Electricity Observer we
 
 ## Data-source policy
 
-The observer does not invent or estimate electricity prices. It currently emits an `unavailable` payload unless validated local imports are supplied in `imports/germany-electricity-prices/`.
+The observer does not invent or estimate electricity prices. It currently emits a documented static tariff observation for EWE Grundversorgung in Wiesmoor and keeps validated local imports available for future CSV/JSON source integrations. It does not scrape comparison websites, use fake data, guess a market average, or claim undocumented JSON APIs.
 
 Accepted import formats are CSV or JSON records with:
 
@@ -24,4 +24,16 @@ Accepted import formats are CSV or JSON records with:
 - optional `source_url`
 - optional `notes`
 
-This placeholder exists because no stable redistributable public tariff source is configured for a Wiesmoor household using 3,500 kWh/year.
+## Initial static source
+
+- Source type: `static_tariff_observation`
+- Supplier: EWE
+- Tariff: Grundversorgung / EWE Strom comfort
+- Location: Wiesmoor
+- Postal code: 26639
+- Annual consumption: 3,500 kWh
+- Work price: 29.63 ct/kWh
+- Base price: 224.80 EUR/year
+- Source note: manually configured documented tariff values
+
+Annual and monthly costs are calculated from the configured work price, annual consumption, and base price.
