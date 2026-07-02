@@ -972,6 +972,31 @@ def collectFuelHistory(state_dir: Path, observer: str = FUEL_OBSERVER) -> dict[s
     return {fuel: normalizeFuelHistory(points) for fuel, points in points_by_fuel.items()}
 
 
+def _date_sort_key(value: Any) -> str | None:
+    if not isinstance(value, str) or len(value) < 10:
+        return None
+    candidate = value[:10]
+    try:
+        datetime.strptime(candidate, "%Y-%m-%d")
+    except ValueError:
+        return None
+    return candidate
+
+
+def _latest_history_date(history: Any) -> str | None:
+    if not isinstance(history, list):
+        return None
+    dates = [date for date in (_date_sort_key(point.get("date")) for point in history if isinstance(point, dict)) if date]
+    return max(dates) if dates else None
+
+
+def _latest_date(*values: Any) -> Any:
+    dated_values = [(date, value) for value in values if (date := _date_sort_key(value))]
+    if dated_values:
+        return max(dated_values, key=lambda item: item[0])[1]
+    return next((value for value in values if value is not None), None)
+
+
 def buildFuelHistory(fuels: Any, state_dir: Path) -> Dict[str, Any]:
     if not isinstance(fuels, dict):
         return {}
@@ -979,10 +1004,24 @@ def buildFuelHistory(fuels: Any, state_dir: Path) -> Dict[str, Any]:
     exported: Dict[str, Any] = {}
     for fuel, item in fuels.items():
         if isinstance(item, dict):
-            exported[fuel] = {**item, "history": history_by_fuel.get(fuel, [])}
+            history = history_by_fuel.get(fuel, [])
+            exported_item = {**item, "history": history}
+            latest_seen = _latest_date(item.get("last_seen_date"), _latest_history_date(history))
+            if latest_seen is not None:
+                exported_item["last_seen_date"] = latest_seen
+            exported[fuel] = exported_item
         else:
             exported[fuel] = item
     return exported
+
+
+def _fuel_observer_last_seen(payload: Dict[str, Any], fuels: Dict[str, Any]) -> Any:
+    fuel_dates = []
+    for item in fuels.values():
+        if isinstance(item, dict):
+            fuel_dates.append(item.get("last_seen_date"))
+            fuel_dates.append(_latest_history_date(item.get("history")))
+    return _latest_date(*fuel_dates, payload.get("last_seen_date"), payload.get("date"), payload.get("date_utc"))
 
 
 def _society(loaded: Dict[str, Dict[str, Any]], metadata: Dict[str, Dict[str, Any]], state_dir: Path) -> Dict[str, Any]:
@@ -1010,7 +1049,6 @@ def _society(loaded: Dict[str, Dict[str, Any]], metadata: Dict[str, Dict[str, An
                 "dashboard_priority": _metadata_priority(metadata, observer),
                 "status": _status(payload),
                 "data_status": payload.get("data_status", _status(payload)),
-                "last_seen_date": payload.get("date") or payload.get("date_utc"),
                 "fuels": buildFuelHistory(payload.get("fuels", {}), state_dir),
                 "source": payload.get("source"),
                 "fetch_url": (payload.get("diagnostics") or {}).get("fetch_url") if isinstance(payload.get("diagnostics"), dict) else None,
@@ -1019,6 +1057,7 @@ def _society(loaded: Dict[str, Dict[str, Any]], metadata: Dict[str, Dict[str, An
                 "fallback_used": (payload.get("diagnostics") or {}).get("fallback_used") if isinstance(payload.get("diagnostics"), dict) else None,
                 "import_diagnostics": payload.get("import_diagnostics", []),
             }
+            item["last_seen_date"] = _fuel_observer_last_seen(payload, item["fuels"])
             degraded_reason = payload.get("degraded_reason") or payload.get("error")
             if degraded_reason:
                 item["degraded_reason"] = degraded_reason

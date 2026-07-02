@@ -111,6 +111,45 @@ def test_export_dashboard_adds_fuel_history_from_state(tmp_path) -> None:
 
 
 
+def test_export_dashboard_uses_latest_fuel_history_for_last_seen(tmp_path) -> None:
+    latest_dir = tmp_path / "latest"
+    dashboard_dir = tmp_path / "dashboard"
+    state_dir = tmp_path / "state"
+    fuel_state_dir = state_dir / export_dashboard.FUEL_OBSERVER
+    latest_dir.mkdir()
+    fuel_state_dir.mkdir(parents=True)
+    _write_latest(
+        latest_dir,
+        export_dashboard.FUEL_OBSERVER,
+        {
+            "observer": export_dashboard.FUEL_OBSERVER,
+            "date": "2026-07-01",
+            "last_seen_date": "2026-07-01",
+            "data_status": "ok",
+            "fuels": {
+                "benzin": {"label": "Super E5", "current_price": 2.08, "last_seen_date": "2026-07-01"},
+            },
+        },
+    )
+    (fuel_state_dir / "2026-07-01.json").write_text(
+        json.dumps({"fuels": {"benzin": {"current_price": 2.04}}}),
+        encoding="utf-8",
+    )
+    (fuel_state_dir / "2026-07-02.json").write_text(
+        json.dumps({"fuels": {"benzin": {"current_price": 2.08}}}),
+        encoding="utf-8",
+    )
+
+    export_dashboard.export_dashboard(latest_dir, dashboard_dir, state_dir=state_dir)
+
+    society = json.loads((dashboard_dir / "society.json").read_text(encoding="utf-8"))
+    fuel = next(observer for observer in society["observers"] if observer["observer"] == export_dashboard.FUEL_OBSERVER)
+    assert fuel["last_seen_date"] == "2026-07-02"
+    assert fuel["fuels"]["benzin"]["last_seen_date"] == "2026-07-02"
+    assert fuel["fuels"]["benzin"]["current_price"] == 2.08
+    assert fuel["fuels"]["benzin"]["history"][-1] == {"date": "2026-07-02", "value": 2.08}
+
+
 def test_collect_fuel_history_limits_to_newest_365_observations(tmp_path) -> None:
     state_dir = tmp_path / "state"
     fuel_state_dir = state_dir / export_dashboard.FUEL_OBSERVER
