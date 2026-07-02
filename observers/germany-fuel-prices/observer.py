@@ -93,6 +93,43 @@ def _daily_price_points(root: Path) -> list[dict[str, Any]]:
     return points
 
 
+def _has_valid_observation(payload: dict[str, Any]) -> bool:
+    if payload.get("status") != "ok" and payload.get("data_status") != "ok":
+        return False
+    fuels = payload.get("fuels")
+    if not isinstance(fuels, dict):
+        return False
+    return any(isinstance(item, dict) and _as_price(item.get("current_price")) is not None for item in fuels.values())
+
+
+def _newest_publishable_state_payload(root: Path) -> dict[str, Any] | None:
+    """Return the newest valid fuel state snapshot, falling back to newest snapshot.
+
+    Production state recovery can restore newer ok observations after an older
+    unavailable daily run has already written data/latest.  The rolling latest
+    export must therefore be selected from state by observation date instead of
+    blindly preserving whichever run wrote last.
+    """
+    state_dir = root / "state" / OBSERVER
+    if not state_dir.exists():
+        return None
+    payloads: list[tuple[str, bool, dict[str, Any]]] = []
+    for path in sorted(state_dir.glob("*.json")):
+        payload, _error = _read_json(path)
+        if not payload:
+            continue
+        date = str(payload.get("date") or payload.get("date_utc") or path.stem)[:10]
+        try:
+            datetime.strptime(date, "%Y-%m-%d")
+        except ValueError:
+            continue
+        payloads.append((date, _has_valid_observation(payload), payload))
+    if not payloads:
+        return None
+    valid = [item for item in payloads if item[1]]
+    return max(valid or payloads, key=lambda item: item[0])[2]
+
+
 def _validate_import_row(row: dict[str, Any], file_name: str) -> tuple[dict[str, Any] | None, str | None]:
     date = str(row.get("date", ""))[:10]
     try:
@@ -473,9 +510,14 @@ def build_payload(date: str, current_prices: dict[str, float], diagnostics: dict
 
 def _write_outputs(payload: dict[str, Any], root: Path) -> None:
     date = str(payload.get("date") or payload.get("date_utc"))[:10]
-    for path in (root / "state" / OBSERVER / f"{date}.json", root / "data" / "latest" / f"{OBSERVER}.json"):
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    state_path = root / "state" / OBSERVER / f"{date}.json"
+    state_path.parent.mkdir(parents=True, exist_ok=True)
+    state_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+    latest_payload = _newest_publishable_state_payload(root) or payload
+    latest_path = root / "data" / "latest" / f"{OBSERVER}.json"
+    latest_path.parent.mkdir(parents=True, exist_ok=True)
+    latest_path.write_text(json.dumps(latest_payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
 def _manual_api_enabled() -> bool:

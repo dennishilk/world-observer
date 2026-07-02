@@ -47,6 +47,7 @@ OBSERVERS: List[str] = [
 ]
 
 META_OBSERVER = "world-observer-meta"
+FUEL_OBSERVER = "germany-fuel-prices"
 
 
 def _repo_root() -> Path:
@@ -81,6 +82,48 @@ def _parse_args() -> argparse.Namespace:
 
 def _write_json(path: Path, payload: Dict[str, Any]) -> None:
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n")
+
+
+def _fuel_price_value(item: Any) -> float | int | None:
+    if not isinstance(item, dict):
+        return None
+    value = item.get("current_price")
+    if isinstance(value, bool) or value is None:
+        return None
+    if isinstance(value, (int, float)) and value > 0:
+        return value
+    return None
+
+
+def _is_valid_fuel_payload(payload: Dict[str, Any]) -> bool:
+    if payload.get("status") != "ok" and payload.get("data_status") != "ok":
+        return False
+    fuels = payload.get("fuels")
+    return isinstance(fuels, dict) and any(_fuel_price_value(item) is not None for item in fuels.values())
+
+
+def _newest_publishable_fuel_payload(root: Path) -> Dict[str, Any] | None:
+    state_dir = root / "state" / FUEL_OBSERVER
+    if not state_dir.exists():
+        return None
+    candidates: list[tuple[str, bool, Dict[str, Any]]] = []
+    for path in sorted(state_dir.glob("*.json")):
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            continue
+        if not isinstance(payload, dict):
+            continue
+        date = str(payload.get("date") or payload.get("date_utc") or path.stem)[:10]
+        try:
+            datetime.strptime(date, "%Y-%m-%d")
+        except ValueError:
+            continue
+        candidates.append((date, _is_valid_fuel_payload(payload), payload))
+    if not candidates:
+        return None
+    valid = [candidate for candidate in candidates if candidate[1]]
+    return max(valid or candidates, key=lambda candidate: candidate[0])[2]
 
 
 def _error_payload(
@@ -326,11 +369,17 @@ def _run_meta_observer(date_str: str, daily_dir: Path) -> Tuple[bool, str]:
 
 
 def _update_latest(daily_dir: Path) -> None:
-    latest_dir = _repo_root() / "data" / "latest"
+    root = _repo_root()
+    latest_dir = root / "data" / "latest"
     latest_dir.mkdir(parents=True, exist_ok=True)
     for path in daily_dir.glob("*.json"):
         if path.name == "summary.json":
             continue
+        if path.name == f"{FUEL_OBSERVER}.json":
+            fuel_payload = _newest_publishable_fuel_payload(root)
+            if fuel_payload is not None:
+                _write_json(latest_dir / path.name, fuel_payload)
+                continue
         shutil.copy2(path, latest_dir / path.name)
 
 

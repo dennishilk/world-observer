@@ -187,6 +187,46 @@ def test_main_uses_public_average_not_tankerkoenig_without_manual_opt_in(monkeyp
     assert payload["fuels"]["diesel"]["current_price"] == 1.7
 
 
+def test_latest_export_uses_newest_valid_state_over_older_unavailable(tmp_path):
+    state_dir = tmp_path / "state" / "germany-fuel-prices"
+    state_dir.mkdir(parents=True)
+    (state_dir / "2026-06-30.json").write_text(json.dumps({
+        "date": "2026-06-30",
+        "status": "unavailable",
+        "data_status": "unavailable",
+        "fuels": {
+            "benzin": {"current_price": None},
+            "diesel": {"current_price": None},
+        },
+    }))
+    restored = {
+        "date": "2026-07-02",
+        "status": "ok",
+        "data_status": "ok",
+        "fuels": {
+            "benzin": {"current_price": 1.98},
+            "diesel": {"current_price": 1.86},
+        },
+    }
+    (state_dir / "2026-07-02.json").write_text(json.dumps(restored))
+    stale_run = {
+        "date": "2026-06-30",
+        "status": "unavailable",
+        "data_status": "unavailable",
+        "fuels": {
+            "benzin": {"current_price": None},
+            "diesel": {"current_price": None},
+        },
+    }
+
+    fuel._write_outputs(stale_run, tmp_path)
+
+    latest = json.loads((tmp_path / "data" / "latest" / "germany-fuel-prices.json").read_text())
+    assert latest["date"] == "2026-07-02"
+    assert latest["status"] == "ok"
+    assert latest["fuels"]["benzin"]["current_price"] == 1.98
+
+
 def test_public_average_does_not_fetch_fallback_when_supported_fuels_present(monkeypatch):
     calls = []
 
@@ -227,3 +267,11 @@ def test_supported_fuels_available_keeps_observer_ok(tmp_path):
     assert payload["fuels"]["benzin"]["status"] == "ok"
     assert payload["fuels"]["diesel"]["status"] == "ok"
     assert payload["diagnostics"]["priced_fuel_count"] == 2
+
+
+def test_production_state_recovery_docs_do_not_recommend_git_clean():
+    docs = (ROOT / "docs" / "fuel-price-import.md").read_text(encoding="utf-8").lower()
+    recovery_section = docs.split("## production state recovery safety", 1)[1]
+    assert "git clean" in recovery_section
+    assert "must not" in recovery_section
+    assert "git clean -" not in recovery_section

@@ -176,6 +176,42 @@ def test_run_daily_default_uses_current_utc_date(monkeypatch) -> None:
     assert run_daily._current_date_utc() == "2026-07-02"
 
 
+def test_update_latest_exports_newest_valid_fuel_state_not_older_unavailable_daily(tmp_path, monkeypatch) -> None:
+    daily_dir = tmp_path / "data" / "daily" / "2026-06-30"
+    daily_dir.mkdir(parents=True)
+    _write_observer_payload(daily_dir, run_daily.FUEL_OBSERVER, {
+        "observer": run_daily.FUEL_OBSERVER,
+        "date": "2026-06-30",
+        "status": "unavailable",
+        "data_status": "unavailable",
+        "fuels": {"benzin": {"current_price": None}},
+    })
+    state_dir = tmp_path / "state" / run_daily.FUEL_OBSERVER
+    state_dir.mkdir(parents=True)
+    _write_observer_payload(state_dir, "2026-06-30", {
+        "observer": run_daily.FUEL_OBSERVER,
+        "date": "2026-06-30",
+        "status": "unavailable",
+        "data_status": "unavailable",
+        "fuels": {"benzin": {"current_price": None}},
+    })
+    _write_observer_payload(state_dir, "2026-07-02", {
+        "observer": run_daily.FUEL_OBSERVER,
+        "date": "2026-07-02",
+        "status": "ok",
+        "data_status": "ok",
+        "fuels": {"benzin": {"current_price": 1.98}},
+    })
+    monkeypatch.setattr(run_daily, "_repo_root", lambda: tmp_path)
+
+    run_daily._update_latest(daily_dir)
+
+    latest = json.loads((tmp_path / "data" / "latest" / f"{run_daily.FUEL_OBSERVER}.json").read_text(encoding="utf-8"))
+    assert latest["date"] == "2026-07-02"
+    assert latest["status"] == "ok"
+    assert latest["fuels"]["benzin"]["current_price"] == 1.98
+
+
 def test_run_daily_cron_default_uses_current_utc_date(monkeypatch) -> None:
     class FixedDateTime:
         @classmethod
