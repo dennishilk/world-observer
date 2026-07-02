@@ -266,7 +266,22 @@
         "germany"
       ],
       "dashboard_priority": 15,
-      "planned": false
+      "planned": false,
+      "primary_metric": "current_price_eur_per_kwh",
+      "primary_metric_label": "Current electricity price",
+      "primary_metric_unit": "EUR/kWh",
+      "secondary_metrics": [
+        [
+          "annual_cost_eur",
+          "Annual household cost",
+          "EUR"
+        ],
+        [
+          "monthly_cost_eur",
+          "Monthly household cost",
+          "EUR"
+        ]
+      ]
     },
     {
       "observer": "food-prices-germany",

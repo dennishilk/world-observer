@@ -159,6 +159,8 @@ def build_payload(date: str, root: Path | None = None) -> dict[str, Any]:
         "validation_note": "No stable redistributable public tariff source is configured; only validated local imports are accepted.",
         "daily_state_history_count": len(daily_points),
     }
+    annual_cost = round(current * REPRESENTATIVE_HOUSEHOLD["annual_consumption_kwh"], 2) if current is not None else None
+    monthly_cost = round(annual_cost / 12, 2) if annual_cost is not None else None
     payload: dict[str, Any] = {
         "observer": OBSERVER,
         "category": "society",
@@ -168,6 +170,8 @@ def build_payload(date: str, root: Path | None = None) -> dict[str, Any]:
         "data_status": data_status,
         "current_price_eur_per_kwh": current,
         "unit": UNIT,
+        "annual_cost_eur": annual_cost,
+        "monthly_cost_eur": monthly_cost,
         "representative_household": REPRESENTATIVE_HOUSEHOLD,
         "source": latest["source"] if latest else None,
         "source_url": latest.get("source_url") if latest else None,
