@@ -25,6 +25,7 @@ OBSERVERS: List[str] = [
     "dns-time-to-answer-index",
     "dns-tta-stress-index",
     "east-frisian-tea-prices",
+    "germany-electricity-prices",
     "germany-fuel-prices",
     "global-reachability-long-horizon",
     "global-reachability-score",
