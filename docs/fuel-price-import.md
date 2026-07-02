@@ -91,6 +91,10 @@ Malformed files, malformed rows, unsupported fuel types, invalid prices, invalid
 
 Cthulhu can normalize any reliable public historical source into JSON or CSV using the fields above, place files in `imports/fuel-prices-germany/`, and leave daily `state/` untouched. Monthly or yearly rows should use a representative date such as the first day of the period and set `granularity` accordingly.
 
+## Production state recovery safety
+
+When recovering production fuel state, preserve restored snapshots under `state/germany-fuel-prices/` and rerun the fuel observer/export path so `data/latest/germany-fuel-prices.json` can be selected from the newest valid state observation. `git clean` must not be recommended for production state recovery workflows because it can delete untracked restored state, imports, or forensic recovery artifacts before they are safely reviewed and committed.
+
 ## Verification
 
 Run:
