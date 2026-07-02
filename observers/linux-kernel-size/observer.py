@@ -194,21 +194,54 @@ def _release_date(release: dict[str, Any] | None) -> str | None:
     return None
 
 
-def latest_stable_release(payload: dict[str, Any]) -> dict[str, Any] | None:
+def _is_supported_stable_release(item: Any) -> bool:
+    if not isinstance(item, dict):
+        return False
+    moniker = str(item.get("moniker") or item.get("name") or "").lower()
+    version = item.get("version")
+    if moniker != "stable" or not isinstance(version, str) or not version:
+        return False
+    if item.get("iseol") is True:
+        return False
+    return not re.search(r"(?:^|[-.])(?:rc|pre|next)", version, flags=re.IGNORECASE)
+
+
+def stable_release_candidates(payload: dict[str, Any]) -> list[dict[str, Any]]:
     releases = payload.get("releases")
     if not isinstance(releases, list):
-        return None
-    stable: list[dict[str, Any]] = []
-    for item in releases:
-        if not isinstance(item, dict):
-            continue
-        moniker = str(item.get("moniker") or item.get("name") or "").lower()
-        version = item.get("version")
-        if isinstance(version, str) and moniker == "stable":
-            stable.append(item)
+        return []
+    return [item for item in releases if _is_supported_stable_release(item)]
+
+
+def latest_stable_release(payload: dict[str, Any]) -> dict[str, Any] | None:
+    stable = stable_release_candidates(payload)
     if not stable:
         return None
     return max(stable, key=lambda item: _version_key(str(item.get("version") or "0")))
+
+
+def select_verified_stable_release(payload: dict[str, Any]) -> tuple[dict[str, Any] | None, int | None, dict[str, Any]]:
+    diagnostics: dict[str, Any] = {"tarball_head_attempts": []}
+    candidates = stable_release_candidates(payload)
+    if not candidates:
+        diagnostics["reason"] = "no supported stable release in kernel.org metadata"
+        return None, None, diagnostics
+
+    for release in candidates:
+        size_bytes, http_status, source_url, reason, attempts = resolve_tarball_head(release)
+        diagnostics["tarball_head_attempts"].extend(
+            {"version": release.get("version"), **attempt} for attempt in attempts
+        )
+        diagnostics["http_status"] = http_status
+        if isinstance(size_bytes, int) and size_bytes > 0 and isinstance(source_url, str):
+            diagnostics["tarball_url"] = source_url
+            return release, size_bytes, diagnostics
+        diagnostics["reason"] = reason or "no verified kernel source archive URL with numeric Content-Length"
+
+    diagnostics.pop("tarball_url", None)
+    if len(candidates) != 1 or diagnostics.get("tarball_head_attempts"):
+        diagnostics["reason"] = "no verified supported stable kernel source archive URL with numeric Content-Length"
+    return None, None, diagnostics
 
 
 def _history_points(root: Path) -> list[dict[str, Any]]:
@@ -232,10 +265,9 @@ def _avg(points: list[dict[str, Any]], days: int) -> float | None:
 def build_payload(date: str, release: dict[str, Any] | None, size_bytes: int | None, diagnostics: dict[str, Any], root: Path | None = None) -> dict[str, Any]:
     root = root or _repo_root()
     status = "ok" if release and isinstance(size_bytes, int) and size_bytes > 0 else "unavailable"
-    version = str(release.get("version")) if release and release.get("version") else None
-    source_url = diagnostics.get("tarball_url") if isinstance(diagnostics.get("tarball_url"), str) else None
-    if source_url is None and version:
-        source_url = _tarball_url(version, release.get("source") if isinstance(release.get("source"), str) else None)
+    verified = status == "ok"
+    version = str(release.get("version")) if verified and release and release.get("version") else None
+    source_url = diagnostics.get("tarball_url") if verified and isinstance(diagnostics.get("tarball_url"), str) else None
     current_mb = round(size_bytes / 1_000_000, 2) if isinstance(size_bytes, int) and size_bytes > 0 else None
     history = _history_points(root)
     if current_mb is not None:
@@ -255,7 +287,7 @@ def build_payload(date: str, release: dict[str, Any] | None, size_bytes: int | N
         "current_size_bytes": size_bytes if isinstance(size_bytes, int) and size_bytes > 0 else None,
         "unit": "MB",
         "version": version,
-        "release_date": _release_date(release),
+        "release_date": _release_date(release) if verified else None,
         "source": "kernel.org releases.json and tarball HEAD Content-Length",
         "source_url": source_url,
         "history": history,
@@ -278,15 +310,8 @@ def run(date: str | None = None, root: Path | None = None) -> dict[str, Any]:
     try:
         diagnostics["api_attempts"] += 1
         metadata = fetch_json(RELEASES_URL)
-        release = latest_stable_release(metadata)
-        if release is None:
-            diagnostics["reason"] = "no stable release in kernel.org metadata"
-        else:
-            size_bytes, diagnostics["http_status"], source_url, reason, attempts = resolve_tarball_head(release)
-            diagnostics["tarball_url"] = source_url
-            diagnostics["tarball_head_attempts"] = attempts
-            if reason:
-                diagnostics["reason"] = reason
+        release, size_bytes, release_diagnostics = select_verified_stable_release(metadata)
+        diagnostics.update(release_diagnostics)
     except (OSError, urllib.error.URLError, json.JSONDecodeError, ValueError) as exc:
         diagnostics["reason"] = f"kernel.org fetch failed: {type(exc).__name__}: {exc}"
     payload = build_payload(date, release, size_bytes, diagnostics, root=root)

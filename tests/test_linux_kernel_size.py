@@ -156,3 +156,58 @@ def test_patch_url_candidates_try_fallback_after_404(monkeypatch, tmp_path: Path
         "https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-6.16.1.tar.xz",
         "https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-6.16.1.tar.gz",
     ]
+
+
+def test_selects_next_stable_release_when_first_stable_tarball_404(monkeypatch, tmp_path: Path) -> None:
+    invalid_url = "https://cdn.kernel.org/pub/linux/kernel/v7.x/linux-7.1.2.tar.xz"
+    valid_url = "https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-6.18.37.tar.xz"
+    calls: list[str] = []
+
+    def fake_fetch(_url: str):
+        return {
+            "releases": [
+                {"moniker": "mainline", "version": "7.2-rc1", "source": "https://git.kernel.org/torvalds/t/linux-7.2-rc1.tar.gz"},
+                {"moniker": "stable", "version": "7.1.2", "iseol": False, "source": invalid_url},
+                {"moniker": "stable", "version": "6.18.37", "iseol": False, "source": valid_url, "released": {"isodate": "2026-06-27"}},
+            ]
+        }
+
+    def fake_head(url: str):
+        calls.append(url)
+        if url == invalid_url:
+            raise urllib.error.HTTPError(url, 404, "Not Found", hdrs=None, fp=None)
+        assert url == valid_url
+        return 151_000_000, 200
+
+    monkeypatch.setattr(lks, "fetch_json", fake_fetch)
+    monkeypatch.setattr(lks, "head_content_length", fake_head)
+
+    payload = lks.run("2026-07-02", root=tmp_path)
+
+    assert payload["status"] == "ok"
+    assert payload["version"] == "6.18.37"
+    assert payload["release_date"] == "2026-06-27"
+    assert payload["source_url"] == valid_url
+    assert calls == [invalid_url, valid_url]
+
+
+def test_unavailable_output_does_not_publish_invalid_guessed_v7_source_url(monkeypatch, tmp_path: Path) -> None:
+    invalid_url = "https://cdn.kernel.org/pub/linux/kernel/v7.x/linux-7.1.2.tar.xz"
+
+    def fake_fetch(_url: str):
+        return {"releases": [{"moniker": "stable", "version": "7.1.2", "iseol": False, "source": invalid_url}]}
+
+    def fake_head(url: str):
+        assert url == invalid_url
+        raise urllib.error.HTTPError(url, 404, "Not Found", hdrs=None, fp=None)
+
+    monkeypatch.setattr(lks, "fetch_json", fake_fetch)
+    monkeypatch.setattr(lks, "head_content_length", fake_head)
+
+    payload = lks.run("2026-07-02", root=tmp_path)
+
+    assert payload["status"] == "unavailable"
+    assert payload["version"] is None
+    assert payload["release_date"] is None
+    assert payload["source_url"] is None
+    assert invalid_url not in json.dumps({key: payload[key] for key in ("version", "release_date", "source_url")})
