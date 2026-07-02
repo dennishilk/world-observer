@@ -8,6 +8,7 @@ import re
 import sys
 import urllib.error
 import urllib.request
+from urllib.parse import urlparse
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -67,11 +68,114 @@ def _version_key(version: str) -> tuple[int, ...]:
     return tuple(int(part) for part in re.findall(r"\d+", version)[:4])
 
 
-def _tarball_url(version: str, source: str | None = None) -> str:
-    if source and source.startswith("http"):
+ARCHIVE_EXTENSIONS = (".tar.xz", ".tar.gz", ".tar.bz2")
+PATCH_EXTENSIONS = (".xz", ".gz", ".bz2", "")
+
+
+def _walk_values(value: Any) -> list[str]:
+    if isinstance(value, str):
+        return [value]
+    if isinstance(value, dict):
+        values: list[str] = []
+        for nested in value.values():
+            values.extend(_walk_values(nested))
+        return values
+    if isinstance(value, list):
+        values = []
+        for nested in value:
+            values.extend(_walk_values(nested))
+        return values
+    return []
+
+
+def _dedupe(urls: list[str]) -> list[str]:
+    seen: set[str] = set()
+    unique: list[str] = []
+    for url in urls:
+        if url not in seen:
+            unique.append(url)
+            seen.add(url)
+    return unique
+
+
+def _official_urls(release: dict[str, Any] | None) -> list[str]:
+    if not isinstance(release, dict):
+        return []
+    return _dedupe([value for value in _walk_values(release) if value.startswith(("https://", "http://"))])
+
+
+def _is_tarball_url(url: str, version: str) -> bool:
+    path = urlparse(url).path
+    filename = path.rsplit("/", 1)[-1]
+    return filename == f"linux-{version}.tar.xz" or any(filename == f"linux-{version}{ext}" for ext in ARCHIVE_EXTENSIONS)
+
+
+def _is_patch_url(url: str, version: str) -> bool:
+    filename = urlparse(url).path.rsplit("/", 1)[-1]
+    return any(filename == f"patch-{version}{ext}" for ext in PATCH_EXTENSIONS)
+
+
+def _tarball_candidates_from_patch_url(url: str, version: str) -> list[str]:
+    parsed = urlparse(url)
+    directory = url.rsplit("/", 1)[0]
+    candidates = [f"{directory}/linux-{version}{ext}" for ext in ARCHIVE_EXTENSIONS]
+
+    # kernel.org commonly exposes equivalent CDN and www archive hosts.  Only
+    # try this documented archive host fallback after a release metadata patch
+    # URL has established the archive directory for this version.
+    if parsed.netloc == "www.kernel.org":
+        candidates.extend(candidate.replace("https://www.kernel.org/", "https://cdn.kernel.org/") for candidate in candidates.copy())
+    elif parsed.netloc == "cdn.kernel.org":
+        candidates.extend(candidate.replace("https://cdn.kernel.org/", "https://www.kernel.org/") for candidate in candidates.copy())
+    return _dedupe(candidates)
+
+
+def tarball_candidates(release: dict[str, Any] | None) -> list[str]:
+    """Return official or safely-derived kernel source archive candidates.
+
+    Direct archive links from releases.json are authoritative.  If releases.json
+    only exposes patch links, derive source archive URLs within the same
+    kernel.org archive directory and let HEAD verification select a usable URL.
+    """
+    version = str(release.get("version") or "") if isinstance(release, dict) else ""
+    if not version:
+        return []
+    urls = _official_urls(release)
+    direct = [url for url in urls if _is_tarball_url(url, version)]
+    if direct:
+        return direct
+    candidates: list[str] = []
+    for url in urls:
+        if _is_patch_url(url, version):
+            candidates.extend(_tarball_candidates_from_patch_url(url, version))
+    return _dedupe(candidates)
+
+
+def _tarball_url(version: str, source: str | None = None) -> str | None:
+    if source and source.startswith("http") and _is_tarball_url(source, version):
         return source
-    major = _version_key(version)[0] if _version_key(version) else 0
-    return f"https://cdn.kernel.org/pub/linux/kernel/v{major}.x/linux-{version}.tar.xz"
+    return None
+
+
+def resolve_tarball_head(release: dict[str, Any]) -> tuple[int | None, int | None, str | None, str | None, list[dict[str, Any]]]:
+    attempts: list[dict[str, Any]] = []
+    for url in tarball_candidates(release):
+        try:
+            size_bytes, status = head_content_length(url)
+        except urllib.error.HTTPError as exc:
+            attempts.append({"url": url, "http_status": exc.code})
+            if exc.code == 404:
+                continue
+            return None, exc.code, url, f"tarball HEAD failed: HTTPError: {exc}", attempts
+        except (OSError, urllib.error.URLError) as exc:
+            attempts.append({"url": url, "error": f"{type(exc).__name__}: {exc}"})
+            return None, None, url, f"tarball HEAD failed: {type(exc).__name__}: {exc}", attempts
+        attempts.append({"url": url, "http_status": status, "content_length": size_bytes})
+        if isinstance(size_bytes, int) and size_bytes > 0:
+            return size_bytes, status, url, None, attempts
+    if attempts:
+        return None, attempts[-1].get("http_status"), attempts[-1].get("url"), "no verified kernel source archive URL with numeric Content-Length", attempts
+    return None, None, None, "no kernel source archive URL available in release metadata", attempts
 
 
 def _release_date(release: dict[str, Any] | None) -> str | None:
@@ -129,7 +233,9 @@ def build_payload(date: str, release: dict[str, Any] | None, size_bytes: int | N
     root = root or _repo_root()
     status = "ok" if release and isinstance(size_bytes, int) and size_bytes > 0 else "unavailable"
     version = str(release.get("version")) if release and release.get("version") else None
-    source_url = _tarball_url(version, release.get("source") if isinstance(release.get("source"), str) else None) if version else None
+    source_url = diagnostics.get("tarball_url") if isinstance(diagnostics.get("tarball_url"), str) else None
+    if source_url is None and version:
+        source_url = _tarball_url(version, release.get("source") if isinstance(release.get("source"), str) else None)
     current_mb = round(size_bytes / 1_000_000, 2) if isinstance(size_bytes, int) and size_bytes > 0 else None
     history = _history_points(root)
     if current_mb is not None:
@@ -176,11 +282,11 @@ def run(date: str | None = None, root: Path | None = None) -> dict[str, Any]:
         if release is None:
             diagnostics["reason"] = "no stable release in kernel.org metadata"
         else:
-            source_url = _tarball_url(str(release.get("version")), release.get("source") if isinstance(release.get("source"), str) else None)
+            size_bytes, diagnostics["http_status"], source_url, reason, attempts = resolve_tarball_head(release)
             diagnostics["tarball_url"] = source_url
-            size_bytes, diagnostics["http_status"] = head_content_length(source_url)
-            if size_bytes is None:
-                diagnostics["reason"] = "tarball HEAD did not include numeric Content-Length"
+            diagnostics["tarball_head_attempts"] = attempts
+            if reason:
+                diagnostics["reason"] = reason
     except (OSError, urllib.error.URLError, json.JSONDecodeError, ValueError) as exc:
         diagnostics["reason"] = f"kernel.org fetch failed: {type(exc).__name__}: {exc}"
     payload = build_payload(date, release, size_bytes, diagnostics, root=root)
