@@ -86,3 +86,73 @@ def test_technology_dashboard_export(tmp_path: Path) -> None:
     assert exported["category"] == "technology"
     assert exported["primary_metric_value"] == 145.5
     assert exported["primary_metric_unit"] == "MB"
+
+
+def test_does_not_guess_invalid_v7_archive_url_when_no_official_archive_or_patch(monkeypatch, tmp_path: Path) -> None:
+    calls: list[str] = []
+
+    def fake_fetch(_url: str):
+        return {"releases": [{"moniker": "stable", "version": "7.1.2"}]}
+
+    def fake_head(url: str):
+        calls.append(url)
+        return 123, 200
+
+    monkeypatch.setattr(lks, "fetch_json", fake_fetch)
+    monkeypatch.setattr(lks, "head_content_length", fake_head)
+
+    payload = lks.run("2026-07-02", root=tmp_path)
+
+    assert payload["status"] == "unavailable"
+    assert payload["source_url"] is None
+    assert calls == []
+    assert "https://cdn.kernel.org/pub/linux/kernel/v7.x/linux-7.1.2.tar.xz" not in json.dumps(payload)
+    assert payload["diagnostics"]["reason"] == "no kernel source archive URL available in release metadata"
+
+
+def test_successful_content_length_extraction_from_valid_tarball_url(monkeypatch, tmp_path: Path) -> None:
+    tarball_url = "https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-6.16.1.tar.xz"
+
+    def fake_fetch(_url: str):
+        return {"releases": [{"moniker": "stable", "version": "6.16.1", "source": tarball_url}]}
+
+    def fake_head(url: str):
+        assert url == tarball_url
+        return 145_500_000, 200
+
+    monkeypatch.setattr(lks, "fetch_json", fake_fetch)
+    monkeypatch.setattr(lks, "head_content_length", fake_head)
+
+    payload = lks.run("2026-07-02", root=tmp_path)
+
+    assert payload["status"] == "ok"
+    assert payload["current_size_bytes"] == 145_500_000
+    assert payload["current_size_mb"] == 145.5
+    assert payload["source_url"] == tarball_url
+    assert payload["diagnostics"]["tarball_url"] == tarball_url
+
+
+def test_patch_url_candidates_try_fallback_after_404(monkeypatch, tmp_path: Path) -> None:
+    patch_url = "https://cdn.kernel.org/pub/linux/kernel/v6.x/patch-6.16.1.xz"
+    calls: list[str] = []
+
+    def fake_fetch(_url: str):
+        return {"releases": [{"moniker": "stable", "version": "6.16.1", "patch": patch_url}]}
+
+    def fake_head(url: str):
+        calls.append(url)
+        if url.endswith(".tar.xz"):
+            raise urllib.error.HTTPError(url, 404, "Not Found", hdrs=None, fp=None)
+        return 144_000_000, 200
+
+    monkeypatch.setattr(lks, "fetch_json", fake_fetch)
+    monkeypatch.setattr(lks, "head_content_length", fake_head)
+
+    payload = lks.run("2026-07-02", root=tmp_path)
+
+    assert payload["status"] == "ok"
+    assert payload["source_url"] == "https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-6.16.1.tar.gz"
+    assert calls[:2] == [
+        "https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-6.16.1.tar.xz",
+        "https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-6.16.1.tar.gz",
+    ]
