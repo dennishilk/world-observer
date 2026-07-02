@@ -620,8 +620,14 @@ def _path_tuple(path: str) -> tuple[str, ...]:
     return tuple(part for part in path.split(".") if part)
 
 
-def _configured_metric_value(observer: str, payload: Dict[str, Any], key: str) -> tuple[str, float | int] | None:
-    path = INTERNET_DASHBOARD_METADATA.get(observer, {}).get(key)
+def _dashboard_metric_metadata(observer: str, metadata: Dict[str, Dict[str, Any]] | None = None) -> dict[str, Any]:
+    configured = dict(metadata.get(observer, {}) if metadata else {})
+    configured.update(INTERNET_DASHBOARD_METADATA.get(observer, {}))
+    return configured
+
+
+def _configured_metric_value(observer: str, payload: Dict[str, Any], key: str, metadata: Dict[str, Dict[str, Any]] | None = None) -> tuple[str, float | int] | None:
+    path = _dashboard_metric_metadata(observer, metadata).get(key)
     if not isinstance(path, str) or not path:
         return None
     value = _as_number(_find_path(payload, _path_tuple(path)))
@@ -637,8 +643,8 @@ def _configured_metric_value(observer: str, payload: Dict[str, Any], key: str) -
     return path, value
 
 
-def _friendly_label(observer: str, key: str, fallback: str) -> str:
-    value = INTERNET_DASHBOARD_METADATA.get(observer, {}).get(key)
+def _friendly_label(observer: str, key: str, fallback: str, metadata: Dict[str, Dict[str, Any]] | None = None) -> str:
+    value = _dashboard_metric_metadata(observer, metadata).get(key)
     return value if isinstance(value, str) and value else fallback
 
 def _first_numeric_path(payload: Dict[str, Any], paths: tuple[tuple[str, ...], ...]) -> tuple[str, float | int] | None:
@@ -778,9 +784,9 @@ def _internet_metric(observer: str, payload: Dict[str, Any]) -> tuple[str, float
 
 
 
-def _configured_secondary_metrics(observer: str, payload: Dict[str, Any], primary_path: str) -> Dict[str, float | int]:
+def _configured_secondary_metrics(observer: str, payload: Dict[str, Any], primary_path: str, metadata: Dict[str, Dict[str, Any]] | None = None) -> Dict[str, float | int]:
     metrics: Dict[str, float | int] = {}
-    configured = INTERNET_DASHBOARD_METADATA.get(observer, {}).get("secondary_metrics")
+    configured = _dashboard_metric_metadata(observer, metadata).get("secondary_metrics")
     if not isinstance(configured, list):
         return metrics
     for entry in configured:
@@ -795,9 +801,9 @@ def _configured_secondary_metrics(observer: str, payload: Dict[str, Any], primar
     return metrics
 
 
-def _configured_secondary_metric_units(observer: str, primary_path: str) -> Dict[str, str]:
+def _configured_secondary_metric_units(observer: str, primary_path: str, metadata: Dict[str, Dict[str, Any]] | None = None) -> Dict[str, str]:
     units: Dict[str, str] = {}
-    configured = INTERNET_DASHBOARD_METADATA.get(observer, {}).get("secondary_metrics")
+    configured = _dashboard_metric_metadata(observer, metadata).get("secondary_metrics")
     if not isinstance(configured, list):
         return units
     for entry in configured:
@@ -880,14 +886,21 @@ def _normalized_internet_payload(
 
 
 def _internet_observer(observer: str, payload: Dict[str, Any], metadata: Dict[str, Dict[str, Any]]) -> Dict[str, Any]:
-    configured_primary = _configured_metric_value(observer, payload, "primary_metric")
+    configured_primary = _configured_metric_value(observer, payload, "primary_metric", metadata)
     if configured_primary is not None:
         primary_path, primary_value = configured_primary
-        primary_name = _friendly_label(observer, "primary_metric_label", primary_path)
+        primary_name = _friendly_label(observer, "primary_metric_label", primary_path, metadata)
     else:
         primary_path, primary_value = _internet_metric(observer, payload)
         primary_name = primary_path
+        if payload.get("data_status") == "unavailable" or payload.get("status") == "unavailable":
+            primary_path, primary_value, primary_name = "data_status", "unavailable", "data_status"
     status, data_status = _internet_status_fields(observer, payload)
+    secondary_metrics = (
+        _configured_secondary_metrics(observer, payload, primary_path, metadata)
+        if _dashboard_metric_metadata(observer, metadata).get("secondary_metrics")
+        else _secondary_metrics(payload, primary_path)
+    )
     item: Dict[str, Any] = {
         "observer": observer,
         "display_name": _metadata_display_name(metadata, observer),
@@ -898,12 +911,16 @@ def _internet_observer(observer: str, payload: Dict[str, Any], metadata: Dict[st
         "primary_metric_name": primary_name,
         "primary_metric_value": primary_value,
         "primary_metric_path": primary_path,
-        "secondary_metrics": _configured_secondary_metrics(observer, payload, primary_path) if observer in INTERNET_DASHBOARD_METADATA else _secondary_metrics(payload, primary_path),
+        "secondary_metrics": secondary_metrics,
     }
-    primary_unit = INTERNET_DASHBOARD_METADATA.get(observer, {}).get("primary_metric_unit")
+    primary_unit = _dashboard_metric_metadata(observer, metadata).get("primary_metric_unit")
     if configured_primary is not None and isinstance(primary_unit, str) and primary_unit:
         item["primary_metric_unit"] = primary_unit
-    secondary_units = _configured_secondary_metric_units(observer, primary_path)
+    secondary_units = {
+        label: unit
+        for label, unit in _configured_secondary_metric_units(observer, primary_path, metadata).items()
+        if label in secondary_metrics
+    }
     if secondary_units:
         item["secondary_metric_units"] = secondary_units
     last_seen = _last_seen_date(payload)

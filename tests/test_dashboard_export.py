@@ -407,7 +407,6 @@ def test_export_dashboard_writes_planned_metadata_placeholders(tmp_path) -> None
     environment = json.loads((dashboard_dir / "environment.json").read_text(encoding="utf-8"))
     assert [item["observer"] for item in society["items"]] == [
         "fuel-prices-germany",
-        "electricity-prices-germany",
         "food-prices-germany",
         "housing-costs-germany",
         "deutsche-bahn-punctuality",
@@ -821,3 +820,107 @@ def test_media_import_malformed_ignored_and_duplicate_daily_precedence(tmp_path)
     reasons = [entry["reason"] for entry in history["import_diagnostics"]]
     assert "duplicate date; existing history takes precedence" in reasons
     assert "fear_index_overall or fear_index must be numeric" in reasons
+
+
+def test_society_dashboard_uses_metadata_metrics_for_germany_electricity(tmp_path, monkeypatch) -> None:
+    latest_dir = tmp_path / "latest"
+    dashboard_dir = tmp_path / "dashboard"
+    metadata_path = tmp_path / "observer_metadata.json"
+    latest_dir.mkdir()
+    _write_latest(
+        latest_dir,
+        "germany-electricity-prices",
+        {
+            "observer": "germany-electricity-prices",
+            "status": "ok",
+            "data_status": "ok",
+            "date_utc": "2026-07-02",
+            "current_price_eur_per_kwh": 0.321,
+            "annual_cost_eur": 1123.5,
+            "monthly_cost_eur": 93.62,
+            "diagnostics": {"daily_state_history_count": 1},
+        },
+    )
+    metadata_path.write_text(
+        json.dumps(
+            {
+                "observers": [
+                    {
+                        "observer": "germany-electricity-prices",
+                        "display_name": "Germany Electricity Price Observer",
+                        "category": "society",
+                        "dashboard_priority": 15,
+                        "planned": False,
+                        "primary_metric": "current_price_eur_per_kwh",
+                        "primary_metric_label": "Current electricity price",
+                        "primary_metric_unit": "EUR/kWh",
+                        "secondary_metrics": [
+                            ["annual_cost_eur", "Annual household cost", "EUR"],
+                            ["monthly_cost_eur", "Monthly household cost", "EUR"],
+                        ],
+                    }
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(export_dashboard, "METADATA_PATH", str(metadata_path))
+    monkeypatch.setattr(export_dashboard, "OBSERVERS", ["germany-electricity-prices"])
+
+    export_dashboard.export_dashboard(latest_dir=latest_dir, dashboard_dir=dashboard_dir)
+
+    society = json.loads((dashboard_dir / "society.json").read_text(encoding="utf-8"))
+    card = society["observers"][0]
+    assert card["primary_metric_name"] == "Current electricity price"
+    assert card["primary_metric_path"] == "current_price_eur_per_kwh"
+    assert card["primary_metric_value"] == 0.32
+    assert card["primary_metric_unit"] == "EUR/kWh"
+    assert card["secondary_metrics"] == {"Annual household cost": 1123.5, "Monthly household cost": 93.62}
+    assert card["secondary_metric_units"] == {"Annual household cost": "EUR", "Monthly household cost": "EUR"}
+
+
+def test_unavailable_germany_electricity_dashboard_does_not_promote_diagnostics(tmp_path, monkeypatch) -> None:
+    latest_dir = tmp_path / "latest"
+    dashboard_dir = tmp_path / "dashboard"
+    metadata_path = tmp_path / "observer_metadata.json"
+    latest_dir.mkdir()
+    _write_latest(
+        latest_dir,
+        "germany-electricity-prices",
+        {
+            "observer": "germany-electricity-prices",
+            "status": "unavailable",
+            "data_status": "unavailable",
+            "date_utc": "2026-07-02",
+            "current_price_eur_per_kwh": None,
+            "diagnostics": {"daily_state_history_count": 0},
+        },
+    )
+    metadata_path.write_text(
+        json.dumps(
+            {
+                "observers": [
+                    {
+                        "observer": "germany-electricity-prices",
+                        "display_name": "Germany Electricity Price Observer",
+                        "category": "society",
+                        "dashboard_priority": 15,
+                        "planned": False,
+                        "primary_metric": "current_price_eur_per_kwh",
+                        "primary_metric_label": "Current electricity price",
+                    }
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(export_dashboard, "METADATA_PATH", str(metadata_path))
+    monkeypatch.setattr(export_dashboard, "OBSERVERS", ["germany-electricity-prices"])
+
+    export_dashboard.export_dashboard(latest_dir=latest_dir, dashboard_dir=dashboard_dir)
+
+    society = json.loads((dashboard_dir / "society.json").read_text(encoding="utf-8"))
+    card = society["observers"][0]
+    assert card["primary_metric_name"] == "data_status"
+    assert card["primary_metric_path"] == "data_status"
+    assert card["primary_metric_value"] == "unavailable"
