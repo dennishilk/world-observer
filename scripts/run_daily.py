@@ -14,7 +14,7 @@ import logging
 import shutil
 import subprocess
 import sys
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
@@ -65,15 +65,15 @@ def _logger() -> logging.Logger:
     return logger
 
 
-def _yesterday_utc() -> str:
-    return (datetime.now(timezone.utc).date() - timedelta(days=1)).isoformat()
+def _current_date_utc() -> str:
+    return datetime.now(timezone.utc).date().isoformat()
 
 
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run daily observers.")
     parser.add_argument(
         "--date",
-        help="Override date (YYYY-MM-DD). Defaults to yesterday (UTC).",
+        help="Override date (YYYY-MM-DD). Defaults to the current UTC date.",
     )
     return parser.parse_args()
 
@@ -348,7 +348,7 @@ def main() -> None:
         daily_dir = _repo_root() / "data" / "daily" / date_str
         daily_dir.mkdir(parents=True, exist_ok=True)
     else:
-        date_str = _yesterday_utc()
+        date_str = _current_date_utc()
         daily_dir = _repo_root() / "data" / "daily" / date_str
         if daily_dir.exists() and _has_complete_daily_outputs(daily_dir):
             return

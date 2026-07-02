@@ -8,6 +8,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT))
 
 from scripts import run_daily
+from scripts import run_daily_cron
 
 
 def _write_observer_payload(daily_dir: Path, observer: str, payload: object) -> None:
@@ -137,3 +138,83 @@ def test_run_observer_timeout_writes_structured_error_and_can_continue(tmp_path,
     assert json.loads((daily_dir / "ok-observer.json").read_text(encoding="utf-8"))["observer"] == "ok-observer"
     assert calls[0][1]["timeout"] == 3.0
     assert calls[1][1]["timeout"] == 3.0
+
+
+def test_run_observer_overrides_stale_world_observer_date_env(tmp_path, monkeypatch) -> None:
+    date_str = "2026-07-02"
+    stale_date = "2026-07-01"
+    daily_dir = tmp_path / "data" / "daily" / date_str
+    daily_dir.mkdir(parents=True)
+    observer_dir = tmp_path / "observers" / "date-echo"
+    observer_dir.mkdir(parents=True)
+    observer_dir.joinpath("observer.py").write_text(
+        "import json, os; print(json.dumps({'observer': 'date-echo', 'date_utc': os.environ['WORLD_OBSERVER_DATE_UTC']}))\n",
+        encoding="utf-8",
+    )
+
+    monkeypatch.setattr(run_daily, "_repo_root", lambda: tmp_path)
+    monkeypatch.setenv("WORLD_OBSERVER_DATE_UTC", stale_date)
+
+    ok, detail = run_daily._run_observer("date-echo", date_str, daily_dir)
+
+    assert ok is True
+    assert detail == "ok"
+    payload = json.loads((daily_dir / "date-echo.json").read_text(encoding="utf-8"))
+    assert payload["date_utc"] == date_str
+
+
+def test_run_daily_default_uses_current_utc_date(monkeypatch) -> None:
+    class FixedDateTime:
+        @classmethod
+        def now(cls, tz=None):
+            from datetime import datetime
+
+            return datetime(2026, 7, 2, 8, 16, tzinfo=tz)
+
+    monkeypatch.setattr(run_daily, "datetime", FixedDateTime)
+
+    assert run_daily._current_date_utc() == "2026-07-02"
+
+
+def test_run_daily_cron_default_uses_current_utc_date(monkeypatch) -> None:
+    class FixedDateTime:
+        @classmethod
+        def now(cls, tz=None):
+            from datetime import datetime
+
+            return datetime(2026, 7, 2, 8, 16, tzinfo=tz)
+
+        @classmethod
+        def strptime(cls, value, fmt):
+            from datetime import datetime
+
+            return datetime.strptime(value, fmt)
+
+    monkeypatch.setattr(run_daily_cron, "datetime", FixedDateTime)
+
+    assert run_daily_cron._target_date(None) == "2026-07-02"
+    assert run_daily_cron._target_date("2026-07-01") == "2026-07-01"
+
+
+def test_run_daily_cron_script_env_replaces_stale_date(monkeypatch, tmp_path) -> None:
+    calls = []
+
+    class DummyCompletedProcess:
+        returncode = 0
+        stdout = ""
+        stderr = ""
+
+    def fake_run(args, *, env=None):
+        calls.append((args, env))
+        return DummyCompletedProcess()
+
+    class DummyLogger:
+        def info(self, *args, **kwargs):
+            pass
+
+    monkeypatch.setattr(run_daily_cron, "_run", fake_run)
+    monkeypatch.setenv("WORLD_OBSERVER_DATE_UTC", "2026-07-01")
+
+    run_daily_cron._run_python_script(tmp_path / "script.py", [], DummyLogger(), "2026-07-02")
+
+    assert calls[0][1]["WORLD_OBSERVER_DATE_UTC"] == "2026-07-02"

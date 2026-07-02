@@ -11,7 +11,7 @@ import shutil
 import subprocess
 import sys
 from contextlib import contextmanager
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from logging.handlers import TimedRotatingFileHandler
 from pathlib import Path
 from typing import Sequence
@@ -31,7 +31,7 @@ SIGNIFICANT_DIR = REPO_ROOT / "visualizations" / "significant"
 
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run daily world-observer jobs and publish outputs")
-    parser.add_argument("--date", help="Target date (YYYY-MM-DD); default is yesterday UTC")
+    parser.add_argument("--date", help="Target date (YYYY-MM-DD); default is the current UTC date")
     return parser.parse_args()
 
 
@@ -65,7 +65,7 @@ def _target_date(input_date: str | None) -> str:
     if input_date:
         datetime.strptime(input_date, "%Y-%m-%d")
         return input_date
-    return (datetime.now(timezone.utc).date() - timedelta(days=1)).isoformat()
+    return datetime.now(timezone.utc).date().isoformat()
 
 
 def _git_env() -> dict[str, str]:
@@ -106,10 +106,15 @@ def _lock_execution(path: Path):
         yield
 
 
-def _run_python_script(script: Path, extra_args: Sequence[str], logger: logging.Logger) -> None:
+def _run_python_script(script: Path, extra_args: Sequence[str], logger: logging.Logger, date_str: str | None = None) -> None:
     cmd = [sys.executable, str(script), *extra_args]
     logger.info("running script: %s", " ".join(cmd))
-    result = _run(cmd)
+    env = os.environ.copy()
+    if date_str is None:
+        env.pop("WORLD_OBSERVER_DATE_UTC", None)
+    else:
+        env["WORLD_OBSERVER_DATE_UTC"] = date_str
+    result = _run(cmd, env=env)
     _log_subprocess_result(result, logger, script.name)
     if result.returncode != 0:
         raise RuntimeError(f"command failed ({result.returncode}): {' '.join(cmd)}")
@@ -201,9 +206,9 @@ def main() -> int:
         date_str = _target_date(args.date)
         with _lock_execution(LOCK_FILE):
             logger.info("starting daily run for date %s", date_str)
-            _run_python_script(RUN_DAILY_SCRIPT, ["--date", date_str], logger)
+            _run_python_script(RUN_DAILY_SCRIPT, ["--date", date_str], logger, date_str)
             logger.info("observer results: daily observer run completed for %s", date_str)
-            _run_python_script(SIGNIFICANCE_SCRIPT, ["--date", date_str], logger)
+            _run_python_script(SIGNIFICANCE_SCRIPT, ["--date", date_str], logger, date_str)
             copied_pngs = _copy_significance_pngs(date_str, logger)
             if copied_pngs:
                 logger.info("PNGs generated/copied: %d", len(copied_pngs))
