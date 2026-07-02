@@ -16,7 +16,7 @@ from typing import Any
 OBSERVER = "linux-kernel-size"
 CATEGORY = "technology"
 RELEASES_URL = "https://www.kernel.org/releases.json"
-USER_AGENT = "world-observer/1.0 (+https://github.com/dennishilk/world-observer)"
+USER_AGENT = "WorldObserver/1.0"
 TIMEOUT_S = 20
 
 
@@ -53,15 +53,40 @@ def fetch_json(url: str = RELEASES_URL) -> dict[str, Any]:
         return json.loads(response.read(2_000_000).decode("utf-8", errors="replace"))
 
 
+def _parse_int_header(value: str | None) -> int | None:
+    if value is None:
+        return None
+    try:
+        parsed = int(value)
+    except ValueError:
+        return None
+    return parsed if parsed > 0 else None
+
+
+def _parse_content_range_total(value: str | None) -> int | None:
+    if value is None:
+        return None
+    match = re.match(r"^bytes\s+\d+-\d+/(\d+)$", value.strip(), flags=re.IGNORECASE)
+    if not match:
+        return None
+    return _parse_int_header(match.group(1))
+
+
 def head_content_length(url: str) -> tuple[int | None, int | None]:
-    req = urllib.request.Request(url, method="HEAD", headers={"User-Agent": USER_AGENT})
+    req = urllib.request.Request(url, method="HEAD", headers={"User-Agent": USER_AGENT, "Accept": "*/*"})
     with urllib.request.urlopen(req, timeout=TIMEOUT_S) as response:
         length = response.headers.get("Content-Length")
         status = getattr(response, "status", None)
-    try:
-        return (int(length), status) if length is not None else (None, status)
-    except ValueError:
-        return None, status
+    return _parse_int_header(length), status
+
+
+def range_content_length(url: str) -> tuple[int | None, int | None]:
+    req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT, "Accept": "*/*", "Range": "bytes=0-0"})
+    with urllib.request.urlopen(req, timeout=TIMEOUT_S) as response:
+        status = getattr(response, "status", None)
+        if status == 206:
+            return _parse_content_range_total(response.headers.get("Content-Range")), status
+        return _parse_int_header(response.headers.get("Content-Length")), status
 
 
 def _version_key(version: str) -> tuple[int, ...]:
@@ -157,20 +182,47 @@ def _tarball_url(version: str, source: str | None = None) -> str | None:
     return None
 
 
+def _range_attempt(url: str, attempt: dict[str, Any]) -> tuple[int | None, int | None]:
+    try:
+        size_bytes, status = range_content_length(url)
+    except urllib.error.HTTPError as exc:
+        attempt["range"] = {"http_status": exc.code, "error": f"HTTPError: {exc}"}
+        return None, exc.code
+    except (OSError, urllib.error.URLError) as exc:
+        attempt["range"] = {"error": f"{type(exc).__name__}: {exc}"}
+        return None, None
+    attempt["range"] = {"http_status": status, "content_length": size_bytes}
+    return size_bytes, status
+
+
 def resolve_tarball_head(release: dict[str, Any]) -> tuple[int | None, int | None, str | None, str | None, list[dict[str, Any]]]:
     attempts: list[dict[str, Any]] = []
     for url in tarball_candidates(release):
+        attempt: dict[str, Any] = {"url": url}
         try:
             size_bytes, status = head_content_length(url)
         except urllib.error.HTTPError as exc:
-            attempts.append({"url": url, "http_status": exc.code, "error": f"HTTPError: {exc}"})
-            continue
+            status = exc.code
+            size_bytes = None
+            attempt["head"] = {"http_status": exc.code, "error": f"HTTPError: {exc}"}
+            if exc.code not in (403, 404):
+                attempts.append(attempt)
+                continue
         except (OSError, urllib.error.URLError) as exc:
-            attempts.append({"url": url, "error": f"{type(exc).__name__}: {exc}"})
+            attempts.append({**attempt, "head": {"error": f"{type(exc).__name__}: {exc}"}})
             continue
-        attempts.append({"url": url, "http_status": status, "content_length": size_bytes})
-        if isinstance(size_bytes, int) and size_bytes > 0:
-            return size_bytes, status, url, None, attempts
+        else:
+            attempt["head"] = {"http_status": status, "content_length": size_bytes}
+            if isinstance(size_bytes, int) and size_bytes > 0:
+                attempt.update({"http_status": status, "content_length": size_bytes})
+                attempts.append(attempt)
+                return size_bytes, status, url, None, attempts
+
+        range_size, range_status = _range_attempt(url, attempt)
+        attempt.update({"http_status": range_status or status, "content_length": range_size})
+        attempts.append(attempt)
+        if isinstance(range_size, int) and range_size > 0:
+            return range_size, range_status, url, None, attempts
     if attempts:
         return None, attempts[-1].get("http_status"), attempts[-1].get("url"), "no verified kernel source archive URL with numeric Content-Length", attempts
     return None, None, None, "no kernel source archive URL available in release metadata", attempts
