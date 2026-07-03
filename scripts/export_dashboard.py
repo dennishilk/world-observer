@@ -1119,9 +1119,84 @@ def _society(loaded: Dict[str, Dict[str, Any]], metadata: Dict[str, Dict[str, An
     return {"observer_count": len(observers), "observers": observers, "items": planned}
 
 
-def _category_dashboard(category: str, loaded: Dict[str, Dict[str, Any]], metadata: Dict[str, Dict[str, Any]]) -> Dict[str, Any]:
+def _history_point_value(observer: str, payload: Dict[str, Any], metadata: Dict[str, Dict[str, Any]]) -> tuple[str, float | int] | None:
+    configured = _configured_metric_value(observer, payload, "trend_metric", metadata)
+    if configured is not None:
+        return configured
+    configured = _configured_metric_value(observer, payload, "primary_metric", metadata)
+    if configured is not None:
+        return configured
+    for key in ("value", "current_package_count", "primary_metric_value"):
+        value = _as_number(payload.get(key))
+        if value is not None:
+            return key, value
+    return None
+
+
+def normalizeObserverHistory(points: Iterable[Dict[str, Any]], limit: int = FUEL_HISTORY_LIMIT, metric_name: str | None = None) -> list[Dict[str, Any]]:
+    latest_by_date: dict[str, tuple[int, Dict[str, Any]]] = {}
+    for index, point in enumerate(points):
+        date = _date_sort_key(point.get("date"))
+        value = _as_number(point.get("value"))
+        if date is None or value is None:
+            continue
+        normalized: Dict[str, Any] = {"date": date, "value": value}
+        current_package_count = _as_number(point.get("current_package_count"))
+        if current_package_count is not None:
+            normalized["current_package_count"] = current_package_count
+        elif metric_name == "current_package_count":
+            normalized["current_package_count"] = value
+        primary_metric_value = _as_number(point.get("primary_metric_value"))
+        if primary_metric_value is not None:
+            normalized["primary_metric_value"] = primary_metric_value
+        elif metric_name is not None:
+            normalized["primary_metric_value"] = value
+        latest_by_date[date] = (index, normalized)
+    return [point for _date, (_index, point) in sorted(latest_by_date.items())][-limit:]
+
+
+def collectObserverHistory(observer: str, latest_payload: Dict[str, Any], state_dir: Path, metadata: Dict[str, Dict[str, Any]], limit: int = FUEL_HISTORY_LIMIT) -> list[Dict[str, Any]]:
+    points: list[Dict[str, Any]] = []
+    configured_metric = _dashboard_metric_metadata(observer, metadata).get("trend_metric")
+    history_metric_name = configured_metric if isinstance(configured_metric, str) and configured_metric else None
+    for date, path in _iter_state_observer_files(state_dir, observer):
+        payload, _error = _read_json(path)
+        if payload is None:
+            continue
+        for point in payload.get("history", []) if isinstance(payload.get("history"), list) else []:
+            if isinstance(point, dict):
+                points.append(point)
+        metric = _history_point_value(observer, payload, metadata)
+        if metric is not None:
+            metric_name, value = metric
+            point = {"date": payload.get("date") or date, "value": value, "primary_metric_value": value}
+            if metric_name == "current_package_count":
+                point["current_package_count"] = value
+            points.append(point)
+    for point in latest_payload.get("history", []) if isinstance(latest_payload.get("history"), list) else []:
+        if isinstance(point, dict):
+            points.append(point)
+    metric = _history_point_value(observer, latest_payload, metadata)
+    if metric is not None:
+        metric_name, value = metric
+        point = {"date": latest_payload.get("date") or latest_payload.get("date_utc"), "value": value, "primary_metric_value": value}
+        if metric_name == "current_package_count":
+            point["current_package_count"] = value
+        points.append(point)
+    return normalizeObserverHistory(points, limit, history_metric_name)
+
+
+def _technology_observer(observer: str, payload: Dict[str, Any], metadata: Dict[str, Dict[str, Any]], state_dir: Path | None = None) -> Dict[str, Any]:
+    item = _internet_observer(observer, payload, metadata)
+    history = collectObserverHistory(observer, payload, state_dir or (_repo_root() / "state"), metadata)
+    if history:
+        item["history"] = history
+    return item
+
+
+def _category_dashboard(category: str, loaded: Dict[str, Dict[str, Any]], metadata: Dict[str, Dict[str, Any]], state_dir: Path | None = None) -> Dict[str, Any]:
     observers = [
-        _internet_observer(observer, loaded[observer], metadata)
+        _technology_observer(observer, loaded[observer], metadata, state_dir) if category == "technology" else _internet_observer(observer, loaded[observer], metadata)
         for observer in sorted(
             loaded,
             key=lambda item: (_metadata_priority(metadata, item), _metadata_display_name(metadata, item), item),
@@ -1306,7 +1381,7 @@ def export_dashboard(
         "media.json": _media(loaded.get(MEDIA_OBSERVER)),
         "society.json": _society(loaded, metadata, state_dir),
         "environment.json": {"status": "placeholder", "items": _planned_items(metadata, "environment")},
-        "technology.json": _category_dashboard("technology", loaded, metadata),
+        "technology.json": _category_dashboard("technology", loaded, metadata, state_dir),
         "heartbeat.json": _heartbeat(heartbeat_dir, generated_at),
         "history/media-language-germany.json": _media_history(daily_dir, generated_at, media_imports_dir),
         "history/internet-observers.json": _internet_history(daily_dir, state_dir, generated_at, metadata),

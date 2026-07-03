@@ -527,6 +527,58 @@ def test_export_dashboard_writes_planned_metadata_placeholders(tmp_path) -> None
     assert all(item["planned"] is True for item in society["items"] + environment["items"])
 
 
+def test_export_dashboard_technology_cards_include_observer_history(tmp_path, monkeypatch) -> None:
+    latest_dir = tmp_path / "latest"
+    dashboard_dir = tmp_path / "dashboard"
+    state_dir = tmp_path / "state"
+    latest_dir.mkdir()
+    monkeypatch.setattr(export_dashboard, "OBSERVERS", ["arch-package-count", "debian-package-count"])
+    _write_latest(
+        latest_dir,
+        "arch-package-count",
+        {
+            "observer": "arch-package-count",
+            "data_status": "ok",
+            "date": "2026-07-03",
+            "current_package_count": 15124,
+            "history": [
+                {"date": "2026-07-02", "value": 15121},
+                {"date": "2026-07-03", "value": 15124},
+            ],
+        },
+    )
+    _write_latest(
+        latest_dir,
+        "debian-package-count",
+        {
+            "observer": "debian-package-count",
+            "data_status": "ok",
+            "date": "2026-07-03",
+            "current_package_count": 68755,
+            "history": [{"date": "2026-07-03", "value": 68755}],
+        },
+    )
+    _write_state_observer(
+        state_dir,
+        "debian-package-count",
+        "2026-07-02",
+        {"data_status": "ok", "date": "2026-07-02", "current_package_count": 68754},
+    )
+
+    export_dashboard.export_dashboard(latest_dir, dashboard_dir, daily_dir=tmp_path / "daily", state_dir=state_dir)
+
+    technology = json.loads((dashboard_dir / "technology.json").read_text(encoding="utf-8"))
+    cards = {card["observer"]: card for card in technology["observers"]}
+    assert cards["arch-package-count"]["primary_metric_value"] == 15124
+    assert cards["arch-package-count"]["history"] == [
+        {"date": "2026-07-02", "value": 15121, "current_package_count": 15121, "primary_metric_value": 15121},
+        {"date": "2026-07-03", "value": 15124, "current_package_count": 15124, "primary_metric_value": 15124},
+    ]
+    assert cards["debian-package-count"]["history"] == [
+        {"date": "2026-07-02", "value": 68754, "current_package_count": 68754, "primary_metric_value": 68754},
+        {"date": "2026-07-03", "value": 68755, "current_package_count": 68755, "primary_metric_value": 68755},
+    ]
+
 def test_export_dashboard_falls_back_when_metadata_is_missing(tmp_path, monkeypatch) -> None:
     latest_dir = tmp_path / "latest"
     dashboard_dir = tmp_path / "dashboard"
