@@ -1,22 +1,70 @@
 {
   "observer": "internet-shrinkage-index",
-  "date_utc": "2026-04-28",
+  "date_utc": "2026-07-03",
   "data_status": "partial",
   "countries": [
     {
-      "country": "DE",
-      "shrinkage_score": 0.04716,
+      "country": "CU",
+      "shrinkage_score": 0.0,
       "components": {
-        "trend": 0.074149,
+        "trend": 0.0,
         "distance_to_peak": 0.0,
-        "persistence": 0.068966,
+        "persistence": 0.0,
         "silence_modifier": null
       },
       "baseline_30d": {
-        "mean": 0.033555,
-        "std": 0.05399
+        "mean": 0.0,
+        "std": 0.0
       },
-      "delta": 0.013605,
+      "delta": 0.0,
+      "is_new_max": false
+    },
+    {
+      "country": "DE",
+      "shrinkage_score": 0.0,
+      "components": {
+        "trend": 0.0,
+        "distance_to_peak": 0.0,
+        "persistence": 0.0,
+        "silence_modifier": null
+      },
+      "baseline_30d": {
+        "mean": 0.035127,
+        "std": 0.053676
+      },
+      "delta": -0.035127,
+      "is_new_max": false
+    },
+    {
+      "country": "IR",
+      "shrinkage_score": 0.0,
+      "components": {
+        "trend": 0.0,
+        "distance_to_peak": 0.0,
+        "persistence": 0.0,
+        "silence_modifier": null
+      },
+      "baseline_30d": {
+        "mean": 0.0,
+        "std": 0.0
+      },
+      "delta": 0.0,
+      "is_new_max": false
+    },
+    {
+      "country": "KP",
+      "shrinkage_score": 0.0,
+      "components": {
+        "trend": 0.0,
+        "distance_to_peak": 0.0,
+        "persistence": 0.0,
+        "silence_modifier": null
+      },
+      "baseline_30d": {
+        "mean": 0.0,
+        "std": 0.0
+      },
+      "delta": 0.0,
       "is_new_max": false
     },
     {
@@ -37,15 +85,15 @@
     }
   ],
   "global": {
-    "global_shrinkage_index": 0.02358,
+    "global_shrinkage_index": 0.0,
     "baseline_30d": {
-      "mean": 0.016778,
-      "std": 0.026995
+      "mean": 0.017564,
+      "std": 0.026838
     },
     "is_new_max": false
   },
   "summary_stats": {
-    "countries_evaluated": 2,
+    "countries_evaluated": 5,
     "new_max_count": 0,
     "mass_event": false
   },

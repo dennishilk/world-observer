@@ -30,7 +30,20 @@
   "_comment_ipv6_states": "Baseline memory for IPv6 availability to detect first-time or rare changes.",
   "ipv6_states": {
     "_comment_countries": "Stores per-country IPv6 availability with stability timestamps.",
-    "countries": {}
+    "countries": {
+      "IR": {
+        "stable_since": "2026-07-03",
+        "last_state": false
+      },
+      "CU": {
+        "stable_since": "2026-07-03",
+        "last_state": false
+      },
+      "SY": {
+        "stable_since": "2026-07-03",
+        "last_state": false
+      }
+    }
   },
   "_comment_global_reachability": "Baseline memory for global reachability to detect new record lows.",
   "global_reachability": {

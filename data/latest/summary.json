@@ -1,34 +1,37 @@
 {
-  "last_run_utc": "2026-04-29T02:16:11.215952+00:00",
-  "latest_date_utc": "2026-04-28",
+  "last_run_utc": "2026-07-03T07:16:54.588281+00:00",
+  "latest_date_utc": "2026-07-03",
   "last_7_days": [
     {
-      "date_utc": "2026-04-22",
+      "date_utc": "2026-06-27",
       "any_significant": false
     },
     {
-      "date_utc": "2026-04-23",
+      "date_utc": "2026-06-28",
       "any_significant": false
     },
     {
-      "date_utc": "2026-04-24",
+      "date_utc": "2026-06-29",
       "any_significant": false
     },
     {
-      "date_utc": "2026-04-25",
+      "date_utc": "2026-06-30",
       "any_significant": false
     },
     {
-      "date_utc": "2026-04-26",
+      "date_utc": "2026-07-01",
       "any_significant": false
     },
     {
-      "date_utc": "2026-04-27",
+      "date_utc": "2026-07-02",
       "any_significant": false
     },
     {
-      "date_utc": "2026-04-28",
+      "date_utc": "2026-07-03",
       "any_significant": false
     }
-  ]
+  ],
+  "last_daily_run_utc": "2026-07-03T07:16:55Z",
+  "run_date_utc": "2026-07-03",
+  "runner": "scripts/run_daily_cron.py"
 }

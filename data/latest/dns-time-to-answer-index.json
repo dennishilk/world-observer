@@ -1,67 +1,21 @@
 {
   "observer": "dns-time-to-answer-index",
-  "timestamp": "2026-04-29T02:09:42.241398+00:00",
-  "targets": [
-    {
-      "name": "Cloudflare",
-      "domain": "cloudflare.com",
-      "queries": {
-        "A": {
-          "status": "success",
-          "query_ms": 52.33,
-          "error": null
-        },
-        "AAAA": {
-          "status": "success",
-          "query_ms": 40.45,
-          "error": null
-        }
-      }
-    },
-    {
-      "name": "Google",
-      "domain": "google.com",
-      "queries": {
-        "A": {
-          "status": "success",
-          "query_ms": 41.66,
-          "error": null
-        },
-        "AAAA": {
-          "status": "success",
-          "query_ms": 46.98,
-          "error": null
-        }
-      }
-    },
-    {
-      "name": "Wikipedia",
-      "domain": "wikipedia.org",
-      "queries": {
-        "A": {
-          "status": "success",
-          "query_ms": 47.03,
-          "error": null
-        },
-        "AAAA": {
-          "status": "success",
-          "query_ms": 45.6,
-          "error": null
-        }
-      }
-    }
-  ],
-  "summary": {
-    "total_queries": 6,
-    "successful": 6,
-    "timeouts": 0,
-    "avg_query_ms": 45.68
-  },
-  "notes": "Sequential DNS A and AAAA lookups with a conservative timeout. No answers, resolver identities, or TTL values are stored.",
-  "data_status": "ok",
+  "timestamp": "2026-07-03T07:13:47.333781+00:00",
+  "status": "unavailable",
+  "data_status": "unavailable",
+  "error": "missing optional dependency: dnspython",
   "diagnostics": {
     "api_attempts": 0,
     "retries": 0,
-    "http_status": null
-  }
+    "http_status": null,
+    "missing_dependency": "dnspython"
+  },
+  "targets": [],
+  "summary": {
+    "total_queries": 0,
+    "successful": 0,
+    "timeouts": 0,
+    "avg_query_ms": null
+  },
+  "notes": "Install requirements.txt to enable DNS probes."
 }

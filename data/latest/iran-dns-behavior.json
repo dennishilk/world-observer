@@ -1,169 +1,22 @@
 {
   "observer": "iran-dns-behavior",
-  "timestamp": "2026-04-29T02:10:09.108750+00:00",
-  "targets": [
-    {
-      "name": "IANA Example",
-      "domain": "example.com",
-      "queries": {
-        "A": {
-          "status": "answer",
-          "query_ms": 8.64,
-          "answer_count": 2,
-          "error": null
-        },
-        "AAAA": {
-          "status": "answer",
-          "query_ms": 6.66,
-          "answer_count": 2,
-          "error": null
-        },
-        "MX": {
-          "status": "answer",
-          "query_ms": 522.26,
-          "answer_count": 1,
-          "error": null
-        },
-        "TXT": {
-          "status": "answer",
-          "query_ms": 112.71,
-          "answer_count": 2,
-          "error": null
-        }
-      }
-    },
-    {
-      "name": "IANA Root",
-      "domain": "iana.org",
-      "queries": {
-        "A": {
-          "status": "answer",
-          "query_ms": 4.55,
-          "answer_count": 1,
-          "error": null
-        },
-        "AAAA": {
-          "status": "answer",
-          "query_ms": 3.57,
-          "answer_count": 1,
-          "error": null
-        },
-        "MX": {
-          "status": "answer",
-          "query_ms": 136.87,
-          "answer_count": 4,
-          "error": null
-        },
-        "TXT": {
-          "status": "answer",
-          "query_ms": 143.86,
-          "answer_count": 10,
-          "error": null
-        }
-      }
-    },
-    {
-      "name": "Wikipedia",
-      "domain": "wikipedia.org",
-      "queries": {
-        "A": {
-          "status": "answer",
-          "query_ms": 5.18,
-          "answer_count": 1,
-          "error": null
-        },
-        "AAAA": {
-          "status": "answer",
-          "query_ms": 3.65,
-          "answer_count": 1,
-          "error": null
-        },
-        "MX": {
-          "status": "answer",
-          "query_ms": 125.01,
-          "answer_count": 2,
-          "error": null
-        },
-        "TXT": {
-          "status": "answer",
-          "query_ms": 121.87,
-          "answer_count": 3,
-          "error": null
-        }
-      }
-    },
-    {
-      "name": "GitHub",
-      "domain": "github.com",
-      "queries": {
-        "A": {
-          "status": "answer",
-          "query_ms": 24.82,
-          "answer_count": 1,
-          "error": null
-        },
-        "AAAA": {
-          "status": "noanswer",
-          "query_ms": 4.42,
-          "answer_count": 0,
-          "error": null
-        },
-        "MX": {
-          "status": "answer",
-          "query_ms": 36.35,
-          "answer_count": 1,
-          "error": null
-        },
-        "TXT": {
-          "status": "answer",
-          "query_ms": 169.52,
-          "answer_count": 19,
-          "error": null
-        }
-      }
-    },
-    {
-      "name": "Cloudflare",
-      "domain": "cloudflare.com",
-      "queries": {
-        "A": {
-          "status": "answer",
-          "query_ms": 4.62,
-          "answer_count": 2,
-          "error": null
-        },
-        "AAAA": {
-          "status": "answer",
-          "query_ms": 3.74,
-          "answer_count": 2,
-          "error": null
-        },
-        "MX": {
-          "status": "answer",
-          "query_ms": 30.21,
-          "answer_count": 4,
-          "error": null
-        },
-        "TXT": {
-          "status": "answer",
-          "query_ms": 95.57,
-          "answer_count": 25,
-          "error": null
-        }
-      }
-    }
-  ],
-  "summary": {
-    "total_queries": 20,
-    "answered": 19,
-    "timeouts": 0,
-    "refused": 0
-  },
-  "notes": "Queries are performed with standard recursion via the system resolver. No censorship circumvention or evasion techniques are used.",
-  "data_status": "ok",
+  "timestamp": "2026-07-03T07:14:23.861450+00:00",
+  "status": "unavailable",
+  "data_status": "unavailable",
+  "error": "missing optional dependency: dnspython",
   "diagnostics": {
     "api_attempts": 0,
     "retries": 0,
-    "http_status": null
-  }
+    "http_status": null,
+    "missing_dependency": "dnspython"
+  },
+  "targets": [],
+  "summary": {
+    "total_queries": 0,
+    "answers": 0,
+    "timeouts": 0,
+    "refused": 0,
+    "errors": 0
+  },
+  "notes": "Install requirements.txt to enable DNS probes."
 }

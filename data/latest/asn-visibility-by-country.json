@@ -1,6 +1,7 @@
 {
   "observer": "asn-visibility-by-country",
-  "date_utc": "2026-04-28",
+  "date_utc": "2026-07-03",
+  "status": "ok",
   "data_status": "unavailable",
   "countries": [],
   "summary_stats": {
@@ -17,10 +18,14 @@
   "notes": [
     "ASN country assignment uses CAIDA AS2Org organization-country as a proxy.",
     "Output stores only per-country counts; ASN identifiers are not emitted.",
-    "Used RIB snapshot source: https://data.ris.ripe.net/rrc00/2026.04/bview.20260428.0000.gz",
+    "Used RIB snapshot source: https://data.ris.ripe.net/rrc00/2026.07/bview.20260703.0000.gz",
     "No reachable CAIDA AS2Org dataset found for mapping."
   ],
   "diagnostics": {
+    "timeout": false,
+    "budget_exhausted": false,
+    "duration_s": 1.763,
+    "runtime_budget_s": 105.0,
     "api_attempts": 0,
     "retries": 0,
     "http_status": null

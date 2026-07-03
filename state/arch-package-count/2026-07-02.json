@@ -1,43 +1,55 @@
 {
   "architecture": "x86_64",
-  "average_30d": null,
-  "average_365d": null,
+  "average_30d": 15121.0,
+  "average_365d": 15121.0,
   "averages": {
-    "30d": null,
-    "365d": null
+    "30d": 15121.0,
+    "365d": 15121.0
   },
   "category": "technology",
-  "current_package_count": null,
-  "data_status": "unavailable",
+  "current_package_count": 15121,
+  "data_status": "ok",
   "date": "2026-07-02",
   "diagnostics": {
-    "api_attempts": 1,
+    "api_attempts": 2,
+    "compressed_bytes": {
+      "core": 129529,
+      "extra": 8688923
+    },
     "fetch_urls": {
       "core": "https://geo.mirror.pkgbuild.com/core/os/x86_64/core.db",
       "extra": "https://geo.mirror.pkgbuild.com/extra/os/x86_64/extra.db"
     },
     "http_status": null,
-    "parse_status": "unavailable",
-    "reason": "Arch repository database fetch/parse failed: URLError: <urlopen error Tunnel connection failed: 403 Forbidden>",
+    "parse_status": "ok",
     "retries": 0
   },
   "distribution": "Arch Linux",
-  "historical_max": null,
-  "historical_min": null,
-  "history": [],
+  "historical_max": 15121,
+  "historical_min": 15121,
+  "history": [
+    {
+      "date": "2026-07-02",
+      "source": "Official Arch Linux repository databases",
+      "value": 15121
+    }
+  ],
   "observed_changes": [],
   "observer": "arch-package-count",
   "repositories": [
     "core",
     "extra"
   ],
-  "repository_counts": {},
+  "repository_counts": {
+    "core": 296,
+    "extra": 14825
+  },
   "source": "Official Arch Linux repository databases",
   "source_url": {
     "core": "https://geo.mirror.pkgbuild.com/core/os/x86_64/core.db",
     "extra": "https://geo.mirror.pkgbuild.com/extra/os/x86_64/extra.db"
   },
-  "status": "unavailable",
+  "status": "ok",
   "trend_delta": null,
   "trend_delta_percent": null,
   "trend_direction": null,

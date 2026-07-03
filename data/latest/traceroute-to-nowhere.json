@@ -1,6 +1,6 @@
 {
   "observer": "traceroute-to-nowhere",
-  "date_utc": "2026-04-28",
+  "date_utc": "2026-07-03",
   "data_status": "ok",
   "anchors": {
     "count": 8
@@ -8,9 +8,9 @@
   "metrics": {
     "trace_count": 8,
     "fail_rate": 0.75,
-    "median_last_replied_hop": 9.5,
-    "early_blackhole_rate": 0.25,
-    "timeout_hop_density": 0.443576
+    "median_last_replied_hop": 8.5,
+    "early_blackhole_rate": 0.0,
+    "timeout_hop_density": 0.429754
   },
   "baseline_30d": {
     "fail_rate": {
@@ -18,8 +18,8 @@
       "std": 0.0
     },
     "median_last_replied_hop": {
-      "mean": 9.466667,
-      "std": 0.256038
+      "mean": 9.116667,
+      "std": 0.823441
     }
   },
   "significance": {
