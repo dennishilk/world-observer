@@ -1,6 +1,6 @@
 {
   "observer": "iran-dns-behavior",
-  "timestamp": "2026-07-04T06:07:56.457748+00:00",
+  "timestamp": "2026-07-05T06:07:53.928375+00:00",
   "status": "unavailable",
   "data_status": "unavailable",
   "error": "missing optional dependency: dnspython",

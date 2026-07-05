@@ -1,6 +1,6 @@
 {
   "observer": "dns-time-to-answer-index",
-  "timestamp": "2026-07-04T06:07:24.615483+00:00",
+  "timestamp": "2026-07-05T06:07:21.323232+00:00",
   "status": "unavailable",
   "data_status": "unavailable",
   "error": "missing optional dependency: dnspython",
