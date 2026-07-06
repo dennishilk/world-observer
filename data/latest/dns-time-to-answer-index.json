@@ -1,21 +1,67 @@
 {
   "observer": "dns-time-to-answer-index",
-  "timestamp": "2026-07-05T06:07:21.323232+00:00",
-  "status": "unavailable",
-  "data_status": "unavailable",
-  "error": "missing optional dependency: dnspython",
+  "timestamp": "2026-07-06T06:05:58.124616+00:00",
+  "targets": [
+    {
+      "name": "Cloudflare",
+      "domain": "cloudflare.com",
+      "queries": {
+        "A": {
+          "status": "success",
+          "query_ms": 9.42,
+          "error": null
+        },
+        "AAAA": {
+          "status": "success",
+          "query_ms": 9.13,
+          "error": null
+        }
+      }
+    },
+    {
+      "name": "Google",
+      "domain": "google.com",
+      "queries": {
+        "A": {
+          "status": "success",
+          "query_ms": 9.32,
+          "error": null
+        },
+        "AAAA": {
+          "status": "success",
+          "query_ms": 9.61,
+          "error": null
+        }
+      }
+    },
+    {
+      "name": "Wikipedia",
+      "domain": "wikipedia.org",
+      "queries": {
+        "A": {
+          "status": "success",
+          "query_ms": 7.72,
+          "error": null
+        },
+        "AAAA": {
+          "status": "success",
+          "query_ms": 8.87,
+          "error": null
+        }
+      }
+    }
+  ],
+  "summary": {
+    "total_queries": 6,
+    "successful": 6,
+    "timeouts": 0,
+    "avg_query_ms": 9.01
+  },
+  "notes": "Sequential DNS A and AAAA lookups with a conservative timeout. No answers, resolver identities, or TTL values are stored.",
+  "data_status": "ok",
   "diagnostics": {
     "api_attempts": 0,
     "retries": 0,
-    "http_status": null,
-    "missing_dependency": "dnspython"
-  },
-  "targets": [],
-  "summary": {
-    "total_queries": 0,
-    "successful": 0,
-    "timeouts": 0,
-    "avg_query_ms": null
-  },
-  "notes": "Install requirements.txt to enable DNS probes."
+    "http_status": null
+  }
 }
