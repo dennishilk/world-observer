@@ -332,6 +332,40 @@
       "planned": true
     },
     {
+      "observer": "geomagnetic-storm-observer",
+      "display_name": "Geomagnetic Storm Observer",
+      "category": "environment",
+      "description": "Descriptive NOAA SWPC geomagnetic storm and solar wind snapshot.",
+      "tags": [
+        "environment",
+        "space-weather",
+        "noaa"
+      ],
+      "dashboard_priority": 10,
+      "planned": false,
+      "primary_metric": "kp.value",
+      "primary_metric_label": "Latest Kp",
+      "primary_metric_unit": "Kp",
+      "secondary_metrics": [
+        [
+          "kp.max_available",
+          "Max Kp",
+          "Kp"
+        ],
+        [
+          "solar_wind.bz_gsm",
+          "IMF Bz GSM",
+          "nT"
+        ],
+        [
+          "solar_wind.speed_km_s",
+          "Solar wind speed",
+          "km/s"
+        ]
+      ],
+      "trend_metric": "kp.value"
+    },
+    {
       "observer": "weather-germany",
       "display_name": "Weather Germany",
       "category": "environment",
