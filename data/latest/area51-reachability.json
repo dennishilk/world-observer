@@ -1,6 +1,6 @@
 {
   "observer": "area51-reachability",
-  "date_utc": "2026-07-06",
+  "date_utc": "2026-07-07",
   "data_status": "partial",
   "bucket_minutes": 15,
   "bbox": {
@@ -11,40 +11,40 @@
   },
   "bucket_count": 1,
   "au": {
-    "janet_like": 49,
-    "other": 18,
-    "total": 67
+    "janet_like": 52,
+    "other": 12,
+    "total": 64
   },
   "baseline_30d": {
     "janet_like": {
-      "mean": 76.5,
-      "std": 91.7824,
-      "effective_std": 91.7824
+      "mean": 73.4444,
+      "std": 86.9637,
+      "effective_std": 86.9637
     },
     "other": {
-      "mean": 29.25,
-      "std": 37.3689,
-      "effective_std": 37.3689
+      "mean": 28.0,
+      "std": 35.4087,
+      "effective_std": 35.4087
     },
     "total": {
-      "mean": 105.75,
-      "std": 128.9435,
-      "effective_std": 128.9435
+      "mean": 101.4444,
+      "std": 122.1776,
+      "effective_std": 122.1776
     }
   },
   "significance": {
     "sigma_mult": 2.0,
     "janet_like": {
       "is_significant": false,
-      "z": -0.2996
+      "z": -0.2466
     },
     "other": {
       "is_significant": false,
-      "z": -0.3011
+      "z": -0.4519
     },
     "total": {
       "is_significant": false,
-      "z": -0.3005
+      "z": -0.3065
     },
     "any_significant": false
   },
