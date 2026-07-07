@@ -68,6 +68,8 @@ def _fetch_json(url: str, timeout_s: int = TIMEOUT_S) -> tuple[Any | None, dict[
 def _rows(payload: Any) -> list[dict[str, Any]]:
     if not isinstance(payload, list) or not payload:
         return []
+    if all(isinstance(item, dict) for item in payload):
+        return [{str(key): value for key, value in item.items()} for item in payload]
     header = payload[0]
     if not isinstance(header, list):
         return []
@@ -78,15 +80,33 @@ def _rows(payload: Any) -> list[dict[str, Any]]:
     return rows
 
 
+def _parse_time_tag(value: Any) -> datetime | None:
+    if not isinstance(value, str) or not value.strip():
+        return None
+    normalized = value.strip().replace("Z", "+00:00")
+    try:
+        return datetime.fromisoformat(normalized)
+    except ValueError:
+        return None
+
+
 def latest_kp(payload: Any) -> tuple[dict[str, Any] | None, float | None, int]:
     rows = _rows(payload)
-    parsed = [row for row in rows if _to_float(row.get("Kp")) is not None]
-    if not parsed:
+    parsed: list[tuple[datetime, dict[str, Any], float]] = []
+    max_values: list[float] = []
+    for row in rows:
+        kp_value = _to_float(row.get("Kp"))
+        if kp_value is None:
+            continue
+        max_values.append(kp_value)
+        observed_at = _parse_time_tag(row.get("time_tag"))
+        if observed_at is not None:
+            parsed.append((observed_at, row, kp_value))
+    if not parsed or not max_values:
         return None, None, len(rows)
-    latest = parsed[-1]
-    latest_value = _to_float(latest.get("Kp"))
-    max_kp = max(_to_float(row.get("Kp")) or 0 for row in parsed)
-    return {"observed_at_utc": latest.get("time_tag"), "value": latest_value, "max_available": round(max_kp, 2)}, round(max_kp, 2), len(rows)
+    _, latest, latest_value = max(parsed, key=lambda item: item[0])
+    max_kp = round(max(max_values), 2)
+    return {"observed_at_utc": latest.get("time_tag"), "value": latest_value, "max_available": max_kp}, max_kp, len(rows)
 
 
 def latest_bz_gsm(payload: Any) -> tuple[float | None, str | None, int]:
@@ -159,8 +179,11 @@ def build_payload() -> dict[str, Any]:
     diagnostics["row_counts"] = {"kp": kp_rows, "mag": mag_rows, "plasma": plasma_rows}
 
     kp_value = kp.get("value") if kp else None
-    data_status = "ok" if kp_value is not None else ("partial" if any(fetched.values()) else "unavailable")
-    status = "ok" if data_status in {"ok", "partial"} else "unavailable"
+    if kp_value is not None:
+        data_status = "ok" if bz_value is not None and speed_value is not None else "partial"
+    else:
+        data_status = "partial" if bz_value is not None or speed_value is not None else "unavailable"
+    status = "ok" if kp_value is not None or data_status == "partial" else "unavailable"
     scale = storm_scale(kp_value)
     cond = condition(kp_value)
     source = {"name": "NOAA Space Weather Prediction Center", "urls": SOURCES}
