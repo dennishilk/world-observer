@@ -44,13 +44,13 @@ def test_parse_noaa_rows() -> None:
     assert observer.latest_solar_wind_speed(plasma_payload) == (410.6, "2026-07-07 00:00:00.000", 1)
 
 
-def test_uses_three_day_solar_wind_sources() -> None:
+def test_uses_seven_day_solar_wind_sources() -> None:
     assert observer.SOURCES["kp"] == "https://services.swpc.noaa.gov/products/noaa-planetary-k-index.json"
-    assert observer.SOURCES["mag"] == "https://services.swpc.noaa.gov/products/solar-wind/mag-3-day.json"
-    assert observer.SOURCES["plasma"] == "https://services.swpc.noaa.gov/products/solar-wind/plasma-3-day.json"
+    assert observer.SOURCES["mag"] == "https://services.swpc.noaa.gov/products/solar-wind/mag-7-day.json"
+    assert observer.SOURCES["plasma"] == "https://services.swpc.noaa.gov/products/solar-wind/plasma-7-day.json"
 
 
-def test_parse_three_day_solar_wind_rows_uses_latest_valid_time_tag() -> None:
+def test_parse_seven_day_solar_wind_rows_uses_latest_valid_time_tag() -> None:
     mag_payload = [
         ["time_tag", "bx_gsm", "by_gsm", "bz_gsm", "lon_gsm", "lat_gsm", "bt"],
         ["2026-07-05 00:00:00.000", "1.1", "2.2", "-1.5", "10.0", "1.0", "3.0"],

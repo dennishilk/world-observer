@@ -19,8 +19,8 @@ OBSERVER = "geomagnetic-storm-observer"
 TIMEOUT_S = 20
 SOURCES = {
     "kp": "https://services.swpc.noaa.gov/products/noaa-planetary-k-index.json",
-    "mag": "https://services.swpc.noaa.gov/products/solar-wind/mag-3-day.json",
-    "plasma": "https://services.swpc.noaa.gov/products/solar-wind/plasma-3-day.json",
+    "mag": "https://services.swpc.noaa.gov/products/solar-wind/mag-7-day.json",
+    "plasma": "https://services.swpc.noaa.gov/products/solar-wind/plasma-7-day.json",
 }
 
 
