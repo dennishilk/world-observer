@@ -19,8 +19,8 @@ OBSERVER = "geomagnetic-storm-observer"
 TIMEOUT_S = 20
 SOURCES = {
     "kp": "https://services.swpc.noaa.gov/products/noaa-planetary-k-index.json",
-    "mag": "https://services.swpc.noaa.gov/products/solar-wind/mag-1-day.json",
-    "plasma": "https://services.swpc.noaa.gov/products/solar-wind/plasma-1-day.json",
+    "mag": "https://services.swpc.noaa.gov/products/solar-wind/mag-3-day.json",
+    "plasma": "https://services.swpc.noaa.gov/products/solar-wind/plasma-3-day.json",
 }
 
 
@@ -109,22 +109,33 @@ def latest_kp(payload: Any) -> tuple[dict[str, Any] | None, float | None, int]:
     return {"observed_at_utc": latest.get("time_tag"), "value": latest_value, "max_available": max_kp}, max_kp, len(rows)
 
 
+def _latest_valid_measurement(rows: list[dict[str, Any]], field: str) -> tuple[float | None, str | None]:
+    parsed: list[tuple[datetime, str | None, float]] = []
+    latest_by_order: tuple[float | None, str | None] = (None, None)
+    for row in rows:
+        value = _to_float(row.get(field))
+        if value is not None:
+            raw_time = row.get("time_tag")
+            latest_by_order = (value, raw_time)
+            observed_at = _parse_time_tag(raw_time)
+            if observed_at is not None:
+                parsed.append((observed_at, raw_time, value))
+    if parsed:
+        _, raw_time, value = max(parsed, key=lambda item: item[0])
+        return value, raw_time
+    return latest_by_order
+
+
 def latest_bz_gsm(payload: Any) -> tuple[float | None, str | None, int]:
     rows = _rows(payload)
-    for row in reversed(rows):
-        value = _to_float(row.get("bz_gsm"))
-        if value is not None:
-            return value, row.get("time_tag"), len(rows)
-    return None, None, len(rows)
+    value, observed_at = _latest_valid_measurement(rows, "bz_gsm")
+    return value, observed_at, len(rows)
 
 
 def latest_solar_wind_speed(payload: Any) -> tuple[float | None, str | None, int]:
     rows = _rows(payload)
-    for row in reversed(rows):
-        value = _to_float(row.get("speed"))
-        if value is not None:
-            return value, row.get("time_tag"), len(rows)
-    return None, None, len(rows)
+    value, observed_at = _latest_valid_measurement(rows, "speed")
+    return value, observed_at, len(rows)
 
 
 def storm_scale(kp: float | int | None) -> str | None:
