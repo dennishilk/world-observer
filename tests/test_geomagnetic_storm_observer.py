@@ -44,10 +44,12 @@ def test_parse_noaa_rows() -> None:
     assert observer.latest_solar_wind_speed(plasma_payload) == (410.6, "2026-07-07 00:00:00.000", 1)
 
 
-def test_uses_two_hour_solar_wind_sources() -> None:
+def test_uses_ordered_solar_wind_source_fallbacks() -> None:
     assert observer.SOURCES["kp"] == "https://services.swpc.noaa.gov/products/noaa-planetary-k-index.json"
-    assert observer.SOURCES["mag"] == "https://services.swpc.noaa.gov/products/solar-wind/mag-2-hour.json"
-    assert observer.SOURCES["plasma"] == "https://services.swpc.noaa.gov/products/solar-wind/plasma-2-hour.json"
+    assert observer.SOURCE_CANDIDATES["mag"][0] == "https://services.swpc.noaa.gov/products/solar-wind/mag-2-hour.json"
+    assert observer.SOURCE_CANDIDATES["plasma"][0] == "https://services.swpc.noaa.gov/products/solar-wind/plasma-2-hour.json"
+    assert "https://services.swpc.noaa.gov/json/dscovr/dscovr_mag_1m.json" in observer.SOURCE_CANDIDATES["mag"]
+    assert "https://services.swpc.noaa.gov/json/dscovr/dscovr_plasma_1m.json" in observer.SOURCE_CANDIDATES["plasma"]
 
 
 def test_parse_two_hour_solar_wind_rows_uses_latest_valid_time_tag() -> None:
@@ -92,10 +94,12 @@ def test_kp_available_with_header_only_mag_plasma_is_partial(monkeypatch) -> Non
     }
 
     def fake_fetch(url: str, timeout_s: int = observer.TIMEOUT_S):
-        for name, source_url in observer.SOURCES.items():
-            if url == source_url:
+        if url == observer.SOURCES["kp"]:
+            return payloads["kp"], {"url": url, "ok": True, "http_status": 200, "error": None}
+        for name in ("mag", "plasma"):
+            if url == observer.SOURCE_CANDIDATES[name][0]:
                 return payloads[name], {"url": url, "ok": True, "http_status": 200, "error": None}
-        raise AssertionError(f"unexpected URL {url}")
+        return [["time_tag"]], {"url": url, "ok": True, "http_status": 200, "error": None}
 
     monkeypatch.setattr(observer, "_fetch_json", fake_fetch)
 
@@ -106,3 +110,80 @@ def test_kp_available_with_header_only_mag_plasma_is_partial(monkeypatch) -> Non
     assert built["condition"] == "minor storm"
     assert built["storm_scale"] == "G1"
     assert built["diagnostics"]["row_counts"] == {"kp": 1, "mag": 0, "plasma": 0}
+
+
+def test_solar_wind_fallback_uses_second_valid_source(monkeypatch) -> None:
+    mag_urls = ["https://example.invalid/mag-404.json", "https://example.invalid/mag-valid.json"]
+    monkeypatch.setitem(observer.SOURCE_CANDIDATES, "mag", mag_urls)
+    valid_payload = [["time_tag", "bz_gsm"], ["2026-07-07 00:01:00.000", "-7.2"]]
+
+    def fake_fetch(url: str, timeout_s: int = observer.TIMEOUT_S):
+        if url == mag_urls[0]:
+            return None, {"url": url, "ok": False, "http_status": 404, "error": "HTTP 404"}
+        if url == mag_urls[1]:
+            return valid_payload, {"url": url, "ok": True, "http_status": 200, "error": None}
+        raise AssertionError(f"unexpected URL {url}")
+
+    monkeypatch.setattr(observer, "_fetch_json", fake_fetch)
+
+    payload, diagnostics, attempts = observer._fetch_first_valid_source("mag", observer.latest_bz_gsm)
+
+    assert payload == valid_payload
+    assert attempts == 2
+    assert diagnostics["selected_url"] == mag_urls[1]
+    assert [attempt["http_status"] for attempt in diagnostics["attempts"]] == [404, 200]
+    assert diagnostics["attempts"][1]["valid"] is True
+
+
+def test_solar_wind_fallback_all_sources_unavailable(monkeypatch) -> None:
+    plasma_urls = ["https://example.invalid/plasma-404.json", "https://example.invalid/plasma-empty.json"]
+    monkeypatch.setitem(observer.SOURCE_CANDIDATES, "plasma", plasma_urls)
+
+    def fake_fetch(url: str, timeout_s: int = observer.TIMEOUT_S):
+        if url == plasma_urls[0]:
+            return None, {"url": url, "ok": False, "http_status": 404, "error": "HTTP 404"}
+        if url == plasma_urls[1]:
+            return [["time_tag", "speed"]], {"url": url, "ok": True, "http_status": 200, "error": None}
+        raise AssertionError(f"unexpected URL {url}")
+
+    monkeypatch.setattr(observer, "_fetch_json", fake_fetch)
+
+    payload, diagnostics, attempts = observer._fetch_first_valid_source("plasma", observer.latest_solar_wind_speed)
+
+    assert payload is None
+    assert attempts == 2
+    assert diagnostics["selected_url"] is None
+    assert [attempt["valid"] for attempt in diagnostics["attempts"]] == [False, False]
+
+
+def test_build_payload_records_selected_fallback_urls(monkeypatch) -> None:
+    kp_url = observer.SOURCES["kp"]
+    mag_urls = ["https://example.invalid/mag-404.json", "https://example.invalid/mag-valid.json"]
+    plasma_urls = ["https://example.invalid/plasma-404.json", "https://example.invalid/plasma-valid.json"]
+    monkeypatch.setitem(observer.SOURCE_CANDIDATES, "mag", mag_urls)
+    monkeypatch.setitem(observer.SOURCE_CANDIDATES, "plasma", plasma_urls)
+
+    payloads = {
+        kp_url: [{"time_tag": "2026-07-07T09:00:00", "Kp": 4.67}],
+        mag_urls[1]: [["time_tag", "bz_gsm"], ["2026-07-07 00:01:00.000", "-6.25"]],
+        plasma_urls[1]: [["time_tag", "speed"], ["2026-07-07 00:01:00.000", "455.25"]],
+    }
+
+    def fake_fetch(url: str, timeout_s: int = observer.TIMEOUT_S):
+        if url in payloads:
+            return payloads[url], {"url": url, "ok": True, "http_status": 200, "error": None}
+        return None, {"url": url, "ok": False, "http_status": 404, "error": "HTTP 404"}
+
+    monkeypatch.setattr(observer, "_fetch_json", fake_fetch)
+
+    built = observer.build_payload()
+
+    assert built["solar_wind"] == {
+        "bz_gsm": -6.25,
+        "bz_gsm_observed_at_utc": "2026-07-07 00:01:00.000",
+        "speed_km_s": 455.25,
+        "speed_observed_at_utc": "2026-07-07 00:01:00.000",
+    }
+    assert built["source"]["urls"] == {"kp": kp_url, "mag": mag_urls[1], "plasma": plasma_urls[1]}
+    assert built["diagnostics"]["sources"]["mag"]["selected_url"] == mag_urls[1]
+    assert built["diagnostics"]["sources"]["plasma"]["selected_url"] == plasma_urls[1]
