@@ -12,6 +12,7 @@ import os
 import sys
 import urllib.error
 import urllib.request
+from collections.abc import Callable
 from datetime import datetime, timezone
 from typing import Any
 
@@ -21,6 +22,20 @@ SOURCES = {
     "kp": "https://services.swpc.noaa.gov/products/noaa-planetary-k-index.json",
     "mag": "https://services.swpc.noaa.gov/products/solar-wind/mag-2-hour.json",
     "plasma": "https://services.swpc.noaa.gov/products/solar-wind/plasma-2-hour.json",
+}
+SOURCE_CANDIDATES = {
+    "mag": [
+        SOURCES["mag"],
+        "https://services.swpc.noaa.gov/json/dscovr/dscovr_mag_1m.json",
+        "https://services.swpc.noaa.gov/json/dscovr/dscovr_mag_1s.json",
+        "https://services.swpc.noaa.gov/json/ace/ace_mag_1m.json",
+    ],
+    "plasma": [
+        SOURCES["plasma"],
+        "https://services.swpc.noaa.gov/json/dscovr/dscovr_plasma_1m.json",
+        "https://services.swpc.noaa.gov/json/dscovr/dscovr_plasma_1s.json",
+        "https://services.swpc.noaa.gov/json/ace/ace_swepam_1m.json",
+    ],
 }
 
 
@@ -138,6 +153,21 @@ def latest_solar_wind_speed(payload: Any) -> tuple[float | None, str | None, int
     return value, observed_at, len(rows)
 
 
+def _fetch_first_valid_source(
+    name: str, parser: Callable[[Any], tuple[float | None, str | None, int]]
+) -> tuple[Any | None, dict[str, Any], int]:
+    attempts = []
+    for url in SOURCE_CANDIDATES[name]:
+        payload, source_diag = _fetch_json(url)
+        value, _observed_at, row_count = parser(payload)
+        source_diag["row_count"] = row_count
+        source_diag["valid"] = value is not None
+        attempts.append(source_diag)
+        if source_diag["ok"] and value is not None:
+            return payload, {"selected_url": url, "attempts": attempts}, len(attempts)
+    return None, {"selected_url": None, "attempts": attempts}, len(attempts)
+
+
 def storm_scale(kp: float | int | None) -> str | None:
     if kp is None:
         return None
@@ -178,11 +208,21 @@ def build_payload() -> dict[str, Any]:
     collected_at = _now_utc()
     fetched: dict[str, Any] = {}
     diagnostics: dict[str, Any] = {"api_attempts": 0, "retries": 0, "http_status": {}, "sources": {}, "row_counts": {}}
-    for name, url in SOURCES.items():
-        diagnostics["api_attempts"] += 1
-        fetched[name], source_diag = _fetch_json(url)
-        diagnostics["sources"][name] = source_diag
-        diagnostics["http_status"][name] = source_diag.get("http_status")
+
+    fetched["kp"], kp_diag = _fetch_json(SOURCES["kp"])
+    diagnostics["api_attempts"] += 1
+    diagnostics["sources"]["kp"] = kp_diag
+    diagnostics["http_status"]["kp"] = kp_diag.get("http_status")
+
+    fetched["mag"], mag_diag, mag_attempts = _fetch_first_valid_source("mag", latest_bz_gsm)
+    diagnostics["api_attempts"] += mag_attempts
+    diagnostics["sources"]["mag"] = mag_diag
+    diagnostics["http_status"]["mag"] = [attempt.get("http_status") for attempt in mag_diag["attempts"]]
+
+    fetched["plasma"], plasma_diag, plasma_attempts = _fetch_first_valid_source("plasma", latest_solar_wind_speed)
+    diagnostics["api_attempts"] += plasma_attempts
+    diagnostics["sources"]["plasma"] = plasma_diag
+    diagnostics["http_status"]["plasma"] = [attempt.get("http_status") for attempt in plasma_diag["attempts"]]
 
     kp, max_kp, kp_rows = latest_kp(fetched.get("kp"))
     bz_value, bz_time, mag_rows = latest_bz_gsm(fetched.get("mag"))
@@ -197,7 +237,10 @@ def build_payload() -> dict[str, Any]:
     status = "ok" if kp_value is not None or data_status == "partial" else "unavailable"
     scale = storm_scale(kp_value)
     cond = condition(kp_value)
-    source = {"name": "NOAA Space Weather Prediction Center", "urls": SOURCES}
+    source = {
+        "name": "NOAA Space Weather Prediction Center",
+        "urls": {"kp": SOURCES["kp"], "mag": mag_diag["selected_url"], "plasma": plasma_diag["selected_url"]},
+    }
     summary = (
         f"Latest NOAA planetary Kp is {kp_value:g} ({scale}, {cond}); available-window maximum is {max_kp:g}."
         if kp_value is not None and max_kp is not None and scale is not None
