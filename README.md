@@ -98,7 +98,7 @@ Society observers track public cost-of-living style indicators, currently includ
 | 🌐 Internet | Area51 Reachability; HTTP Reachability Index; Cuba Internet Weather; DNS Time To Answer Index; DNS TTA Stress Index; Global Reachability Long Horizon; Global Reachability Score; Internet Shrinkage Index; IPv6 Adoption Locked States; IPv6 Global Compare; IPv6 Locked States; Iran DNS Behavior; MX Presence By Country; MX Presence Per Country; North Korea Connectivity; Silent Countries List; TLS Fingerprint Change; Traceroute To Nowhere; Undersea Cable Dependency; Undersea Cable Dependency Map |
 | 📰 Media | Media Language Germany |
 | 🏘️ Society | Germany Fuel Price Observer; East Frisian Tea Observer |
-| 🌱 Environment | _No running environment observers yet_ |
+| 🌱 Environment | Geomagnetic Storm Observer |
 
 ### Planned observers
 

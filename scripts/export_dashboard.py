@@ -20,7 +20,7 @@ FUEL_OBSERVER = "germany-fuel-prices"
 TEA_OBSERVER = "east-frisian-tea-prices"
 SUMMARY_NAME = "summary.json"
 OUTPUT_FILES = ("summary.json", "internet.json", "media.json", "society.json", "environment.json", "technology.json", "heartbeat.json")
-HISTORY_FILES = ("history/media-language-germany.json", "history/internet-observers.json")
+HISTORY_FILES = ("history/media-language-germany.json", "history/internet-observers.json", "history/geomagnetic-storm-observer.json")
 FUEL_HISTORY_LIMIT = 365
 METADATA_PATH = "config/observer_metadata.json"
 
@@ -1356,6 +1356,35 @@ def _internet_history(daily_dir: Path, state_dir: Path, generated_at: str, metad
     return {"generated_at": generated_at, "observers": observers}
 
 
+
+def _geomagnetic_history_point(date: str, payload: Dict[str, Any]) -> Dict[str, Any]:
+    kp = payload.get("kp") if isinstance(payload.get("kp"), dict) else {}
+    solar_wind = payload.get("solar_wind") if isinstance(payload.get("solar_wind"), dict) else {}
+    point: Dict[str, Any] = {"date": date}
+    fields = (
+        ("kp", _as_number(kp.get("value"))),
+        ("max_kp", _as_number(kp.get("max_available"))),
+        ("bz_gsm", _as_number(solar_wind.get("bz_gsm"))),
+        ("solar_wind_speed", _as_number(solar_wind.get("speed_km_s"))),
+    )
+    for key, value in fields:
+        if value is not None:
+            point[key] = value
+    scale = payload.get("storm_scale")
+    if isinstance(scale, str) and scale:
+        point["storm_scale"] = scale
+    return point
+
+
+def _geomagnetic_history(daily_dir: Path, state_dir: Path, generated_at: str) -> Dict[str, Any]:
+    observer = "geomagnetic-storm-observer"
+    points = []
+    for date, path in _historical_observer_files(daily_dir, state_dir, observer):
+        payload, _error = _read_json(path)
+        if payload is not None:
+            points.append(_geomagnetic_history_point(date, payload))
+    return {"observer": observer, "generated_at": generated_at, "points": points}
+
 def export_dashboard(
     latest_dir: Path | None = None,
     dashboard_dir: Path | None = None,
@@ -1380,11 +1409,12 @@ def export_dashboard(
         "internet.json": _internet(loaded, metadata),
         "media.json": _media(loaded.get(MEDIA_OBSERVER)),
         "society.json": _society(loaded, metadata, state_dir),
-        "environment.json": {"status": "placeholder", "items": _planned_items(metadata, "environment")},
+        "environment.json": _category_dashboard("environment", loaded, metadata, state_dir),
         "technology.json": _category_dashboard("technology", loaded, metadata, state_dir),
         "heartbeat.json": _heartbeat(heartbeat_dir, generated_at),
         "history/media-language-germany.json": _media_history(daily_dir, generated_at, media_imports_dir),
         "history/internet-observers.json": _internet_history(daily_dir, state_dir, generated_at, metadata),
+        "history/geomagnetic-storm-observer.json": _geomagnetic_history(daily_dir, state_dir, generated_at),
     }
     written: Dict[str, Path] = {}
     for name in (*OUTPUT_FILES, *HISTORY_FILES):
