@@ -10,7 +10,7 @@ set -euo pipefail
 IFS=$'\n\t'
 
 log() {
-  printf '[refresh_wiesmoor_weather] %s\n' "$*"
+  printf '[refresh_wiesmoor_weather] %s\n' "$*" >&2
 }
 
 run() {
@@ -39,8 +39,18 @@ cd "$repo_root"
 
 log "starting hourly Wiesmoor weather refresh for ${snapshot_date}"
 
-run "$python_bin" "observers/${observer}/observer.py" > "$tmp_payload"
-run "$python_bin" -m json.tool "$tmp_payload" >/dev/null
+log "running observer: ${python_bin} observers/${observer}/observer.py > ${tmp_payload}"
+if ! "$python_bin" "observers/${observer}/observer.py" > "$tmp_payload"; then
+  log "observer failed; first lines of ${tmp_payload}:"
+  sed -n '1,20p' "$tmp_payload" >&2 || true
+  exit 1
+fi
+
+if ! run "$python_bin" -m json.tool "$tmp_payload" >/dev/null; then
+  log "observer output is not valid JSON; first lines of ${tmp_payload}:"
+  sed -n '1,20p' "$tmp_payload" >&2 || true
+  exit 1
+fi
 
 run mkdir -p "$daily_dir" "$latest_dir"
 run cp "$tmp_payload" "${daily_dir}/${observer}.json"
