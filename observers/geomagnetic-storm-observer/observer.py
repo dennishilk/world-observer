@@ -20,23 +20,12 @@ OBSERVER = "geomagnetic-storm-observer"
 TIMEOUT_S = 20
 SOURCES = {
     "kp": "https://services.swpc.noaa.gov/products/noaa-planetary-k-index.json",
-    "mag": "https://services.swpc.noaa.gov/products/solar-wind/mag-2-hour.json",
-    "plasma": "https://services.swpc.noaa.gov/products/solar-wind/plasma-2-hour.json",
 }
-SOURCE_CANDIDATES = {
-    "mag": [
-        SOURCES["mag"],
-        "https://services.swpc.noaa.gov/json/dscovr/dscovr_mag_1m.json",
-        "https://services.swpc.noaa.gov/json/dscovr/dscovr_mag_1s.json",
-        "https://services.swpc.noaa.gov/json/ace/ace_mag_1m.json",
-    ],
-    "plasma": [
-        SOURCES["plasma"],
-        "https://services.swpc.noaa.gov/json/dscovr/dscovr_plasma_1m.json",
-        "https://services.swpc.noaa.gov/json/dscovr/dscovr_plasma_1s.json",
-        "https://services.swpc.noaa.gov/json/ace/ace_swepam_1m.json",
-    ],
-}
+# No verified solar-wind telemetry source is configured. Previously tested NOAA
+# SWPC solar-wind, DSCOVR, and ACE JSON URLs returned HTTP 404 in production,
+# so keep the schema fields nullable instead of retrying known-dead endpoints.
+SOURCE_CANDIDATES: dict[str, list[str]] = {"mag": [], "plasma": []}
+SOLAR_WIND_NOT_CONFIGURED = "not_configured"
 
 
 def _date_utc() -> str:
@@ -157,15 +146,18 @@ def _fetch_first_valid_source(
     name: str, parser: Callable[[Any], tuple[float | None, str | None, int]]
 ) -> tuple[Any | None, dict[str, Any], int]:
     attempts = []
-    for url in SOURCE_CANDIDATES[name]:
+    candidates = SOURCE_CANDIDATES.get(name, [])
+    if not candidates:
+        return None, {"selected_url": None, "attempts": attempts, "status": SOLAR_WIND_NOT_CONFIGURED}, 0
+    for url in candidates:
         payload, source_diag = _fetch_json(url)
         value, _observed_at, row_count = parser(payload)
         source_diag["row_count"] = row_count
         source_diag["valid"] = value is not None
         attempts.append(source_diag)
         if source_diag["ok"] and value is not None:
-            return payload, {"selected_url": url, "attempts": attempts}, len(attempts)
-    return None, {"selected_url": None, "attempts": attempts}, len(attempts)
+            return payload, {"selected_url": url, "attempts": attempts, "status": "ok"}, len(attempts)
+    return None, {"selected_url": None, "attempts": attempts, "status": "unavailable"}, len(attempts)
 
 
 def storm_scale(kp: float | int | None) -> str | None:
@@ -223,6 +215,10 @@ def build_payload() -> dict[str, Any]:
     diagnostics["api_attempts"] += plasma_attempts
     diagnostics["sources"]["plasma"] = plasma_diag
     diagnostics["http_status"]["plasma"] = [attempt.get("http_status") for attempt in plasma_diag["attempts"]]
+    if mag_diag.get("status") == SOLAR_WIND_NOT_CONFIGURED and plasma_diag.get("status") == SOLAR_WIND_NOT_CONFIGURED:
+        diagnostics["solar_wind_source_status"] = SOLAR_WIND_NOT_CONFIGURED
+    else:
+        diagnostics["solar_wind_source_status"] = {"mag": mag_diag.get("status"), "plasma": plasma_diag.get("status")}
 
     kp, max_kp, kp_rows = latest_kp(fetched.get("kp"))
     bz_value, bz_time, mag_rows = latest_bz_gsm(fetched.get("mag"))
