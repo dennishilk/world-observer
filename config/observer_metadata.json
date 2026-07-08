@@ -366,6 +366,41 @@
       "trend_metric": "kp.value"
     },
     {
+      "observer": "wiesmoor-weather",
+      "display_name": "Wiesmoor Weather Observer",
+      "category": "environment",
+      "description": "Daily descriptive local weather snapshot for Wiesmoor, Lower Saxony, Germany, using public Open-Meteo model data.",
+      "tags": [
+        "environment",
+        "weather",
+        "wiesmoor",
+        "germany"
+      ],
+      "dashboard_priority": 20,
+      "planned": false,
+      "primary_metric": "current.temperature_2m",
+      "primary_metric_label": "Current temperature",
+      "primary_metric_unit": "°C",
+      "secondary_metrics": [
+        [
+          "current.apparent_temperature",
+          "Feels like",
+          "°C"
+        ],
+        [
+          "current.relative_humidity_2m",
+          "Relative humidity",
+          "%"
+        ],
+        [
+          "current.wind_gusts_10m",
+          "Wind gusts",
+          "km/h"
+        ]
+      ],
+      "trend_metric": "current.temperature_2m"
+    },
+    {
       "observer": "weather-germany",
       "display_name": "Weather Germany",
       "category": "environment",

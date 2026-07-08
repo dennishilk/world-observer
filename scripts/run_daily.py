@@ -48,6 +48,7 @@ OBSERVERS: List[str] = [
     "traceroute-to-nowhere",
     "undersea-cable-dependency",
     "undersea-cable-dependency-map",
+    "wiesmoor-weather",
 ]
 
 META_OBSERVER = "world-observer-meta"
