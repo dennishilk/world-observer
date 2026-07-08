@@ -1,0 +1,10 @@
+[Unit]
+Description=Run World Observer Wiesmoor weather refresh hourly
+
+[Timer]
+OnCalendar=hourly
+Persistent=true
+Unit=world-observer-wiesmoor-weather.service
+
+[Install]
+WantedBy=timers.target

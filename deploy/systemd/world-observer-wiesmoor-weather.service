@@ -1,0 +1,12 @@
+[Unit]
+Description=World Observer Wiesmoor weather hourly refresh
+Documentation=https://github.com/dennishilk/world-observer
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=nebu
+WorkingDirectory=/opt/world-observer/world-observer
+Environment=WORLD_OBSERVER_PAGES_REPO=/srv/www/dennishilk.github.io
+ExecStart=/opt/world-observer/world-observer/scripts/refresh_wiesmoor_weather.sh
