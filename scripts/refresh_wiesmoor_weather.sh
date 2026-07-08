@@ -65,7 +65,7 @@ fi
 
 if [[ -x "$sync_script" ]]; then
   log "publishing dashboard with website sync script: ${sync_script}"
-  run "$sync_script"
+  OBSERVER_REPO="$repo_root" run "$sync_script"
 else
   log "website sync script not executable at ${sync_script}; using publish_dashboard_to_pages.py"
   run "$python_bin" scripts/publish_dashboard_to_pages.py --pages-repo "$pages_repo"
