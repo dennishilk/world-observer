@@ -43,6 +43,8 @@ DAILY_FIELDS = (
     "precipitation_sum",
     "precipitation_probability_max",
     "wind_gusts_10m_max",
+    "sunrise",
+    "sunset",
 )
 HOURLY_FIELDS = CURRENT_FIELDS + ("precipitation_probability",)
 
@@ -83,8 +85,7 @@ def _open_meteo_url(target_date: str) -> str:
         "current": ",".join(CURRENT_FIELDS),
         "hourly": ",".join(HOURLY_FIELDS),
         "daily": ",".join(DAILY_FIELDS),
-        "start_date": target_date,
-        "end_date": target_date,
+        "forecast_days": "7",
         "wind_speed_unit": "kmh",
         "precipitation_unit": "mm",
         "temperature_unit": "celsius",
@@ -136,36 +137,42 @@ def _extract_current(payload: dict[str, Any]) -> dict[str, Any]:
     return {field: _to_number(current.get(field)) for field in CURRENT_FIELDS} | {"time": current.get("time")}
 
 
-def _extract_today_daily(payload: dict[str, Any], target_date: str) -> dict[str, Any]:
+def _extract_daily(payload: dict[str, Any], target_date: str) -> tuple[dict[str, Any], dict[str, Any]]:
     daily = payload.get("daily") if isinstance(payload.get("daily"), dict) else {}
     times = daily.get("time") if isinstance(daily.get("time"), list) else []
-    index = times.index(target_date) if target_date in times else 0 if times else None
-    result: dict[str, Any] = {"date": target_date if index is not None else None}
+    result: dict[str, Any] = {"time": times[:7]}
     for field in DAILY_FIELDS:
         values = daily.get(field)
-        result[field] = _to_number(values[index]) if index is not None and isinstance(values, list) and index < len(values) else None
-    return result
+        if isinstance(values, list):
+            if field in {"sunrise", "sunset"}:
+                result[field] = values[:7]
+            else:
+                result[field] = [_to_number(value) for value in values[:7]]
+
+    index = times.index(target_date) if target_date in times else 0 if times else None
+    today: dict[str, Any] = {"date": target_date if index is not None else None}
+    for field in DAILY_FIELDS:
+        values = result.get(field)
+        today[field] = values[index] if index is not None and isinstance(values, list) and index < len(values) else None
+    return result, today
 
 
 def _extract_hourly(payload: dict[str, Any]) -> dict[str, Any]:
     hourly = payload.get("hourly") if isinstance(payload.get("hourly"), dict) else {}
     times = hourly.get("time") if isinstance(hourly.get("time"), list) else []
-    hours: list[dict[str, Any]] = []
-    for index, stamp in enumerate(times[:24]):
-        row: dict[str, Any] = {"time": stamp}
-        for field in HOURLY_FIELDS:
-            values = hourly.get(field)
-            row[field] = _to_number(values[index]) if isinstance(values, list) and index < len(values) else None
-        hours.append(row)
-    return {"hours_returned": len(hours), "first_24h": hours}
-
+    result: dict[str, Any] = {"time": times[:24], "hours_returned": len(times[:24])}
+    for field in HOURLY_FIELDS:
+        values = hourly.get(field)
+        if isinstance(values, list):
+            result[field] = [_to_number(value) for value in values[:24]]
+    return result
 
 def _data_status(current: dict[str, Any], daily: dict[str, Any], hourly: dict[str, Any]) -> str:
     current_values = [current.get(field) for field in CURRENT_FIELDS]
     daily_values = [daily.get(field) for field in DAILY_FIELDS]
     has_current = any(value is not None for value in current_values)
     has_daily = any(value is not None for value in daily_values)
-    has_hourly = bool(hourly.get("first_24h"))
+    has_hourly = bool(hourly.get("time"))
     if has_current and has_daily and has_hourly:
         return "ok"
     if has_current or has_daily or has_hourly:
@@ -219,12 +226,13 @@ def build_payload() -> dict[str, Any]:
             "location": {"name": "Wiesmoor, Lower Saxony, Germany", "latitude": LATITUDE, "longitude": LONGITUDE, "timezone": TIMEZONE},
             "current": {},
             "today": {},
-            "hourly": {"hours_returned": 0, "first_24h": []},
+            "hourly": {"time": [], "hours_returned": 0},
+            "daily": {"time": []},
             "diagnostics": diagnostics,
             "summary": "Open-Meteo weather data for Wiesmoor is unavailable.",
         }
     current = _extract_current(payload)
-    today = _extract_today_daily(payload, target_date)
+    daily, today = _extract_daily(payload, target_date)
     hourly = _extract_hourly(payload)
     data_status = _data_status(current, today, hourly)
     status = "ok" if data_status in {"ok", "partial"} else "unavailable"
@@ -239,6 +247,7 @@ def build_payload() -> dict[str, Any]:
         "current": current,
         "today": today,
         "hourly": hourly,
+        "daily": daily,
         "diagnostics": diagnostics,
         "summary": _summary(current, today),
     }
