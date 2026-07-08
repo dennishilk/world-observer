@@ -3,8 +3,8 @@
   "display_name": "East Frisian Tea Observer",
   "description": "Tracks the retail price development of a representative 500 g loose East Frisian black tea product over time. The observer is descriptive only and does not rate brands or product quality.",
   "category": "society",
-  "date": "2026-07-07",
-  "date_utc": "2026-07-07",
+  "date": "2026-07-08",
+  "date_utc": "2026-07-08",
   "status": "ok",
   "data_status": "ok",
   "source": "combi_product_meta",
@@ -49,6 +49,11 @@
       "date": "2026-07-07",
       "value": 9.99,
       "source": "combi_product_meta"
+    },
+    {
+      "date": "2026-07-08",
+      "value": 9.99,
+      "source": "combi_product_meta"
     }
   ],
   "average_30d": 9.99,
@@ -63,7 +68,7 @@
   "diagnostics": {
     "source": "combi_product_meta",
     "fetch_url": "https://www.combi.de/buenting_tee_gruenpack_1101010007.html",
-    "fetched_at_utc": "2026-07-07T17:13:56.409944+00:00",
+    "fetched_at_utc": "2026-07-08T06:06:01.395319+00:00",
     "http_status": 200,
     "api_attempts": 1,
     "retries": 0,

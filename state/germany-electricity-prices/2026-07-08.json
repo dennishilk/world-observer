@@ -1,8 +1,8 @@
 {
   "observer": "germany-electricity-prices",
   "category": "society",
-  "date": "2026-07-07",
-  "date_utc": "2026-07-07",
+  "date": "2026-07-08",
+  "date_utc": "2026-07-08",
   "status": "ok",
   "data_status": "ok",
   "current_price_eur_per_kwh": 0.2963,
@@ -58,7 +58,7 @@
       "source": "daily"
     },
     {
-      "date": "2026-07-07",
+      "date": "2026-07-08",
       "value": 0.2963,
       "source": "static_tariff_observation"
     }
@@ -74,5 +74,5 @@
     "validation_note": "Static tariff values are manually configured; validated local CSV/JSON imports remain supported.",
     "daily_state_history_count": 6
   },
-  "last_seen_date": "2026-07-07"
+  "last_seen_date": "2026-07-08"
 }

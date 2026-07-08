@@ -1,6 +1,6 @@
 {
   "observer": "silent-countries-list",
-  "date_utc": "2026-07-07",
+  "date_utc": "2026-07-08",
   "data_status": "ok",
   "top_silent_countries": [
     {
@@ -13,7 +13,7 @@
       "country": "IR",
       "silence_score": 0.0575,
       "classification": "normal",
-      "delta_score": 0.0
+      "delta_score": 0.0075
     },
     {
       "country": "KP",
@@ -44,13 +44,13 @@
       "mean": 0.2325,
       "std": 0.0
     },
-    "IR": {
-      "mean": 0.0533,
-      "std": 0.0037
-    },
     "KP": {
       "mean": 0.05,
       "std": 0.0
+    },
+    "IR": {
+      "mean": 0.053,
+      "std": 0.0037
     },
     "US": {
       "mean": 0.0,

@@ -59,7 +59,7 @@
     "source": "www.ndr.de",
     "primary_source": "www.ndr.de",
     "fetch_url": "https://www.ndr.de/nachrichten/info/spritpreise-aktuell-so-entwickeln-sich-benzin-und-dieselpreise%2Cspritpreise-128.html",
-    "fetched_at_utc": "2026-07-07T06:06:10.420979Z",
+    "fetched_at_utc": "2026-07-07T17:14:01.196689Z",
     "parse_status": "ok",
     "fallback_used": false,
     "api_attempts": 1,
@@ -67,14 +67,15 @@
     "http_status": 200,
     "missing_fuels_after_primary": [],
     "priced_fuel_count": 2,
-    "daily_state_history_count": 12,
+    "daily_state_history_count": 14,
     "daily_state_history_dates": [
       "2026-07-01",
       "2026-07-02",
       "2026-07-03",
       "2026-07-04",
       "2026-07-05",
-      "2026-07-06"
+      "2026-07-06",
+      "2026-07-07"
     ],
     "state_history_note": "Trend calculations use repository state snapshots as recorded; prices absent from state/import history are not reconstructed."
   }
