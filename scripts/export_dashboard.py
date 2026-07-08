@@ -1385,6 +1385,23 @@ def _geomagnetic_history(daily_dir: Path, state_dir: Path, generated_at: str) ->
             points.append(_geomagnetic_history_point(date, payload))
     return {"observer": observer, "generated_at": generated_at, "points": points}
 
+
+def _export_latest_snapshots(latest_dir: Path, dashboard_dir: Path) -> Dict[str, Path]:
+    latest_dashboard_dir = dashboard_dir / "latest"
+    latest_dashboard_dir.mkdir(parents=True, exist_ok=True)
+    written: Dict[str, Path] = {}
+    for observer in OBSERVERS:
+        source = latest_dir / f"{observer}.json"
+        if not source.exists():
+            continue
+        payload, error = _read_json(source)
+        if payload is None:
+            continue
+        path = latest_dashboard_dir / source.name
+        _compact_write(path, payload)
+        written[f"latest/{source.name}"] = path
+    return written
+
 def export_dashboard(
     latest_dir: Path | None = None,
     dashboard_dir: Path | None = None,
@@ -1422,6 +1439,7 @@ def export_dashboard(
         path.parent.mkdir(parents=True, exist_ok=True)
         _compact_write(path, outputs[name])
         written[name] = path
+    written.update(_export_latest_snapshots(latest_dir, dashboard_dir))
     return written
 
 
