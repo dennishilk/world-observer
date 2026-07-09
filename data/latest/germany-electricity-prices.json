@@ -10,7 +10,7 @@
   "date_utc": "2026-07-09",
   "diagnostics": {
     "api_attempts": 0,
-    "daily_state_history_count": 7,
+    "daily_state_history_count": 8,
     "http_status": null,
     "retries": 0,
     "source_status": "static_tariff_loaded",
@@ -49,6 +49,11 @@
     },
     {
       "date": "2026-07-08",
+      "source": "daily",
+      "value": 0.2963
+    },
+    {
+      "date": "2026-07-09",
       "source": "daily",
       "value": 0.2963
     },

@@ -24,7 +24,7 @@
   "diagnostics": {
     "timeout": false,
     "budget_exhausted": false,
-    "duration_s": 15.667,
+    "duration_s": 1.537,
     "runtime_budget_s": 105.0,
     "api_attempts": 0,
     "retries": 0,
