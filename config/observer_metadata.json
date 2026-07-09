@@ -366,6 +366,41 @@
       "trend_metric": "kp.value"
     },
     {
+      "observer": "wiesmoor-sky-observer",
+      "display_name": "Wiesmoor Sky Observer",
+      "category": "environment",
+      "description": "Local astronomical conditions above Wiesmoor.",
+      "tags": [
+        "environment",
+        "astronomy",
+        "wiesmoor",
+        "germany"
+      ],
+      "dashboard_priority": 19,
+      "planned": false,
+      "primary_metric": "astronomical_night.available",
+      "primary_metric_label": "Astronomical night availability",
+      "primary_metric_unit": "boolean",
+      "secondary_metrics": [
+        [
+          "moon.illumination_percent",
+          "Moon illumination",
+          "%"
+        ],
+        [
+          "sun.current_altitude_degrees",
+          "Current sun altitude",
+          "degrees"
+        ],
+        [
+          "moon.current_altitude_degrees",
+          "Current moon altitude",
+          "degrees"
+        ]
+      ],
+      "trend_metric": "moon.illumination_percent"
+    },
+    {
       "observer": "wiesmoor-weather",
       "display_name": "Wiesmoor Weather Observer",
       "category": "environment",
