@@ -30,6 +30,9 @@ LONGITUDE = 7.7333
 DWD_KL_RECENT_BASE_URL = "https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/daily/kl/recent/"
 DWD_STATION_DESCRIPTION = "KL_Tageswerte_Beschreibung_Stationen.txt"
 DWD_ADAPTER_ID = "dwd_cdc_daily_climate_kl_recent"
+NLWKN_GROUNDWATER_ADAPTER_ID = "nlwkn_groundwaterstandonline_public"
+NLWKN_STATIONS_URL = "https://bis.azure-api.net/GrundwasserstandonlinePublic/REST/stammdaten/stationen/allegrundwasserstationen?key=9dc05f4e3b4a43a9988d747825b39f43"
+NLWKN_PORTAL_URL = "https://www.grundwasserstandonline.nlwkn.niedersachsen.de/"
 USER_AGENT = "WorldObserver/0.14 WiesmoorPeatlandObserver (+https://github.com/)"
 REQUEST_TIMEOUT_SECONDS = 20
 MAX_RETRIES = 2
@@ -48,6 +51,20 @@ class DwdStation:
     name: str
     state: str
     distance_km: float
+
+@dataclass(frozen=True)
+class NlwknGroundwaterStation:
+    station_name: str
+    station_id: str | None
+    latitude: float | None
+    longitude: float | None
+    distance_km: float | None
+    latest_date: str | None
+    latest_value: float | None
+    latest_value_unit: str | None
+    status_category: str | None
+    data_status: str
+    source_url: str | None
 
 @dataclass
 class AdapterDiagnostics:
@@ -103,7 +120,7 @@ def _fetch_url(url: str, diagnostics: AdapterDiagnostics) -> bytes:
             last_error = exc
         if attempt < MAX_RETRIES:
             time.sleep(0.4 * (attempt + 1))
-    raise RuntimeError(f"DWD request failed for {url}: {last_error}")
+    raise RuntimeError(f"HTTP request failed for {url}: {last_error}")
 
 def parse_station_description(text: str, today: date | None = None) -> list[DwdStation]:
     today = today or datetime.now(timezone.utc).date()
@@ -136,6 +153,105 @@ def _parse_float(raw: str | None) -> float | None:
     if raw is None or raw.strip() in MISSING_VALUES: return None
     try: return float(raw.strip())
     except ValueError: return None
+
+def _deep_get(record: Any, names: set[str]) -> Any:
+    """Return the first value whose normalized key is in names from nested source JSON."""
+    if isinstance(record, dict):
+        for key, value in record.items():
+            if str(key).lower().replace("_", "").replace("-", "") in names:
+                return value
+        for value in record.values():
+            found = _deep_get(value, names)
+            if found is not None:
+                return found
+    elif isinstance(record, list):
+        for value in record:
+            found = _deep_get(value, names)
+            if found is not None:
+                return found
+    return None
+
+def _parse_coordinate(value: Any) -> float | None:
+    if isinstance(value, (int, float)):
+        return float(value)
+    if not isinstance(value, str):
+        return None
+    return _parse_float(value.replace(",", "."))
+
+def _parse_latest_value(value: Any) -> float | None:
+    if isinstance(value, (int, float)):
+        return float(value)
+    if not isinstance(value, str):
+        return None
+    return _parse_float(value.replace(",", "."))
+
+def normalize_nlwkn_status_label(label: Any) -> str | None:
+    """Normalize common labels while preserving source-native labels safely."""
+    if label is None:
+        return None
+    normalized = str(label).strip()
+    if not normalized:
+        return None
+    compact = normalized.lower().replace("_", " ").replace("-", " ")
+    compact = re.sub(r"\s+", " ", compact)
+    mapping = {
+        "sehr niedrig": "very_low",
+        "sehr nied­rig": "very_low",
+        "very low": "very_low",
+        "niedrig": "low",
+        "low": "low",
+        "normal": "normal",
+        "mittel": "normal",
+        "hoch": "high",
+        "high": "high",
+        "sehr hoch": "very_high",
+        "very high": "very_high",
+    }
+    return mapping.get(compact, normalized)
+
+def parse_nlwkn_station(record: dict[str, Any]) -> NlwknGroundwaterStation:
+    station_id = _deep_get(record, {"staid", "stationid", "stationsid", "messstellenid", "id"})
+    station_name = _deep_get(record, {"staname", "stationname", "messstellenname", "name", "bezeichnung"})
+    lat = _parse_coordinate(_deep_get(record, {"latitude", "lat", "geobreite", "breitengrad"}))
+    lon = _parse_coordinate(_deep_get(record, {"longitude", "lon", "lng", "geolaenge", "geolange", "laengengrad", "längengrad"}))
+    latest_value = _parse_latest_value(_deep_get(record, {"latestvalue", "aktuellerwert", "messwert", "wert", "tageswert"}))
+    latest_date = _deep_get(record, {"latestdate", "datum", "messdatum", "zeitpunkt", "tageswertdatum"})
+    unit = _deep_get(record, {"unit", "einheit", "masseinheit", "maßeinheit"})
+    status = normalize_nlwkn_status_label(_deep_get(record, {"statuscategory", "status", "klasse", "klassifikation", "einordnung"}))
+    source_url = _deep_get(record, {"sourceurl", "url", "link"}) or NLWKN_PORTAL_URL
+    distance = round(haversine_km(LATITUDE, LONGITUDE, lat, lon), 2) if lat is not None and lon is not None else None
+    return NlwknGroundwaterStation(
+        station_name=str(station_name or "NLWKN groundwater station"),
+        station_id=str(station_id) if station_id is not None else None,
+        latitude=lat,
+        longitude=lon,
+        distance_km=distance,
+        latest_date=str(latest_date) if latest_date else None,
+        latest_value=latest_value,
+        latest_value_unit=str(unit) if unit else None,
+        status_category=status,
+        data_status="ok" if latest_value is not None and latest_date else ("partial" if latest_value is not None or latest_date or status else "metadata_only"),
+        source_url=str(source_url) if source_url else None,
+    )
+
+def select_nlwkn_stations(stations: list[NlwknGroundwaterStation], limit: int = 3) -> list[NlwknGroundwaterStation]:
+    suitable = [s for s in stations if s.distance_km is not None]
+    return sorted(suitable, key=lambda s: (s.data_status not in {"ok", "partial"}, s.distance_km or 10**9, s.station_id or s.station_name))[:limit]
+
+def _station_to_dict(station: NlwknGroundwaterStation) -> dict[str, Any]:
+    return {
+        "station_name": station.station_name,
+        "station_id": station.station_id,
+        "latitude": station.latitude,
+        "longitude": station.longitude,
+        "distance_km": station.distance_km,
+        "latest_date": station.latest_date,
+        "latest_value": station.latest_value,
+        "latest_value_unit": station.latest_value_unit,
+        "status_category": station.status_category,
+        "data_status": station.data_status,
+        "source_url": station.source_url,
+    }
 
 def parse_daily_product(zip_bytes: bytes) -> list[dict[str, Any]]:
     with zipfile.ZipFile(io.BytesIO(zip_bytes)) as zf:
@@ -198,30 +314,65 @@ def peat_context() -> dict[str, Any]:
 
 
 def groundwater_proxy() -> dict[str, Any]:
-    return {
+    diagnostics = AdapterDiagnostics()
+    source = {
+        "name": "NLWKN Grundwasserstandonline / groundwater monitoring data",
+        "url": NLWKN_PORTAL_URL,
+        "status": "live_adapter",
+        "dataset": "Grundwasserstandonline public station metadata with current daily value where exposed",
+        "station_metadata_url": NLWKN_STATIONS_URL,
+    }
+    base: dict[str, Any] = {
         "label": "groundwater proxy",
         "interpretation_note": (
             "Nearby groundwater stations can indicate regional groundwater behaviour but are not an "
             "in-situ peat water-table sensor for Wiesmoor-Nord."
         ),
-        "stations": [
-            {
-                "station_name": "NLWKN nearby groundwater station (to be resolved)",
-                "distance_km": None,
-                "status_category": "candidate_source_not_live_ingested",
-                "latest_value": None,
-                "latest_value_unit": None,
-                "latest_date": None,
-                "data_status": "unavailable",
-            }
-        ],
-        "source": _unavailable_source(
-            "NLWKN groundwater monitoring data",
-            "https://www.nlwkn.niedersachsen.de/",
-            "Add a deterministic station selection and latest-value adapter before emitting station values.",
+        "selection_method": (
+            f"Fetch official NLWKN Grundwasserstandonline public station metadata, parse station "
+            f"coordinates and current values when present, then select the nearest suitable stations "
+            f"to Wiesmoor ({LATITUDE}, {LONGITUDE}) by haversine distance; prefer stations with live "
+            f"value/date/status metadata but never fabricate missing values."
         ),
+        "stations": [],
+        "nearest_station": None,
+        "regional_status_summary": "unavailable",
+        "source": source,
         "data_status": "unavailable",
     }
+    try:
+        raw = _fetch_url(NLWKN_STATIONS_URL, diagnostics)
+        payload = json.loads(raw.decode("utf-8-sig"))
+        records = payload if isinstance(payload, list) else payload.get("data") or payload.get("stations") or payload.get("features") or []
+        parsed: list[NlwknGroundwaterStation] = []
+        for item in records:
+            if isinstance(item, dict):
+                if item.get("type") == "Feature" and isinstance(item.get("properties"), dict):
+                    merged = dict(item["properties"])
+                    coords = (item.get("geometry") or {}).get("coordinates") if isinstance(item.get("geometry"), dict) else None
+                    if isinstance(coords, list) and len(coords) >= 2:
+                        merged.setdefault("longitude", coords[0])
+                        merged.setdefault("latitude", coords[1])
+                    item = merged
+                parsed.append(parse_nlwkn_station(item))
+        selected = select_nlwkn_stations(parsed, 3)
+        base["stations"] = [_station_to_dict(s) for s in selected]
+        base["nearest_station"] = base["stations"][0] if selected else None
+        statuses = [s.status_category for s in selected if s.status_category]
+        if statuses:
+            base["regional_status_summary"] = statuses[0] if len(set(statuses)) == 1 else "mixed_source_native_status"
+        if selected:
+            base["data_status"] = "ok" if all(s.data_status == "ok" for s in selected) else "partial"
+        else:
+            raise RuntimeError("NLWKN response contained no stations with usable coordinates")
+    except Exception as exc:
+        diagnostics.error = str(exc)
+        source["status"] = "temporarily_unavailable"
+        source["note"] = "NLWKN adapter failed gracefully; no groundwater values were fabricated."
+        base["stations"] = []
+        base["nearest_station"] = None
+        base["data_status"] = "unavailable"
+    return base, diagnostics
 
 
 def regional_soil_water() -> dict[str, Any]:
@@ -334,6 +485,8 @@ def derive_pressure(soil: dict[str, Any], groundwater: dict[str, Any], weather: 
         "limitations": [
             "Regional proxy observation — not an in-situ peat water-table sensor.",
             "DWD daily rainfall is one regional proxy component only and is not an in-situ peat water-table measurement.",
+            "NLWKN groundwater stations are a regional proxy; station distance and local hydrogeological representativeness are uncertain.",
+            "Groundwater level observations are not the same as a peat water-table measurement in Wiesmoor-Nord peat soils.",
             "Groundwater stations, satellite soil-water data and weather totals may describe different depths, footprints and response times.",
         ],
     }
@@ -342,7 +495,7 @@ def derive_pressure(soil: dict[str, Any], groundwater: dict[str, Any], weather: 
 def build_payload() -> dict[str, Any]:
     target_date = _date_utc()
     context = peat_context()
-    groundwater = groundwater_proxy()
+    groundwater, groundwater_diagnostics = groundwater_proxy()
     soil = regional_soil_water()
     weather, weather_diagnostics = weather_pressure()
     pressure = derive_pressure(soil, groundwater, weather)
@@ -366,7 +519,13 @@ def build_payload() -> dict[str, Any]:
         "primary_metric_value": pressure["value"],
         "summary": "Wiesmoor peatland hydrological pressure remains unavailable as an in-situ conclusion; DWD daily rainfall is emitted when available as a regional weather proxy component only.",
         "sources": [context["source"], groundwater["source"], soil["source"], weather["source"]],
-        "diagnostics": {"api_attempts": weather_diagnostics.api_attempts, "retries": weather_diagnostics.retries, "http_status": weather_diagnostics.http_status, "live_adapters_enabled": [DWD_ADAPTER_ID], "adapter_errors": ([weather_diagnostics.error] if weather_diagnostics.error else [])},
+        "diagnostics": {
+            "api_attempts": weather_diagnostics.api_attempts + groundwater_diagnostics.api_attempts,
+            "retries": weather_diagnostics.retries + groundwater_diagnostics.retries,
+            "http_status": {"dwd": weather_diagnostics.http_status, "nlwkn_groundwater": groundwater_diagnostics.http_status},
+            "live_adapters_enabled": [DWD_ADAPTER_ID, NLWKN_GROUNDWATER_ADAPTER_ID],
+            "adapter_errors": ([weather_diagnostics.error] if weather_diagnostics.error else []) + ([groundwater_diagnostics.error] if groundwater_diagnostics.error else []),
+        },
     }
 
 
