@@ -7,12 +7,12 @@
   "layers": {
     "dns": {
       "success_rate": 0.25,
-      "mean_latency_ms": 829.72,
+      "mean_latency_ms": 561.04,
       "probe_count": 8,
       "data_completeness": 1.0
     },
     "tcp": {
-      "success_rate": 0.1667,
+      "success_rate": 0.0833,
       "probe_count": 24,
       "data_completeness": 1.0
     },
@@ -22,15 +22,15 @@
       "data_completeness": 1.0
     },
     "tls": {
-      "success_rate": 0.25,
+      "success_rate": 0.0,
       "probe_count": 8,
       "data_completeness": 1.0
     }
   },
   "time_to_silence": {
-    "mean_seconds": 24.627,
-    "p95_seconds": 24.627,
-    "worst_seconds": 24.627
+    "mean_seconds": 18.247,
+    "p95_seconds": 18.247,
+    "worst_seconds": 18.247
   },
   "baseline_30d": {
     "dns_success_rate": {
@@ -82,10 +82,10 @@
           "triggered": false
         },
         "tcp_success_rate": {
-          "value": 0.1667,
+          "value": 0.0833,
           "mean_30d": 0.056041,
           "stddev_30d": 0.074449,
-          "zscore": 1.4864,
+          "zscore": 0.3661,
           "triggered": false
         },
         "icmp_success_rate": {
@@ -96,31 +96,31 @@
           "triggered": false
         },
         "tls_success_rate": {
-          "value": 0.25,
+          "value": 0.0,
           "mean_30d": 0.077586,
           "stddev_30d": 0.110902,
-          "zscore": 1.5547,
+          "zscore": -0.6996,
           "triggered": false
         },
         "tts_mean_seconds": {
-          "value": 24.627,
+          "value": 18.247,
           "mean_30d": 48.504655,
           "stddev_30d": 16.564608,
-          "zscore": -1.4415,
+          "zscore": -1.8266,
           "triggered": false
         },
         "tts_p95_seconds": {
-          "value": 24.627,
+          "value": 18.247,
           "mean_30d": 49.865207,
           "stddev_30d": 16.336579,
-          "zscore": -1.5449,
+          "zscore": -1.9354,
           "triggered": false
         },
         "tts_worst_seconds": {
-          "value": 24.627,
+          "value": 18.247,
           "mean_30d": 49.865207,
           "stddev_30d": 16.336579,
-          "zscore": -1.5449,
+          "zscore": -1.9354,
           "triggered": false
         }
       },
@@ -139,11 +139,11 @@
     "api_attempts": 48,
     "retries": 0,
     "http_status": null,
-    "probes_attempted": 89,
-    "probes_succeeded": 12,
-    "probes_failed": 77,
-    "timeouts": 2,
-    "duration_s": 60.409,
+    "probes_attempted": 71,
+    "probes_succeeded": 8,
+    "probes_failed": 63,
+    "timeouts": 5,
+    "duration_s": 60.197,
     "budget_s": 60.0,
     "budget_exhausted": true
   }

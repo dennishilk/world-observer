@@ -1,13 +1,72 @@
 {
   "category": "environment",
-  "collected_at_utc": "2026-07-09T16:24:26Z",
+  "collected_at_utc": "2026-07-09T17:16:49Z",
+  "copernicus_soil_water": {
+    "data_status": "unavailable",
+    "file_naming_convention": "c_gls_SWI1km_YYYYMMDD1200_CEURO_SCATSAR_VX.Y.X.nc",
+    "file_url": null,
+    "fill_value": 255,
+    "flag_values": [
+      241,
+      242,
+      251,
+      252,
+      253,
+      254
+    ],
+    "grid_cell": {
+      "column": 2098,
+      "crs": "EPSG:4326",
+      "distance_km": 0.336,
+      "latitude": 53.4196429,
+      "longitude": 7.7321429,
+      "pixel_size_degrees": 0.008928571428571428,
+      "row": 2081
+    },
+    "label": "Copernicus satellite soil-water proxy",
+    "latest_date": null,
+    "latest_value": null,
+    "limitations": [
+      "Regional proxy, satellite/model product, not an in-situ peat water-table sensor.",
+      "Copernicus SWI is emitted as an independent proxy and is not used to derive peat water-table depth.",
+      "Hydrological pressure classes are not derived from SWI at this stage.",
+      "Raw valid values are 0..200 and decoded with scale_factor 0.5 to percent; fill value 255 and flags 241, 242, 251, 252, 253 and 254 are unavailable, never converted to zero."
+    ],
+    "product": "Soil Water Index 2025-present (raster 1 km), Europe, daily – version 2",
+    "product_version": "V2.0.1",
+    "raw_valid_range": [
+      0,
+      200
+    ],
+    "scale_factor": 0.5,
+    "selection_method": "Deterministically select the nearest/containing EPSG:4326 1/112° Copernicus SWI grid cell to Wiesmoor (53.4167, 7.7333); no averaging, no conversion to peat water-table depth.",
+    "source": {
+      "access_method": "Copernicus Data Space Ecosystem via Copernicus Browser, OData API, or S3; this adapter does not guess collection identifiers or file paths without verified anonymous discovery.",
+      "dataset": "Soil Water Index 2025-present (raster 1 km), Europe, daily – version 2",
+      "file_naming_convention": "c_gls_SWI1km_YYYYMMDD1200_CEURO_SCATSAR_VX.Y.X.nc",
+      "name": "Copernicus Land Monitoring Service",
+      "product_user_manual_url": "https://land.copernicus.eu/en/technical-library/product-user-manual-soil-water-index/@@download/file",
+      "product_version": "V2.0.1",
+      "status": "metadata_only",
+      "url": "https://land.copernicus.eu/en/products/soil-moisture/daily-soil-water-index-europe-1km-v2"
+    },
+    "source_url": "https://land.copernicus.eu/en/products/soil-moisture/daily-soil-water-index-europe-1km-v2",
+    "spatial_resolution": "1/112° (~1 km), EPSG:4326",
+    "spatial_resolution_km": 1,
+    "unit": "%",
+    "variable": "SWI_002",
+    "variable_meaning": "SWI_002 means T=2"
+  },
   "data_status": "partial",
   "date": "2026-07-09",
   "date_utc": "2026-07-09",
   "diagnostics": {
-    "adapter_errors": [],
+    "adapter_errors": [
+      "Live Copernicus SWI discovery/download is not enabled: anonymous CDSE product discovery was not verified in this environment, and the adapter must not guess OData collection identifiers or file paths."
+    ],
     "api_attempts": 5,
     "http_status": {
+      "copernicus_swi": null,
       "dwd": 200,
       "dwd_soil_moisture": 200,
       "nlwkn_groundwater": 200
@@ -16,6 +75,9 @@
       "dwd_cdc_daily_climate_kl_recent",
       "nlwkn_groundwaterstandonline_public",
       "dwd_cdc_daily_soil_moisture_grass"
+    ],
+    "metadata_adapters": [
+      "copernicus_clms_swi_europe_1km_daily_v2"
     ],
     "retries": 0
   },
@@ -196,6 +258,16 @@
       "source_url": "https://opendata.dwd.de/climate_environment/CDC/grids_germany/daily/soil_moisture/grass/2026/grids_germany_daily_soil_moisture_grass_2026_0-60_v1.nc",
       "status": "live_adapter",
       "url": "https://opendata.dwd.de/climate_environment/CDC/grids_germany/daily/soil_moisture/grass/"
+    },
+    {
+      "access_method": "Copernicus Data Space Ecosystem via Copernicus Browser, OData API, or S3; this adapter does not guess collection identifiers or file paths without verified anonymous discovery.",
+      "dataset": "Soil Water Index 2025-present (raster 1 km), Europe, daily – version 2",
+      "file_naming_convention": "c_gls_SWI1km_YYYYMMDD1200_CEURO_SCATSAR_VX.Y.X.nc",
+      "name": "Copernicus Land Monitoring Service",
+      "product_user_manual_url": "https://land.copernicus.eu/en/technical-library/product-user-manual-soil-water-index/@@download/file",
+      "product_version": "V2.0.1",
+      "status": "metadata_only",
+      "url": "https://land.copernicus.eu/en/products/soil-moisture/daily-soil-water-index-europe-1km-v2"
     },
     {
       "dataset": "Recent daily climate observations Germany (KL), daily precipitation RSK and daily mean temperature TMK",
