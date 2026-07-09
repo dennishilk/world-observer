@@ -366,6 +366,37 @@
       "trend_metric": "kp.value"
     },
     {
+      "observer": "wiesmoor-peatland",
+      "display_name": "Wiesmoor Peatland Observer",
+      "category": "environment",
+      "description": "Regional proxy observer for hydrological pressure on the Wiesmoor peatland landscape; not an in-situ peat water-table sensor.",
+      "tags": [
+        "environment",
+        "peatland",
+        "wiesmoor",
+        "germany",
+        "proxy"
+      ],
+      "dashboard_priority": 18,
+      "planned": false,
+      "primary_metric": "peatland_hydrological_pressure.value",
+      "primary_metric_label": "Hydrological pressure",
+      "primary_metric_unit": "state",
+      "secondary_metrics": [
+        [
+          "weather_pressure.rainfall_7d_mm",
+          "7-day rainfall",
+          "mm"
+        ],
+        [
+          "weather_pressure.rainfall_30d_mm",
+          "30-day rainfall",
+          "mm"
+        ]
+      ],
+      "trend_metric": "peatland_hydrological_pressure.value"
+    },
+    {
       "observer": "wiesmoor-sky-observer",
       "display_name": "Wiesmoor Sky Observer",
       "category": "environment",
