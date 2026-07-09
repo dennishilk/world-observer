@@ -872,32 +872,126 @@ def weather_pressure() -> tuple[dict[str, Any], AdapterDiagnostics]:
     return base, diagnostics
 
 
-def derive_pressure(soil: dict[str, Any], groundwater: dict[str, Any], weather: dict[str, Any]) -> dict[str, Any]:
+def _is_number(value: Any) -> bool:
+    return isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(float(value))
+
+
+def _soil_water_signal(soil: dict[str, Any]) -> dict[str, Any]:
+    value = soil.get("latest_value")
+    if soil.get("status") != "ok" or not _is_number(value):
+        return {"valid": False, "direction": None, "strength": "unavailable", "class": "unavailable", "latest_value": value}
+    numeric = float(value)
+    if numeric < 50:
+        klass, direction, strength = "very_low", "dry", "strong"
+    elif numeric < 70:
+        klass, direction, strength = "low", "dry", "moderate"
+    elif numeric <= 120:
+        klass, direction, strength = "normal", "normal", "moderate"
+    elif numeric <= 160:
+        klass, direction, strength = "high", "wet", "moderate"
+    else:
+        klass, direction, strength = "very_high", "wet", "strong"
+    return {"valid": True, "direction": direction, "strength": strength, "class": klass, "latest_value": numeric, "unit": soil.get("unit") or DWD_SOIL_MOISTURE_UNIT}
+
+
+def _groundwater_signal(groundwater: dict[str, Any]) -> dict[str, Any]:
+    status = (groundwater.get("regional_status_summary") or groundwater.get("nearest_station", {}).get("status_category") or "").lower()
+    if groundwater.get("data_status") != "ok" or status in {"", "unavailable", "unknown"}:
+        return {"valid": False, "direction": None, "strength": "unavailable", "class": status or "unavailable"}
+    if status in {"very_low", "low"}:
+        return {"valid": True, "direction": "dry", "strength": "strong" if status == "very_low" else "moderate", "class": status}
+    if status in {"very_high", "high"}:
+        return {"valid": True, "direction": "wet", "strength": "strong" if status == "very_high" else "moderate", "class": status}
+    if status == "normal":
+        return {"valid": True, "direction": "normal", "strength": "moderate", "class": status}
+    return {"valid": False, "direction": None, "strength": "unavailable", "class": status}
+
+
+def _weather_signal(weather: dict[str, Any]) -> dict[str, Any]:
     rainfall_7d = weather.get("rainfall_7d_mm")
     rainfall_30d = weather.get("rainfall_30d_mm")
-    soil_trend = soil.get("trend") or "unavailable"
-    groundwater_status = groundwater.get("data_status") or "unavailable"
-    available = [value for value in (rainfall_7d, rainfall_30d) if isinstance(value, (int, float))]
-    if not available and soil_trend == "unavailable" and groundwater_status == "unavailable":
-        state = "unavailable"
-        confidence = "low"
+    dry_7d = weather.get("dry_days_7d")
+    dry_30d = weather.get("dry_days_30d")
+    consecutive = weather.get("consecutive_dry_days")
+    temp_7d = weather.get("temperature_mean_7d_c")
+    if weather.get("data_status") not in {"ok", "partial"} or not (_is_number(rainfall_7d) and _is_number(rainfall_30d)):
+        return {"valid": False, "direction": None, "strength": "unavailable", "class": "unavailable"}
+    r7 = float(rainfall_7d); r30 = float(rainfall_30d)
+    dryish = (_is_number(dry_7d) and dry_7d >= 6) or (_is_number(dry_30d) and dry_30d >= 22) or (_is_number(consecutive) and consecutive >= 10)
+    hot = _is_number(temp_7d) and float(temp_7d) >= 25
+    very_dry = r7 < 2 and r30 < 20 and (dryish or hot)
+    dry = r7 < 5 and r30 < 35 and (dryish or hot)
+    very_wet = r7 >= 50 or r30 >= 120
+    wet = r7 >= 30 or r30 >= 90
+    if very_dry:
+        klass, direction, strength = "very_dry", "dry", "strong"
+    elif dry:
+        klass, direction, strength = "dry", "dry", "moderate"
+    elif very_wet:
+        klass, direction, strength = "very_wet", "wet", "strong"
+    elif wet:
+        klass, direction, strength = "wet", "wet", "moderate"
     else:
+        klass, direction, strength = "normal", "normal", "moderate"
+    return {"valid": True, "direction": direction, "strength": strength, "class": klass, "rainfall_7d_mm": r7, "rainfall_30d_mm": r30, "dry_days_7d": dry_7d, "dry_days_30d": dry_30d}
+
+
+def derive_pressure(soil: dict[str, Any], groundwater: dict[str, Any], weather: dict[str, Any]) -> dict[str, Any]:
+    signals = {
+        "weather_pressure": _weather_signal(weather),
+        "regional_soil_water": _soil_water_signal(soil),
+        "groundwater_proxy": _groundwater_signal(groundwater),
+    }
+    contributing = [name for name, signal in signals.items() if signal["valid"]]
+    unavailable = [name for name, signal in signals.items() if not signal["valid"]]
+    dry = [name for name, signal in signals.items() if signal.get("direction") == "dry"]
+    wet = [name for name, signal in signals.items() if signal.get("direction") == "wet"]
+    normal = [name for name, signal in signals.items() if signal.get("direction") == "normal"]
+    if len(contributing) < 2:
         state = "unavailable"
-        confidence = "low"
+    elif len(dry) >= 2 and not wet:
+        state = "high" if len(dry) == 3 and any(signals[name]["strength"] == "strong" for name in dry) else "elevated"
+    elif len(wet) >= 2 and not dry:
+        state = "high" if len(wet) == 3 and any(signals[name]["strength"] == "strong" for name in wet) else "elevated"
+    else:
+        state = "normal"
+    confidence = "medium" if len(contributing) == 3 and (len(dry) == 3 or len(wet) == 3 or len(normal) == 3) else "low"
     return {
         "value": state,
-        "rainfall_7d": rainfall_7d,
-        "rainfall_30d": rainfall_30d,
-        "soil_water_trend": soil_trend,
-        "groundwater_proxy_status": groundwater_status,
         "confidence": confidence,
+        "basis": signals,
+        "contributing_proxy_groups": contributing,
+        "unavailable_proxy_groups": unavailable,
+        "methodology": "Conservative observer heuristic using only currently live proxy groups: DWD weather pressure, DWD gridded soil moisture under grass 0-60 cm, and NLWKN regional groundwater status. At least two independent valid live proxy groups are required. Elevated/high is emitted only when at least two live groups align toward dry/low-water or wet/high-water pressure; mixed or weak signals default to normal. Copernicus SWI metadata-only and MoorIS static context are excluded from the live classification.",
+        "thresholds": {
+            "weather_pressure": {
+                "dry": "7-day rainfall < 5 mm and 30-day rainfall < 35 mm plus dry-day or heat support",
+                "very_dry": "7-day rainfall < 2 mm and 30-day rainfall < 20 mm plus dry-day or heat support",
+                "wet": "7-day rainfall >= 30 mm or 30-day rainfall >= 90 mm",
+                "very_wet": "7-day rainfall >= 50 mm or 30-day rainfall >= 120 mm",
+                "dry_day_support": "dry_days_7d >= 6, dry_days_30d >= 22, consecutive_dry_days >= 10, or temperature_mean_7d_c >= 25",
+                "unit": "mm rainfall, days, degrees Celsius",
+            },
+            "regional_soil_water": {
+                "very_low": f"< 50 {DWD_SOIL_MOISTURE_UNIT}",
+                "low": f"50 to < 70 {DWD_SOIL_MOISTURE_UNIT}",
+                "normal": f"70 to 120 {DWD_SOIL_MOISTURE_UNIT}",
+                "high": f"> 120 to 160 {DWD_SOIL_MOISTURE_UNIT}",
+                "very_high": f"> 160 {DWD_SOIL_MOISTURE_UNIT}",
+                "note": "Provisional Wiesmoor Observer heuristic bands in source-native DWD AMBAV ‰ nFK; not official peatland classes and not peat water-table depth.",
+            },
+            "groundwater_proxy": "Uses NLWKN source status_category/regional_status_summary as low, very_low, normal, high, or very_high without reclassifying the measured metre value.",
+        },
         "limitations": [
             "Regional proxy observation — not an in-situ peat water-table sensor.",
-            "DWD daily rainfall is one regional proxy component only and is not an in-situ peat water-table measurement.",
-            "NLWKN groundwater stations are a regional proxy; station distance and local hydrogeological representativeness are uncertain.",
-            "Groundwater level observations are not the same as a peat water-table measurement in Wiesmoor-Nord peat soils.",
-            "Groundwater stations, satellite soil-water data and weather totals may describe different depths, footprints and response times.",
+            "No peat-water-table depth is measured or inferred.",
+            "NLWKN groundwater stations are regional groundwater proxies; station distance and local hydrogeological representativeness are uncertain.",
+            "DWD gridded soil moisture under grass is a regional model product for the 0-60 cm layer and is not converted to peat water-table depth.",
+            "DWD weather pressure comes from the selected nearby daily climate station; station distance and weather gradients limit site representativeness.",
+            "Copernicus SWI metadata-only and MoorIS static context are not used as live pressure signals.",
         ],
+        "source_interpretation_note": "Interpret value as a conservative multi-source regional proxy pressure state for Wiesmoor, not as measured site hydrology.",
+        "do_not_interpret_as": ["in-situ peat water-table measurement", "peat-water-table depth", "official DWD/NLWKN peatland class", "field-validated restoration or drainage status"],
     }
 
 

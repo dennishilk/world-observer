@@ -579,3 +579,91 @@ def test_static_peat_context_does_not_affect_live_adapter_status(monkeypatch) ->
     assert payload["sources"][0]["status"] == "static_context"
     assert payload["sources"][0]["source_checked_over_http"] is False
     assert payload["peatland_hydrological_pressure"]["value"] == "unavailable"
+
+
+def _pressure_inputs(weather=None, soil=None, groundwater=None):
+    weather_base = {"data_status": "ok", "rainfall_7d_mm": 13.7, "rainfall_30d_mm": 70.1, "dry_days_7d": 3, "dry_days_30d": 15, "consecutive_dry_days": 1, "temperature_mean_7d_c": 16.6}
+    soil_base = {"status": "ok", "latest_value": 89.5, "unit": "‰ nFK", "source": {"name": "dwd"}}
+    groundwater_base = {"data_status": "ok", "regional_status_summary": "normal", "source": {"name": "g"}}
+    weather_base.update(weather or {})
+    soil_base.update(soil or {})
+    groundwater_base.update(groundwater or {})
+    return soil_base, groundwater_base, weather_base
+
+
+def test_pressure_requires_two_valid_live_proxy_groups() -> None:
+    observer = load_observer()
+    soil, groundwater, weather = _pressure_inputs(
+        soil={"status": "unavailable", "latest_value": None},
+        groundwater={"data_status": "unavailable", "regional_status_summary": "unavailable"},
+    )
+    pressure = observer.derive_pressure(soil, groundwater, weather)
+    assert pressure["value"] == "unavailable"
+    assert pressure["contributing_proxy_groups"] == ["weather_pressure"]
+    assert set(pressure["unavailable_proxy_groups"]) == {"regional_soil_water", "groundwater_proxy"}
+
+
+def test_current_like_signals_are_normal_conservatively() -> None:
+    observer = load_observer()
+    pressure = observer.derive_pressure(*_pressure_inputs())
+    assert pressure["value"] == "normal"
+    assert pressure["confidence"] in {"low", "medium"}
+    assert pressure["basis"]["regional_soil_water"]["class"] == "normal"
+
+
+def test_dry_weather_low_groundwater_low_soil_moisture_elevates_to_high() -> None:
+    observer = load_observer()
+    soil, groundwater, weather = _pressure_inputs(
+        weather={"rainfall_7d_mm": 1.0, "rainfall_30d_mm": 15.0, "dry_days_7d": 7, "dry_days_30d": 25, "consecutive_dry_days": 12},
+        soil={"latest_value": 45.0},
+        groundwater={"regional_status_summary": "very_low"},
+    )
+    pressure = observer.derive_pressure(soil, groundwater, weather)
+    assert pressure["value"] == "high"
+    assert pressure["confidence"] == "medium"
+
+
+def test_wet_weather_high_groundwater_high_soil_moisture_elevates_to_high() -> None:
+    observer = load_observer()
+    soil, groundwater, weather = _pressure_inputs(
+        weather={"rainfall_7d_mm": 55.0, "rainfall_30d_mm": 130.0},
+        soil={"latest_value": 170.0},
+        groundwater={"regional_status_summary": "very_high"},
+    )
+    pressure = observer.derive_pressure(soil, groundwater, weather)
+    assert pressure["value"] == "high"
+    assert pressure["confidence"] == "medium"
+
+
+def test_mixed_pressure_signals_default_to_normal_low_confidence() -> None:
+    observer = load_observer()
+    soil, groundwater, weather = _pressure_inputs(
+        weather={"rainfall_7d_mm": 55.0, "rainfall_30d_mm": 130.0},
+        soil={"latest_value": 45.0},
+        groundwater={"regional_status_summary": "normal"},
+    )
+    pressure = observer.derive_pressure(soil, groundwater, weather)
+    assert pressure["value"] == "normal"
+    assert pressure["confidence"] == "low"
+
+
+def test_copernicus_metadata_only_and_mooris_static_context_are_ignored_for_pressure(monkeypatch) -> None:
+    observer = load_observer()
+    monkeypatch.setattr(observer, "groundwater_proxy", lambda: ({"data_status": "unavailable", "regional_status_summary": "unavailable", "source": {"name": "g"}}, observer.AdapterDiagnostics()))
+    monkeypatch.setattr(observer, "regional_soil_water", lambda: ({"status": "unavailable", "latest_value": None, "source": {"name": "dwd"}}, observer.AdapterDiagnostics()))
+    monkeypatch.setattr(observer, "weather_pressure", lambda: ({"data_status": "unavailable", "rainfall_7d_mm": None, "rainfall_30d_mm": None, "source": {"name": "w"}}, observer.AdapterDiagnostics()))
+    monkeypatch.setattr(observer, "copernicus_soil_water", lambda: ({"data_status": "ok", "latest_value": 100, "source": {"name": "c"}}, observer.AdapterDiagnostics()))
+    payload = observer.build_payload()
+    assert payload["peatland_hydrological_pressure"]["value"] == "unavailable"
+    assert "copernicus_swi" not in payload["peatland_hydrological_pressure"]["contributing_proxy_groups"]
+    assert "peat_context" not in payload["peatland_hydrological_pressure"]["contributing_proxy_groups"]
+    assert "excluded from the live classification" in payload["peatland_hydrological_pressure"]["methodology"]
+
+
+def test_pressure_limitation_language_does_not_claim_in_situ_measurement() -> None:
+    observer = load_observer()
+    pressure = observer.derive_pressure(*_pressure_inputs())
+    combined = " ".join(pressure["limitations"] + [pressure["source_interpretation_note"]] + pressure["do_not_interpret_as"])
+    assert "not an in-situ peat water-table sensor" in combined
+    assert "No peat-water-table depth is measured or inferred" in combined
+    assert "in-situ peat water-table measurement" in pressure["do_not_interpret_as"]
