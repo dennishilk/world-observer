@@ -12,8 +12,8 @@
   "bucket_count": 3,
   "au": {
     "janet_like": 63,
-    "other": 35,
-    "total": 98
+    "other": 34,
+    "total": 97
   },
   "baseline_30d": {
     "janet_like": {
@@ -40,11 +40,11 @@
     },
     "other": {
       "is_significant": false,
-      "z": 0.079
+      "z": 0.049
     },
     "total": {
       "is_significant": false,
-      "z": -0.169
+      "z": -0.1776
     },
     "any_significant": false
   },
