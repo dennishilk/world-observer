@@ -40,6 +40,8 @@ RECENT_OBSERVATION_MAX_AGE_DAYS = 14
 MIN_COVERAGE_7D = 7
 MIN_COVERAGE_30D = 27
 MISSING_VALUES = {"", "-999", "-999.0"}
+GERMANY_LATITUDE_RANGE = (47.0, 56.0)
+GERMANY_LONGITUDE_RANGE = (5.0, 16.0)
 
 @dataclass(frozen=True)
 class DwdStation:
@@ -154,19 +156,29 @@ def _parse_float(raw: str | None) -> float | None:
     try: return float(raw.strip())
     except ValueError: return None
 
+def _normalize_key(key: Any) -> str:
+    return str(key).lower().replace("_", "").replace("-", "")
+
 def _deep_get(record: Any, names: set[str]) -> Any:
     """Return the first value whose normalized key is in names from nested source JSON."""
+    return _deep_get_preferred(record, list(names))
+
+def _deep_get_preferred(record: Any, names: list[str]) -> Any:
+    """Return a nested value while honoring the caller's field preference order."""
+    normalized_names = [_normalize_key(name) for name in names]
     if isinstance(record, dict):
-        for key, value in record.items():
-            if str(key).lower().replace("_", "").replace("-", "") in names:
-                return value
+        normalized_items = [(_normalize_key(key), value) for key, value in record.items()]
+        for name in normalized_names:
+            for key, value in normalized_items:
+                if key == name and value is not None:
+                    return value
         for value in record.values():
-            found = _deep_get(value, names)
+            found = _deep_get_preferred(value, names)
             if found is not None:
                 return found
     elif isinstance(record, list):
         for value in record:
-            found = _deep_get(value, names)
+            found = _deep_get_preferred(value, names)
             if found is not None:
                 return found
     return None
@@ -184,6 +196,24 @@ def _parse_latest_value(value: Any) -> float | None:
     if not isinstance(value, str):
         return None
     return _parse_float(value.replace(",", "."))
+
+def _in_range(value: float | None, bounds: tuple[float, float]) -> bool:
+    return value is not None and bounds[0] <= value <= bounds[1]
+
+def _parse_nlwkn_coordinates(record: dict[str, Any]) -> tuple[float | None, float | None]:
+    """Parse NLWKN WGS84 coordinates, including reversed Latitude/Longitude labels."""
+    rechtswert = _parse_coordinate(_deep_get_preferred(record, ["WGS84Rechtswert"]))
+    hochwert = _parse_coordinate(_deep_get_preferred(record, ["WGS84Hochwert"]))
+    if _in_range(rechtswert, GERMANY_LATITUDE_RANGE) and _in_range(hochwert, GERMANY_LONGITUDE_RANGE):
+        return rechtswert, hochwert
+
+    labeled_lat = _parse_coordinate(_deep_get_preferred(record, ["Latitude", "lat", "geobreite", "breitengrad"]))
+    labeled_lon = _parse_coordinate(_deep_get_preferred(record, ["Longitude", "lon", "lng", "geolaenge", "geolange", "laengengrad", "längengrad"]))
+    if _in_range(labeled_lat, GERMANY_LATITUDE_RANGE) and _in_range(labeled_lon, GERMANY_LONGITUDE_RANGE):
+        return labeled_lat, labeled_lon
+    if _in_range(labeled_lon, GERMANY_LATITUDE_RANGE) and _in_range(labeled_lat, GERMANY_LONGITUDE_RANGE):
+        return labeled_lon, labeled_lat
+    return None, None
 
 def normalize_nlwkn_status_label(label: Any) -> str | None:
     """Normalize common labels while preserving source-native labels safely."""
@@ -210,25 +240,25 @@ def normalize_nlwkn_status_label(label: Any) -> str | None:
     return mapping.get(compact, normalized)
 
 def parse_nlwkn_station(record: dict[str, Any]) -> NlwknGroundwaterStation:
-    station_id = _deep_get(record, {"staid", "stationid", "stationsid", "messstellenid", "id"})
-    station_name = _deep_get(record, {"staname", "stationname", "messstellenname", "name", "bezeichnung"})
-    lat = _parse_coordinate(_deep_get(record, {"latitude", "lat", "geobreite", "breitengrad"}))
-    lon = _parse_coordinate(_deep_get(record, {"longitude", "lon", "lng", "geolaenge", "geolange", "laengengrad", "längengrad"}))
-    latest_value = _parse_latest_value(_deep_get(record, {"latestvalue", "aktuellerwert", "messwert", "wert", "tageswert"}))
-    latest_date = _deep_get(record, {"latestdate", "datum", "messdatum", "zeitpunkt", "tageswertdatum"})
-    unit = _deep_get(record, {"unit", "einheit", "masseinheit", "maßeinheit"})
-    status = normalize_nlwkn_status_label(_deep_get(record, {"statuscategory", "status", "klasse", "klassifikation", "einordnung"}))
-    source_url = _deep_get(record, {"sourceurl", "url", "link"}) or NLWKN_PORTAL_URL
+    station_id = _deep_get_preferred(record, ["STA_Nummer", "STA_ID", "station_id", "stationid", "stationsid", "messstellenid", "id"])
+    station_name = _deep_get_preferred(record, ["Name", "STA_Name", "station_name", "stationname", "messstellenname", "bezeichnung"])
+    place = _deep_get_preferred(record, ["Ort", "Landkreis"])
+    lat, lon = _parse_nlwkn_coordinates(record)
+    latest_value = _parse_latest_value(_deep_get_preferred(record, ["GWAktuellerMesswertNNM", "Wert", "GWAktuellerMesswert", "latestvalue", "aktuellerwert", "messwert", "tageswert"]))
+    latest_date = _deep_get_preferred(record, ["AktuellerMesswert_Zeitpunkt", "latestdate", "datum", "messdatum", "zeitpunkt", "tageswertdatum"])
+    unit = _deep_get_preferred(record, ["unit", "einheit", "masseinheit", "maßeinheit"])
+    status = normalize_nlwkn_status_label(_deep_get_preferred(record, ["AktuellGrundwasserstandsklasse", "Grundwasserstandsklasse", "statuscategory", "status", "klasse", "klassifikation", "einordnung"]))
+    source_url = _deep_get_preferred(record, ["sourceurl", "url", "link"]) or NLWKN_PORTAL_URL
     distance = round(haversine_km(LATITUDE, LONGITUDE, lat, lon), 2) if lat is not None and lon is not None else None
     return NlwknGroundwaterStation(
-        station_name=str(station_name or "NLWKN groundwater station"),
+        station_name=str(station_name or place or "NLWKN groundwater station"),
         station_id=str(station_id) if station_id is not None else None,
         latitude=lat,
         longitude=lon,
         distance_km=distance,
         latest_date=str(latest_date) if latest_date else None,
         latest_value=latest_value,
-        latest_value_unit=str(unit) if unit else None,
+        latest_value_unit=str(unit) if unit else ("m NHN" if latest_value is not None else None),
         status_category=status,
         data_status="ok" if latest_value is not None and latest_date else ("partial" if latest_value is not None or latest_date or status else "metadata_only"),
         source_url=str(source_url) if source_url else None,
@@ -236,7 +266,7 @@ def parse_nlwkn_station(record: dict[str, Any]) -> NlwknGroundwaterStation:
 
 def select_nlwkn_stations(stations: list[NlwknGroundwaterStation], limit: int = 3) -> list[NlwknGroundwaterStation]:
     suitable = [s for s in stations if s.distance_km is not None]
-    return sorted(suitable, key=lambda s: (s.data_status not in {"ok", "partial"}, s.distance_km or 10**9, s.station_id or s.station_name))[:limit]
+    return sorted(suitable, key=lambda s: (s.data_status not in {"ok", "partial"}, s.distance_km if s.distance_km is not None else 10**9, s.station_id or s.station_name))[:limit]
 
 def _station_to_dict(station: NlwknGroundwaterStation) -> dict[str, Any]:
     return {
@@ -343,7 +373,7 @@ def groundwater_proxy() -> dict[str, Any]:
     try:
         raw = _fetch_url(NLWKN_STATIONS_URL, diagnostics)
         payload = json.loads(raw.decode("utf-8-sig"))
-        records = payload if isinstance(payload, list) else payload.get("data") or payload.get("stations") or payload.get("features") or []
+        records = payload if isinstance(payload, list) else payload.get("getStammdatenResult") or payload.get("data") or payload.get("stations") or payload.get("features") or []
         parsed: list[NlwknGroundwaterStation] = []
         for item in records:
             if isinstance(item, dict):

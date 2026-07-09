@@ -138,3 +138,115 @@ def test_observer_emits_valid_json_if_nlwkn_unavailable(monkeypatch) -> None:
     assert payload["groundwater_proxy"]["data_status"] == "unavailable"
     assert payload["groundwater_proxy"]["nearest_station"] is None
     assert any("simulated NLWKN outage" in error for error in payload["diagnostics"]["adapter_errors"])
+
+
+def real_nlwkn_fixture() -> dict:
+    return {
+        "getStammdatenResult": [
+            {
+                "Name": "Wiesmoor nah",
+                "Ort": "Wiesmoor",
+                "Landkreis": "Aurich",
+                "STA_ID": 1001,
+                "STA_Nummer": "GW-1001",
+                "AktuellGrundwasserstandsklasse": "normal",
+                "GWAktuellerMesswert": None,
+                "GWAktuellerMesswertNNM": "4,25",
+                "WGS84Hochwert": "7,7400",
+                "WGS84Rechtswert": "53,4200",
+                "Latitude": "9,86",
+                "Longitude": "51,51",
+                "Parameter": [
+                    {
+                        "Datenspuren": [
+                            {
+                                "AktuellerMesswert_Zeitpunkt": "2026-01-02T03:04:05",
+                                "AktuellerPegelstand": {
+                                    "Wert": "3,21",
+                                    "Grundwasserstandsklasse": "Quelleigene Sonderklasse",
+                                },
+                            }
+                        ]
+                    }
+                ],
+            },
+            {
+                "Name": "Wiesmoor swapped labels",
+                "Ort": "Wiesmoor",
+                "Landkreis": "Aurich",
+                "STA_ID": "1002",
+                "AktuellGrundwasserstandsklasse": "Quelleigene Sonderklasse",
+                "GWAktuellerMesswertNNM": "",
+                "WGS84Hochwert": None,
+                "WGS84Rechtswert": None,
+                "Latitude": "7,7333",
+                "Longitude": "53,4167",
+                "Parameter": [
+                    {
+                        "Datenspuren": [
+                            {
+                                "AktuellerMesswert_Zeitpunkt": "2026-01-03T00:00:00",
+                                "AktuellerPegelstand": {
+                                    "Wert": "",
+                                    "Grundwasserstandsklasse": "Quelleigene Sonderklasse",
+                                },
+                            }
+                        ]
+                    }
+                ],
+            },
+            {
+                "Name": "weiter weg",
+                "STA_ID": "1003",
+                "WGS84Hochwert": "8,5000",
+                "WGS84Rechtswert": "54,0000",
+                "AktuellGrundwasserstandsklasse": "hoch",
+            },
+        ]
+    }
+
+
+def test_nlwkn_real_structure_coordinates_prefer_wgs84_fields() -> None:
+    observer = load_observer()
+    station = observer.parse_nlwkn_station(real_nlwkn_fixture()["getStammdatenResult"][0])
+    assert station.station_id == "GW-1001"
+    assert station.station_name == "Wiesmoor nah"
+    assert station.latitude == 53.42
+    assert station.longitude == 7.74
+    assert station.latest_value == 4.25
+    assert station.latest_value_unit == "m NHN"
+    assert station.latest_date == "2026-01-02T03:04:05"
+    assert station.status_category == "normal"
+
+
+def test_nlwkn_swapped_latitude_longitude_labels_are_corrected() -> None:
+    observer = load_observer()
+    station = observer.parse_nlwkn_station(real_nlwkn_fixture()["getStammdatenResult"][1])
+    assert station.latitude == 53.4167
+    assert station.longitude == 7.7333
+    assert station.latest_value is None
+    assert station.latest_value_unit is None
+    assert station.status_category == "Quelleigene Sonderklasse"
+
+
+def test_groundwater_proxy_real_structure_selects_wiesmoor_nearest_stations(monkeypatch) -> None:
+    observer = load_observer()
+
+    def fake_fetch(url, diagnostics):
+        assert url == observer.NLWKN_STATIONS_URL
+        return observer.json.dumps(real_nlwkn_fixture()).encode()
+
+    monkeypatch.setattr(observer, "_fetch_url", fake_fetch)
+    payload, diagnostics = observer.groundwater_proxy()
+    assert diagnostics.error is None
+    assert payload["data_status"] == "partial"
+    assert [s["station_id"] for s in payload["stations"][:2]] == ["1002", "GW-1001"]
+    assert all(s["distance_km"] is not None for s in payload["stations"])
+    assert payload["nearest_station"]["station_name"] == "Wiesmoor swapped labels"
+
+
+def test_nlwkn_nested_values_preserve_missing_as_null_not_zero() -> None:
+    observer = load_observer()
+    station = observer.parse_nlwkn_station(real_nlwkn_fixture()["getStammdatenResult"][1])
+    assert station.latest_value is None
+    assert station.data_status == "partial"
