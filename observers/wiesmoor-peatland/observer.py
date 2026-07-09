@@ -68,6 +68,11 @@ COPERNICUS_SWI_FLAG_VALUES = {241, 242, 251, 252, 253, 254}
 COPERNICUS_SWI_UNAVAILABLE_RAW_VALUES = COPERNICUS_SWI_FLAG_VALUES | {COPERNICUS_SWI_FILL_VALUE}
 COPERNICUS_SWI_SCALE_FACTOR = 0.5
 
+MOORIS_WIESMOOR_NORD_URL = "https://mooris-niedersachsen.de/?pgId=585"
+NLWKN_MOORIS_INFO_URL = "https://www.nlwkn.niedersachsen.de/startseite/naturschutz/fach_und_forderprogramme/klimaschutz_durch_moorentwicklung/mooris_moorinformationssystem_niedersachsen/mooris-moorinformationssystem-niedersachsen-218196.html"
+NLWKN_MOORSCHUTZPROGRAMM_URL = "https://www.nlwkn.niedersachsen.de/naturschutz/biotopschutz/moorschutzprogramm_1981_86/das-niedersaechsische-moorschutzprogramm-116062.html"
+NLWKN_WIESMOOR_KLINGE_URL = "https://www.nlwkn.niedersachsen.de/naturschutzgebiete/naturschutzgebiet-wiesmoor-klinge-42116.html"
+
 
 
 @dataclass(frozen=True)
@@ -400,8 +405,32 @@ def _station_metadata(station: DwdStation | None) -> dict[str, Any] | None:
 
 # keep existing context funcs
 def peat_context() -> dict[str, Any]:
+    """Return static, source-backed peatland context for Wiesmoor-Nord.
+
+    MoorIS/NLWKN context is embedded because it is descriptive source material, not
+    a live sensor or adapter. Numeric peat thickness, mapped peatland area and
+    derived pressure classes remain unavailable unless a reproducible
+    machine-readable extraction is added.
+    """
+    source = {
+        "name": "MoorIS Niedersachsen / NLWKN Moorschutzprogramm entry 377 Wiesmoor-Nord",
+        "url": MOORIS_WIESMOOR_NORD_URL,
+        "status": "static_context",
+        "publisher": "Niedersächsischer Landesbetrieb für Wasserwirtschaft, Küsten- und Naturschutz (NLWKN) / Landesamt für Bergbau, Energie und Geologie (LBEG)",
+        "supporting_urls": [
+            NLWKN_MOORIS_INFO_URL,
+            NLWKN_MOORSCHUTZPROGRAMM_URL,
+            NLWKN_WIESMOOR_KLINGE_URL,
+        ],
+        "source_checked_over_http": False,
+        "http_status": None,
+        "note": "Static embedded context; no live request is needed during observer runs.",
+    }
     return {
+        "context_status": "static_source_backed_context_not_live",
         "area_name": "Wiesmoor-Nord / Wiesmoor peatland landscape",
+        "source_name": source["name"],
+        "source_url": source["url"],
         "location": {
             "municipality": "Wiesmoor",
             "district": "Aurich",
@@ -410,24 +439,47 @@ def peat_context() -> dict[str, Any]:
             "latitude": LATITUDE,
             "longitude": LONGITUDE,
         },
-        "context_note": (
-            "Wiesmoor is a settlement and landscape shaped by raised-bog peat extraction, drainage, "
-            "peat-fired industry and subsequent agricultural/horticultural use. MoorIS Niedersachsen "
-            "maps the Wiesmoor-Nord peatland context, including peat-thickness information; this "
-            "observer carries that context as static source metadata rather than as a live sensor."
-        ),
+        "moor_type_context": "MoorIS/NLWKN place Wiesmoor-Nord in the East Frisian central raised-bog (Hochmoor) landscape; nearby NLWKN Wiesmoor-Klinge is described as part of the Hochmoorkomplex der ostfriesischen Zentralmoore.",
         "peat_thickness_context": {
-            "status": "context_available_from_source_not_live_ingested",
-            "description": "MoorIS Niedersachsen / Wiesmoor-Nord provides local peat-thickness context for the mapped peatland area.",
+            "status": "numeric_value_unavailable",
             "value": None,
             "unit": None,
-            "precision_note": "No numeric peat-thickness value is emitted until a reproducible MoorIS data extraction is added.",
+            "description": "No numeric peat-thickness value is emitted because this observer does not yet have a reproducible official machine-readable extraction for the Wiesmoor-Nord peat-thickness layer.",
         },
-        "source": {
-            "name": "MoorIS Niedersachsen / Wiesmoor-Nord",
-            "url": "https://mooris-niedersachsen.de/",
-            "status": "static_context",
+        "land_use_history": "MoorIS describes Wiesmoor as shaped by peat-fired power generation, horticulture/greenhouses, settlement roads along canals, agriculture dominated by grassland, smaller arable/garden areas, and later trade, light industry and tourism.",
+        "drainage_context": "MoorIS notes that Nordgeorgsfehnkanal and Großefehnkanal cross the moor and serve moor drainage; drainage and road networks in parts of the moor are described as moderately developed.",
+        "extraction_history": "MoorIS reports peat extraction for the Wiesmoor power plant from 1921, a documented 1952 maximum annual fuel-peat extraction figure for the power-plant operation, industrial black-peat extraction in northern Klingemoor, and widespread partial extraction at margins; extraction areas for the power plant are noted as lying in the Wiesmoor-Süd description area.",
+        "restoration_or_management_context": "NLWKN describes the nearby state-owned Wiesmoor-Klinge protected area northwest of Wiesmoor as formerly extensively cut over, with rewetting initiated before designation and high-bog habitats redeveloping in central areas; this is supporting local context, not a numeric Wiesmoor-Nord measurement.",
+        "why_this_area_matters": "Wiesmoor-Nord is an official Moorschutzprogramm/MoorIS area entry (377) in the East Frisian central moor landscape, where drainage, peat extraction, settlement, agriculture and restoration context all affect interpretation of regional hydrological proxies.",
+        "limitations": [
+            "MoorIS/NLWKN context is static descriptive source material, not a live sensor.",
+            "No numeric peat thickness, peatland area, water-table depth or hydrological pressure class is derived from this context layer.",
+            "Some source statements refer to subareas such as Klingemoor, Wiesmoor-Süd or the nearby Wiesmoor-Klinge protected area; these are kept as contextual limitations rather than generalized to all Wiesmoor-Nord soils.",
+            "German source terminology is summarized in English; source-native meanings are preserved conservatively.",
+        ],
+        "data_status": "static_context_only",
+        "reproducibility_note": "The observer embeds concise summaries from official MoorIS/NLWKN pages and preserves URLs/identifiers. Re-running the observer does not fetch MoorIS, so live adapter status and API attempts are unaffected.",
+        "wiesmoor_nord": {
+            "source_status": "official_static_page_available",
+            "source_url": MOORIS_WIESMOOR_NORD_URL,
+            "page_or_dataset_identifier": "MoorIS page pgId=585; Moorschutzprogramm area 377 Wiesmoor-Nord",
+            "extracted_fields": [
+                "official area entry name/identifier",
+                "raised-bog context",
+                "drainage canals",
+                "peat extraction and power-plant history",
+                "agricultural/horticultural and settlement context",
+                "supporting local restoration context from NLWKN Wiesmoor-Klinge",
+            ],
+            "unavailable_numeric_fields": [
+                "peat_thickness",
+                "mapped_area",
+                "current_water_table_depth",
+                "hydrological_pressure_class",
+            ],
+            "notes": "Numeric values in the source text that describe historical operations or a neighboring protected area are kept textual and are not emitted as peat-thickness or area fields.",
         },
+        "source": source,
     }
 
 
