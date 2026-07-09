@@ -15,6 +15,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any
 
 OBSERVER = "wiesmoor-weather"
@@ -125,12 +126,66 @@ def _fetch_json(url: str) -> tuple[dict[str, Any] | None, dict[str, Any]]:
     return None, {
         "url": url,
         "status": "unavailable",
+        "temporary_failure": _is_temporary_failure(last_status, attempts),
+        "failed_at_utc": _now_utc(),
         "api_attempts": len(attempts),
         "retries": max(0, len(attempts) - 1),
         "http_status": last_status,
         "attempts": attempts,
     }
 
+
+def _is_temporary_failure(http_status: int | None, attempts: list[dict[str, Any]]) -> bool:
+    if http_status == 429 or (http_status is not None and 500 <= http_status <= 599):
+        return True
+    return any(attempt.get("http_status") is None and attempt.get("error") for attempt in attempts)
+
+
+def _latest_payload_path() -> Path:
+    raw = os.environ.get("WORLD_OBSERVER_WIESMOOR_LATEST_PATH", "").strip()
+    if raw:
+        return Path(raw)
+    return Path.cwd() / "data" / "latest" / f"{OBSERVER}.json"
+
+
+def _has_usable_weather(payload: dict[str, Any]) -> bool:
+    return _data_status(
+        payload.get("current") if isinstance(payload.get("current"), dict) else {},
+        payload.get("today") if isinstance(payload.get("today"), dict) else {},
+        payload.get("hourly") if isinstance(payload.get("hourly"), dict) else {},
+    ) in {"ok", "partial"}
+
+
+def _load_last_successful_payload() -> dict[str, Any] | None:
+    path = _latest_payload_path()
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    if not isinstance(payload, dict) or payload.get("observer") != OBSERVER or not _has_usable_weather(payload):
+        return None
+    return payload
+
+
+def _preserve_stale_payload(previous: dict[str, Any], target_date: str, url: str, source_diag: dict[str, Any], diagnostics: dict[str, Any]) -> dict[str, Any]:
+    preserved = dict(previous)
+    preserved["status"] = "degraded"
+    preserved["data_status"] = "partial"
+    preserved["stale"] = True
+    preserved["degraded_reason"] = "Latest Open-Meteo refresh failed temporarily; displaying the last successful Wiesmoor weather observation."
+    preserved["latest_refresh_status"] = "failed"
+    preserved["latest_refresh_failed_at_utc"] = source_diag.get("failed_at_utc") or _now_utc()
+    preserved["latest_refresh_date"] = target_date
+    preserved["source"] = {"name": "Open-Meteo Forecast API", "url": url, "status": "stale_after_temporary_failure"}
+    preserved["diagnostics"] = {
+        **diagnostics,
+        "status": "stale_after_temporary_failure",
+        "preserved_observation_collected_at_utc": previous.get("collected_at_utc"),
+        "preserved_observation_date": previous.get("date"),
+        "latest_refresh_failed_at_utc": preserved["latest_refresh_failed_at_utc"],
+    }
+    preserved["summary"] = f"Stale Wiesmoor weather data from the last successful observation: {previous.get('summary', '').strip()}".strip()
+    return preserved
 
 def _extract_current(payload: dict[str, Any]) -> dict[str, Any]:
     current = payload.get("current") if isinstance(payload.get("current"), dict) else {}
@@ -215,6 +270,10 @@ def build_payload() -> dict[str, Any]:
         "source": {"url": source_diag["url"], "status": source_diag["status"]},
         "attempts": source_diag["attempts"],
     }
+    if payload is None and source_diag.get("temporary_failure"):
+        previous = _load_last_successful_payload()
+        if previous is not None:
+            return _preserve_stale_payload(previous, target_date, url, source_diag, diagnostics)
     if payload is None:
         return {
             "observer": OBSERVER,

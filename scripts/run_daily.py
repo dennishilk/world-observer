@@ -154,12 +154,30 @@ def _error_payload(
     return payload
 
 
+def _wiesmoor_weather_data_status(payload: Dict[str, Any]) -> str | None:
+    if payload.get("observer") != "wiesmoor-weather":
+        return None
+    current = payload.get("current") if isinstance(payload.get("current"), dict) else {}
+    today = payload.get("today") if isinstance(payload.get("today"), dict) else {}
+    hourly = payload.get("hourly") if isinstance(payload.get("hourly"), dict) else {}
+    has_current = any(value is not None for key, value in current.items() if key != "time")
+    has_daily = any(value is not None for key, value in today.items() if key != "date")
+    has_hourly = bool(hourly.get("time"))
+    if has_current and has_daily and has_hourly:
+        return "ok"
+    if has_current or has_daily or has_hourly:
+        return "partial"
+    return None
+
 def _normalize_payload(observer: str, payload: Dict[str, Any], logger: logging.Logger) -> Dict[str, Any]:
     normalized = dict(payload)
     data_status = normalized.get("data_status")
     status = normalized.get("status")
+    derived_weather_status = _wiesmoor_weather_data_status(normalized)
     if status == "error":
         normalized["data_status"] = "error"
+    elif derived_weather_status is not None and data_status == "unavailable":
+        normalized["data_status"] = derived_weather_status
     elif data_status not in {"ok", "partial", "unavailable", "error"}:
         normalized["data_status"] = "ok"
 

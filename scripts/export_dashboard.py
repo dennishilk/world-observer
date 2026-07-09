@@ -112,11 +112,29 @@ def _load_metadata(path: Path | None = None) -> Dict[str, Dict[str, Any]]:
     return metadata
 
 
+def _wiesmoor_weather_data_status(payload: Dict[str, Any]) -> str | None:
+    if payload.get("observer") != "wiesmoor-weather":
+        return None
+    current = payload.get("current") if isinstance(payload.get("current"), dict) else {}
+    today = payload.get("today") if isinstance(payload.get("today"), dict) else {}
+    hourly = payload.get("hourly") if isinstance(payload.get("hourly"), dict) else {}
+    has_current = any(value is not None for key, value in current.items() if key != "time")
+    has_daily = any(value is not None for key, value in today.items() if key != "date")
+    has_hourly = bool(hourly.get("time"))
+    if has_current and has_daily and has_hourly:
+        return "ok"
+    if has_current or has_daily or has_hourly:
+        return "partial"
+    return None
+
 def _status(payload: Dict[str, Any] | None) -> str:
     if payload is None:
         return "missing"
     if payload.get("status") == "error" or payload.get("data_status") == "error":
         return "error"
+    derived_weather_status = _wiesmoor_weather_data_status(payload)
+    if derived_weather_status is not None and payload.get("data_status") == "unavailable":
+        return "degraded" if payload.get("status") == "degraded" else "ok"
     return str(payload.get("status") or payload.get("data_status") or "ok")
 
 
@@ -855,6 +873,9 @@ def _last_seen_date(payload: Dict[str, Any]) -> Any:
 def _internet_status_fields(observer: str, payload: Dict[str, Any]) -> tuple[str, str]:
     status = _status(payload)
     data_status = str(payload.get("data_status") or payload.get("status") or status)
+    derived_weather_status = _wiesmoor_weather_data_status(payload)
+    if derived_weather_status is not None and data_status == "unavailable":
+        data_status = derived_weather_status
     summary_stats = payload.get("summary_stats")
     if observer in {"ipv6-global-compare", "ipv6-locked-states"} and isinstance(summary_stats, dict):
         countries_evaluated = _as_number(summary_stats.get("countries_evaluated"))
