@@ -1,19 +1,21 @@
 {
   "category": "environment",
-  "collected_at_utc": "2026-07-09T15:47:01Z",
+  "collected_at_utc": "2026-07-09T16:06:31Z",
   "data_status": "partial",
   "date": "2026-07-09",
   "date_utc": "2026-07-09",
   "diagnostics": {
     "adapter_errors": [],
-    "api_attempts": 3,
+    "api_attempts": 5,
     "http_status": {
       "dwd": 200,
+      "dwd_soil_moisture": 200,
       "nlwkn_groundwater": 200
     },
     "live_adapters_enabled": [
       "dwd_cdc_daily_climate_kl_recent",
-      "nlwkn_groundwaterstandonline_public"
+      "nlwkn_groundwaterstandonline_public",
+      "dwd_cdc_daily_soil_moisture_grass"
     ],
     "retries": 0
   },
@@ -137,20 +139,39 @@
   },
   "primary_metric_value": "unavailable",
   "regional_soil_water": {
-    "dataset": "Copernicus Soil Water Index Europe 1 km v2",
-    "label": "regional satellite-derived soil-water condition",
-    "latest_date": null,
-    "latest_value": null,
+    "dataset": "Daily grids of mean soil moisture under grass for Germany, Version v1.0",
+    "dataset_id": "urn:wmo:md:de-dwd-cdc:25285481-9c88-4304-a90a-26fff84a9a84",
+    "grid_cell": {
+      "latitude": null,
+      "longitude": null,
+      "x": 3415915.0,
+      "y": 5921001.0
+    },
+    "label": "regional DWD gridded soil-moisture condition",
+    "latest_date": "2026-07-08",
+    "latest_value": 89.5,
+    "limitations": [
+      "Regional gridded model product, not an in-situ peat water-table sensor.",
+      "DWD AMBAV soil moisture under grass preserves source-native ‰ nFK semantics and is not converted to water-table depth."
+    ],
+    "selection_method": "Deterministically select the source grid cell containing or nearest to Wiesmoor (53.4167, 7.7333) from the DWD NetCDF grid metadata; no regional averaging and no conversion to peat water-table depth.",
     "source": {
-      "name": "Copernicus Soil Water Index Europe 1 km v2",
-      "note": "Implement Copernicus download/API extraction for the Wiesmoor grid cell or a documented regional buffer.",
-      "status": "adapter_pending",
-      "url": "https://land.copernicus.eu/en/products/soil-water-index"
+      "dataset": "Daily grids of mean soil moisture under grass for Germany, Version v1.0",
+      "dataset_id": "urn:wmo:md:de-dwd-cdc:25285481-9c88-4304-a90a-26fff84a9a84",
+      "description_url": "https://opendata.dwd.de/climate_environment/CDC/grids_germany/daily/soil_moisture/grass/DESCRIPTION_grids_germany_daily_soil_moisture_grass_en.pdf",
+      "name": "Deutscher Wetterdienst (DWD) Climate Data Center",
+      "observation_date": "2026-07-08",
+      "selected_file_url": "https://opendata.dwd.de/climate_environment/CDC/grids_germany/daily/soil_moisture/grass/2026/grids_germany_daily_soil_moisture_grass_2026_0-60_v1.nc",
+      "source_url": "https://opendata.dwd.de/climate_environment/CDC/grids_germany/daily/soil_moisture/grass/2026/grids_germany_daily_soil_moisture_grass_2026_0-60_v1.nc",
+      "status": "live_adapter",
+      "url": "https://opendata.dwd.de/climate_environment/CDC/grids_germany/daily/soil_moisture/grass/"
     },
     "spatial_resolution_km": 1,
-    "status": "unavailable",
+    "status": "ok",
     "temporal_resolution": "daily",
-    "trend": "unavailable"
+    "trend": "unavailable",
+    "unit": "‰ nFK",
+    "variable": "mean soil moisture under grass, 0-60 cm layer"
   },
   "sources": [
     {
@@ -166,10 +187,15 @@
       "url": "https://www.grundwasserstandonline.nlwkn.niedersachsen.de/"
     },
     {
-      "name": "Copernicus Soil Water Index Europe 1 km v2",
-      "note": "Implement Copernicus download/API extraction for the Wiesmoor grid cell or a documented regional buffer.",
-      "status": "adapter_pending",
-      "url": "https://land.copernicus.eu/en/products/soil-water-index"
+      "dataset": "Daily grids of mean soil moisture under grass for Germany, Version v1.0",
+      "dataset_id": "urn:wmo:md:de-dwd-cdc:25285481-9c88-4304-a90a-26fff84a9a84",
+      "description_url": "https://opendata.dwd.de/climate_environment/CDC/grids_germany/daily/soil_moisture/grass/DESCRIPTION_grids_germany_daily_soil_moisture_grass_en.pdf",
+      "name": "Deutscher Wetterdienst (DWD) Climate Data Center",
+      "observation_date": "2026-07-08",
+      "selected_file_url": "https://opendata.dwd.de/climate_environment/CDC/grids_germany/daily/soil_moisture/grass/2026/grids_germany_daily_soil_moisture_grass_2026_0-60_v1.nc",
+      "source_url": "https://opendata.dwd.de/climate_environment/CDC/grids_germany/daily/soil_moisture/grass/2026/grids_germany_daily_soil_moisture_grass_2026_0-60_v1.nc",
+      "status": "live_adapter",
+      "url": "https://opendata.dwd.de/climate_environment/CDC/grids_germany/daily/soil_moisture/grass/"
     },
     {
       "dataset": "Recent daily climate observations Germany (KL), daily precipitation RSK and daily mean temperature TMK",
