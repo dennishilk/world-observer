@@ -514,3 +514,68 @@ def test_build_payload_adds_independent_copernicus_soil_water_without_regressing
     assert payload["peatland_hydrological_pressure"]["value"] == "unavailable"
     assert observer.COPERNICUS_SWI_ADAPTER_ID not in payload["diagnostics"]["live_adapters_enabled"]
     assert observer.COPERNICUS_SWI_ADAPTER_ID in payload["diagnostics"]["metadata_adapters"]
+
+
+def test_peat_context_schema_presence_and_static_status() -> None:
+    observer = load_observer()
+    context = observer.peat_context()
+    for key in [
+        "context_status",
+        "area_name",
+        "source_name",
+        "source_url",
+        "moor_type_context",
+        "peat_thickness_context",
+        "land_use_history",
+        "drainage_context",
+        "extraction_history",
+        "restoration_or_management_context",
+        "why_this_area_matters",
+        "limitations",
+        "data_status",
+        "reproducibility_note",
+        "wiesmoor_nord",
+    ]:
+        assert key in context
+    assert context["context_status"] == "static_source_backed_context_not_live"
+    assert context["data_status"] == "static_context_only"
+    assert context["location"]["latitude"] == observer.LATITUDE
+    assert context["location"]["longitude"] == observer.LONGITUDE
+
+
+def test_peat_context_does_not_fabricate_numeric_peat_thickness() -> None:
+    observer = load_observer()
+    context = observer.peat_context()
+    thickness = context["peat_thickness_context"]
+    assert thickness["status"] == "numeric_value_unavailable"
+    assert thickness["value"] is None
+    assert thickness["unit"] is None
+    assert "peat_thickness" in context["wiesmoor_nord"]["unavailable_numeric_fields"]
+    assert "mapped_area" in context["wiesmoor_nord"]["unavailable_numeric_fields"]
+
+
+def test_mooris_source_metadata_presence() -> None:
+    observer = load_observer()
+    context = observer.peat_context()
+    source = context["source"]
+    assert source["status"] == "static_context"
+    assert source["url"] == observer.MOORIS_WIESMOOR_NORD_URL
+    assert source["source_checked_over_http"] is False
+    assert source["http_status"] is None
+    assert observer.NLWKN_MOORIS_INFO_URL in source["supporting_urls"]
+    assert context["wiesmoor_nord"]["page_or_dataset_identifier"] == "MoorIS page pgId=585; Moorschutzprogramm area 377 Wiesmoor-Nord"
+
+
+def test_static_peat_context_does_not_affect_live_adapter_status(monkeypatch) -> None:
+    observer = load_observer()
+    monkeypatch.setattr(observer, "groundwater_proxy", lambda: ({"data_status": "unavailable", "source": {"name": "g"}}, observer.AdapterDiagnostics(api_attempts=2, http_status=200)))
+    monkeypatch.setattr(observer, "regional_soil_water", lambda: ({"trend": "unavailable", "source": {"name": "dwd"}}, observer.AdapterDiagnostics(api_attempts=3, http_status=200)))
+    monkeypatch.setattr(observer, "weather_pressure", lambda: ({"data_status": "unavailable", "rainfall_7d_mm": None, "rainfall_30d_mm": None, "source": {"name": "w"}}, observer.AdapterDiagnostics(api_attempts=4, http_status=200)))
+    monkeypatch.setattr(observer, "copernicus_soil_water", lambda: ({"data_status": "unavailable", "latest_value": None, "source": {"name": "c"}}, observer.AdapterDiagnostics(error="metadata only")))
+    payload = observer.build_payload()
+    assert payload["diagnostics"]["api_attempts"] == 9
+    assert payload["diagnostics"]["live_adapters_enabled"] == [observer.DWD_ADAPTER_ID, observer.NLWKN_GROUNDWATER_ADAPTER_ID, observer.DWD_SOIL_MOISTURE_ADAPTER_ID]
+    assert payload["diagnostics"]["metadata_adapters"] == [observer.COPERNICUS_SWI_ADAPTER_ID]
+    assert payload["sources"][0]["status"] == "static_context"
+    assert payload["sources"][0]["source_checked_over_http"] is False
+    assert payload["peatland_hydrological_pressure"]["value"] == "unavailable"
