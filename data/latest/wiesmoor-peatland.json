@@ -1,6 +1,6 @@
 {
   "category": "environment",
-  "collected_at_utc": "2026-07-09T17:16:49Z",
+  "collected_at_utc": "2026-07-09T17:51:56Z",
   "copernicus_soil_water": {
     "data_status": "unavailable",
     "file_naming_convention": "c_gls_SWI1km_YYYYMMDD1200_CEURO_SCATSAR_VX.Y.X.nc",
@@ -162,7 +162,17 @@
   "observer": "wiesmoor-peatland",
   "peat_context": {
     "area_name": "Wiesmoor-Nord / Wiesmoor peatland landscape",
-    "context_note": "Wiesmoor is a settlement and landscape shaped by raised-bog peat extraction, drainage, peat-fired industry and subsequent agricultural/horticultural use. MoorIS Niedersachsen maps the Wiesmoor-Nord peatland context, including peat-thickness information; this observer carries that context as static source metadata rather than as a live sensor.",
+    "context_status": "static_source_backed_context_not_live",
+    "data_status": "static_context_only",
+    "drainage_context": "MoorIS notes that Nordgeorgsfehnkanal and Großefehnkanal cross the moor and serve moor drainage; drainage and road networks in parts of the moor are described as moderately developed.",
+    "extraction_history": "MoorIS reports peat extraction for the Wiesmoor power plant from 1921, a documented 1952 maximum annual fuel-peat extraction figure for the power-plant operation, industrial black-peat extraction in northern Klingemoor, and widespread partial extraction at margins; extraction areas for the power plant are noted as lying in the Wiesmoor-Süd description area.",
+    "land_use_history": "MoorIS describes Wiesmoor as shaped by peat-fired power generation, horticulture/greenhouses, settlement roads along canals, agriculture dominated by grassland, smaller arable/garden areas, and later trade, light industry and tourism.",
+    "limitations": [
+      "MoorIS/NLWKN context is static descriptive source material, not a live sensor.",
+      "No numeric peat thickness, peatland area, water-table depth or hydrological pressure class is derived from this context layer.",
+      "Some source statements refer to subareas such as Klingemoor, Wiesmoor-Süd or the nearby Wiesmoor-Klinge protected area; these are kept as contextual limitations rather than generalized to all Wiesmoor-Nord soils.",
+      "German source terminology is summarized in English; source-native meanings are preserved conservatively."
+    ],
     "location": {
       "country": "Germany",
       "district": "Aurich",
@@ -171,35 +181,125 @@
       "municipality": "Wiesmoor",
       "state": "Lower Saxony"
     },
+    "moor_type_context": "MoorIS/NLWKN place Wiesmoor-Nord in the East Frisian central raised-bog (Hochmoor) landscape; nearby NLWKN Wiesmoor-Klinge is described as part of the Hochmoorkomplex der ostfriesischen Zentralmoore.",
     "peat_thickness_context": {
-      "description": "MoorIS Niedersachsen / Wiesmoor-Nord provides local peat-thickness context for the mapped peatland area.",
-      "precision_note": "No numeric peat-thickness value is emitted until a reproducible MoorIS data extraction is added.",
-      "status": "context_available_from_source_not_live_ingested",
+      "description": "No numeric peat-thickness value is emitted because this observer does not yet have a reproducible official machine-readable extraction for the Wiesmoor-Nord peat-thickness layer.",
+      "status": "numeric_value_unavailable",
       "unit": null,
       "value": null
     },
+    "reproducibility_note": "The observer embeds concise summaries from official MoorIS/NLWKN pages and preserves URLs/identifiers. Re-running the observer does not fetch MoorIS, so live adapter status and API attempts are unaffected.",
+    "restoration_or_management_context": "NLWKN describes the nearby state-owned Wiesmoor-Klinge protected area northwest of Wiesmoor as formerly extensively cut over, with rewetting initiated before designation and high-bog habitats redeveloping in central areas; this is supporting local context, not a numeric Wiesmoor-Nord measurement.",
     "source": {
-      "name": "MoorIS Niedersachsen / Wiesmoor-Nord",
+      "http_status": null,
+      "name": "MoorIS Niedersachsen / NLWKN Moorschutzprogramm entry 377 Wiesmoor-Nord",
+      "note": "Static embedded context; no live request is needed during observer runs.",
+      "publisher": "Niedersächsischer Landesbetrieb für Wasserwirtschaft, Küsten- und Naturschutz (NLWKN) / Landesamt für Bergbau, Energie und Geologie (LBEG)",
+      "source_checked_over_http": false,
       "status": "static_context",
-      "url": "https://mooris-niedersachsen.de/"
+      "supporting_urls": [
+        "https://www.nlwkn.niedersachsen.de/startseite/naturschutz/fach_und_forderprogramme/klimaschutz_durch_moorentwicklung/mooris_moorinformationssystem_niedersachsen/mooris-moorinformationssystem-niedersachsen-218196.html",
+        "https://www.nlwkn.niedersachsen.de/naturschutz/biotopschutz/moorschutzprogramm_1981_86/das-niedersaechsische-moorschutzprogramm-116062.html",
+        "https://www.nlwkn.niedersachsen.de/naturschutzgebiete/naturschutzgebiet-wiesmoor-klinge-42116.html"
+      ],
+      "url": "https://mooris-niedersachsen.de/?pgId=585"
+    },
+    "source_name": "MoorIS Niedersachsen / NLWKN Moorschutzprogramm entry 377 Wiesmoor-Nord",
+    "source_url": "https://mooris-niedersachsen.de/?pgId=585",
+    "why_this_area_matters": "Wiesmoor-Nord is an official Moorschutzprogramm/MoorIS area entry (377) in the East Frisian central moor landscape, where drainage, peat extraction, settlement, agriculture and restoration context all affect interpretation of regional hydrological proxies.",
+    "wiesmoor_nord": {
+      "extracted_fields": [
+        "official area entry name/identifier",
+        "raised-bog context",
+        "drainage canals",
+        "peat extraction and power-plant history",
+        "agricultural/horticultural and settlement context",
+        "supporting local restoration context from NLWKN Wiesmoor-Klinge"
+      ],
+      "notes": "Numeric values in the source text that describe historical operations or a neighboring protected area are kept textual and are not emitted as peat-thickness or area fields.",
+      "page_or_dataset_identifier": "MoorIS page pgId=585; Moorschutzprogramm area 377 Wiesmoor-Nord",
+      "source_status": "official_static_page_available",
+      "source_url": "https://mooris-niedersachsen.de/?pgId=585",
+      "unavailable_numeric_fields": [
+        "peat_thickness",
+        "mapped_area",
+        "current_water_table_depth",
+        "hydrological_pressure_class"
+      ]
     }
   },
   "peatland_hydrological_pressure": {
-    "confidence": "low",
-    "groundwater_proxy_status": "ok",
+    "basis": {
+      "groundwater_proxy": {
+        "class": "normal",
+        "direction": "normal",
+        "strength": "moderate",
+        "valid": true
+      },
+      "regional_soil_water": {
+        "class": "normal",
+        "direction": "normal",
+        "latest_value": 89.5,
+        "strength": "moderate",
+        "unit": "‰ nFK",
+        "valid": true
+      },
+      "weather_pressure": {
+        "class": "normal",
+        "direction": "normal",
+        "dry_days_30d": 15,
+        "dry_days_7d": 3,
+        "rainfall_30d_mm": 70.1,
+        "rainfall_7d_mm": 13.7,
+        "strength": "moderate",
+        "valid": true
+      }
+    },
+    "confidence": "medium",
+    "contributing_proxy_groups": [
+      "weather_pressure",
+      "regional_soil_water",
+      "groundwater_proxy"
+    ],
+    "do_not_interpret_as": [
+      "in-situ peat water-table measurement",
+      "peat-water-table depth",
+      "official DWD/NLWKN peatland class",
+      "field-validated restoration or drainage status"
+    ],
     "limitations": [
       "Regional proxy observation — not an in-situ peat water-table sensor.",
-      "DWD daily rainfall is one regional proxy component only and is not an in-situ peat water-table measurement.",
-      "NLWKN groundwater stations are a regional proxy; station distance and local hydrogeological representativeness are uncertain.",
-      "Groundwater level observations are not the same as a peat water-table measurement in Wiesmoor-Nord peat soils.",
-      "Groundwater stations, satellite soil-water data and weather totals may describe different depths, footprints and response times."
+      "No peat-water-table depth is measured or inferred.",
+      "NLWKN groundwater stations are regional groundwater proxies; station distance and local hydrogeological representativeness are uncertain.",
+      "DWD gridded soil moisture under grass is a regional model product for the 0-60 cm layer and is not converted to peat water-table depth.",
+      "DWD weather pressure comes from the selected nearby daily climate station; station distance and weather gradients limit site representativeness.",
+      "Copernicus SWI metadata-only and MoorIS static context are not used as live pressure signals."
     ],
-    "rainfall_30d": 70.1,
-    "rainfall_7d": 13.7,
-    "soil_water_trend": "unavailable",
-    "value": "unavailable"
+    "methodology": "Conservative observer heuristic using only currently live proxy groups: DWD weather pressure, DWD gridded soil moisture under grass 0-60 cm, and NLWKN regional groundwater status. At least two independent valid live proxy groups are required. Elevated/high is emitted only when at least two live groups align toward dry/low-water or wet/high-water pressure; mixed or weak signals default to normal. Copernicus SWI metadata-only and MoorIS static context are excluded from the live classification.",
+    "source_interpretation_note": "Interpret value as a conservative multi-source regional proxy pressure state for Wiesmoor, not as measured site hydrology.",
+    "thresholds": {
+      "groundwater_proxy": "Uses NLWKN source status_category/regional_status_summary as low, very_low, normal, high, or very_high without reclassifying the measured metre value.",
+      "regional_soil_water": {
+        "high": "> 120 to 160 ‰ nFK",
+        "low": "50 to < 70 ‰ nFK",
+        "normal": "70 to 120 ‰ nFK",
+        "note": "Provisional Wiesmoor Observer heuristic bands in source-native DWD AMBAV ‰ nFK; not official peatland classes and not peat water-table depth.",
+        "very_high": "> 160 ‰ nFK",
+        "very_low": "< 50 ‰ nFK"
+      },
+      "weather_pressure": {
+        "dry": "7-day rainfall < 5 mm and 30-day rainfall < 35 mm plus dry-day or heat support",
+        "dry_day_support": "dry_days_7d >= 6, dry_days_30d >= 22, consecutive_dry_days >= 10, or temperature_mean_7d_c >= 25",
+        "unit": "mm rainfall, days, degrees Celsius",
+        "very_dry": "7-day rainfall < 2 mm and 30-day rainfall < 20 mm plus dry-day or heat support",
+        "very_wet": "7-day rainfall >= 50 mm or 30-day rainfall >= 120 mm",
+        "wet": "7-day rainfall >= 30 mm or 30-day rainfall >= 90 mm"
+      }
+    },
+    "unavailable_proxy_groups": [],
+    "value": "normal"
   },
-  "primary_metric_value": "unavailable",
+  "primary_metric_value": "normal",
   "regional_soil_water": {
     "dataset": "Daily grids of mean soil moisture under grass for Germany, Version v1.0",
     "dataset_id": "urn:wmo:md:de-dwd-cdc:25285481-9c88-4304-a90a-26fff84a9a84",
@@ -237,9 +337,18 @@
   },
   "sources": [
     {
-      "name": "MoorIS Niedersachsen / Wiesmoor-Nord",
+      "http_status": null,
+      "name": "MoorIS Niedersachsen / NLWKN Moorschutzprogramm entry 377 Wiesmoor-Nord",
+      "note": "Static embedded context; no live request is needed during observer runs.",
+      "publisher": "Niedersächsischer Landesbetrieb für Wasserwirtschaft, Küsten- und Naturschutz (NLWKN) / Landesamt für Bergbau, Energie und Geologie (LBEG)",
+      "source_checked_over_http": false,
       "status": "static_context",
-      "url": "https://mooris-niedersachsen.de/"
+      "supporting_urls": [
+        "https://www.nlwkn.niedersachsen.de/startseite/naturschutz/fach_und_forderprogramme/klimaschutz_durch_moorentwicklung/mooris_moorinformationssystem_niedersachsen/mooris-moorinformationssystem-niedersachsen-218196.html",
+        "https://www.nlwkn.niedersachsen.de/naturschutz/biotopschutz/moorschutzprogramm_1981_86/das-niedersaechsische-moorschutzprogramm-116062.html",
+        "https://www.nlwkn.niedersachsen.de/naturschutzgebiete/naturschutzgebiet-wiesmoor-klinge-42116.html"
+      ],
+      "url": "https://mooris-niedersachsen.de/?pgId=585"
     },
     {
       "dataset": "Grundwasserstandonline public station metadata with current daily value where exposed",
