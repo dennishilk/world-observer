@@ -434,3 +434,83 @@ Stations_id von_datum bis_datum Stationshoehe geoBreite geoLaenge Stationsname B
     assert payload["dry_days_30d"] == 3
     assert payload["consecutive_dry_days"] == 3
     assert payload["coverage"]["dry_day_threshold_mm"] == 1.0
+
+
+def test_copernicus_swi_grid_cell_selection_is_deterministic() -> None:
+    observer = load_observer()
+    cell = observer.select_copernicus_swi_grid_cell()
+    assert cell["crs"] == "EPSG:4326"
+    assert cell["pixel_size_degrees"] == 1 / 112
+    assert cell["row"] == 2081
+    assert cell["column"] == 2098
+    assert cell["latitude"] == 53.4196429
+    assert cell["longitude"] == 7.7321429
+
+
+def test_copernicus_swi_missing_fill_values_remain_unavailable() -> None:
+    observer = load_observer()
+    for value in [241, 242, 251, 252, 253, 254, 255, 201, -1, float("nan"), None]:
+        assert observer._parse_copernicus_swi_value(value) is None
+
+
+def test_copernicus_swi_real_numeric_zero_is_valid() -> None:
+    observer = load_observer()
+    assert observer._parse_copernicus_swi_value(0) == 0.0
+    assert observer._parse_copernicus_swi_value("0") == 0.0
+
+
+def test_copernicus_swi_scale_factor_applied_after_valid_range_check() -> None:
+    observer = load_observer()
+    assert observer._parse_copernicus_swi_value(1) == 0.5
+    assert observer._parse_copernicus_swi_value(200) == 100.0
+
+
+def test_copernicus_swi_date_parsing() -> None:
+    observer = load_observer()
+    assert observer._parse_copernicus_swi_date("c_gls_SWI1km_202607071200_CEURO_SCATSAR_V2.0.1.nc") == date(2026, 7, 7)
+    assert observer._parse_copernicus_swi_date("2026-07-08T12:00:00Z") == date(2026, 7, 8)
+
+
+def test_copernicus_swi_graceful_unavailable_does_not_call_metadata_url(monkeypatch) -> None:
+    observer = load_observer()
+
+    def fail_fetch(url, diagnostics):
+        raise AssertionError("metadata-only adapter must not fetch live URLs")
+
+    monkeypatch.setattr(observer, "_fetch_url", fail_fetch)
+    payload, diagnostics = observer.copernicus_soil_water()
+    assert payload["data_status"] == "unavailable"
+    assert payload["latest_date"] is None
+    assert payload["latest_value"] is None
+    assert payload["file_url"] is None
+    assert payload["source"]["status"] == "metadata_only"
+    assert "anonymous CDSE product discovery was not verified" in diagnostics.error
+
+
+def test_copernicus_swi_v201_metadata_and_filename_payload() -> None:
+    observer = load_observer()
+    payload, diagnostics = observer.copernicus_soil_water()
+    assert diagnostics.http_status is None
+    assert payload["product_version"] == "V2.0.1"
+    assert payload["file_naming_convention"] == "c_gls_SWI1km_YYYYMMDD1200_CEURO_SCATSAR_VX.Y.X.nc"
+    assert payload["variable"] == "SWI_002"
+    assert payload["variable_meaning"] == "SWI_002 means T=2"
+    assert payload["spatial_resolution"] == "1/112° (~1 km), EPSG:4326"
+    assert payload["raw_valid_range"] == [0, 200]
+    assert payload["scale_factor"] == 0.5
+    assert payload["fill_value"] == 255
+    assert payload["flag_values"] == [241, 242, 251, 252, 253, 254]
+
+
+def test_build_payload_adds_independent_copernicus_soil_water_without_regressing_pressure(monkeypatch) -> None:
+    observer = load_observer()
+    monkeypatch.setattr(observer, "groundwater_proxy", lambda: ({"data_status": "unavailable", "source": {"name": "g"}}, observer.AdapterDiagnostics()))
+    monkeypatch.setattr(observer, "regional_soil_water", lambda: ({"trend": "unavailable", "source": {"name": "dwd"}}, observer.AdapterDiagnostics()))
+    monkeypatch.setattr(observer, "weather_pressure", lambda: ({"data_status": "unavailable", "rainfall_7d_mm": None, "rainfall_30d_mm": None, "source": {"name": "w"}}, observer.AdapterDiagnostics()))
+    monkeypatch.setattr(observer, "copernicus_soil_water", lambda: ({"data_status": "unavailable", "latest_value": None, "source": {"name": "c"}}, observer.AdapterDiagnostics(api_attempts=1, error="metadata only")))
+    payload = observer.build_payload()
+    assert "copernicus_soil_water" in payload
+    assert payload["regional_soil_water"] == {"trend": "unavailable", "source": {"name": "dwd"}}
+    assert payload["peatland_hydrological_pressure"]["value"] == "unavailable"
+    assert observer.COPERNICUS_SWI_ADAPTER_ID not in payload["diagnostics"]["live_adapters_enabled"]
+    assert observer.COPERNICUS_SWI_ADAPTER_ID in payload["diagnostics"]["metadata_adapters"]
