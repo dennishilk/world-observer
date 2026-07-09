@@ -43,7 +43,7 @@ def test_export_dashboard_succeeds_and_writes_valid_json(tmp_path) -> None:
 
     written = export_dashboard.export_dashboard(latest_dir, dashboard_dir)
 
-    assert sorted(written) == sorted((*export_dashboard.OUTPUT_FILES, *export_dashboard.HISTORY_FILES))
+    assert sorted(written) == sorted((*export_dashboard.OUTPUT_FILES, *export_dashboard.HISTORY_FILES, *(f"latest/{observer}.json" for observer in OBSERVERS)))
     for name in export_dashboard.OUTPUT_FILES:
         payload = json.loads((dashboard_dir / name).read_text(encoding="utf-8"))
         assert isinstance(payload, dict)
