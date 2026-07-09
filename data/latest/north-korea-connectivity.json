@@ -7,7 +7,7 @@
   "layers": {
     "dns": {
       "success_rate": 0.25,
-      "mean_latency_ms": 452.19,
+      "mean_latency_ms": 638.13,
       "probe_count": 8,
       "data_completeness": 1.0
     },
@@ -28,9 +28,9 @@
     }
   },
   "time_to_silence": {
-    "mean_seconds": 30.561,
-    "p95_seconds": 30.561,
-    "worst_seconds": 30.561
+    "mean_seconds": 27.011,
+    "p95_seconds": 27.011,
+    "worst_seconds": 27.011
   },
   "baseline_30d": {
     "dns_success_rate": {
@@ -103,24 +103,24 @@
           "triggered": false
         },
         "tts_mean_seconds": {
-          "value": 30.561,
+          "value": 27.011,
           "mean_30d": 48.504655,
           "stddev_30d": 16.564608,
-          "zscore": -1.0833,
+          "zscore": -1.2976,
           "triggered": false
         },
         "tts_p95_seconds": {
-          "value": 30.561,
+          "value": 27.011,
           "mean_30d": 49.865207,
           "stddev_30d": 16.336579,
-          "zscore": -1.1817,
+          "zscore": -1.399,
           "triggered": false
         },
         "tts_worst_seconds": {
-          "value": 30.561,
+          "value": 27.011,
           "mean_30d": 49.865207,
           "stddev_30d": 16.336579,
-          "zscore": -1.1817,
+          "zscore": -1.399,
           "triggered": false
         }
       },
@@ -139,11 +139,11 @@
     "api_attempts": 48,
     "retries": 0,
     "http_status": null,
-    "probes_attempted": 101,
-    "probes_succeeded": 19,
-    "probes_failed": 82,
+    "probes_attempted": 87,
+    "probes_succeeded": 13,
+    "probes_failed": 74,
     "timeouts": 4,
-    "duration_s": 60.022,
+    "duration_s": 61.11,
     "budget_s": 60.0,
     "budget_exhausted": true
   }
