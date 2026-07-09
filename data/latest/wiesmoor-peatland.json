@@ -1,6 +1,6 @@
 {
   "category": "environment",
-  "collected_at_utc": "2026-07-09T16:06:31Z",
+  "collected_at_utc": "2026-07-09T16:24:26Z",
   "data_status": "partial",
   "date": "2026-07-09",
   "date_utc": "2026-07-09",
@@ -210,16 +210,24 @@
   "status": "ok",
   "summary": "Wiesmoor peatland hydrological pressure remains unavailable as an in-situ conclusion; DWD daily rainfall is emitted when available as a regional weather proxy component only.",
   "weather_pressure": {
+    "consecutive_dry_days": 1,
     "coverage": {
+      "dry_day_rule": "A dry day is a valid DWD daily precipitation (RSK) observation below 1.0 mm/day; exactly 1.0 mm/day is not dry. Missing markers and absent dates are unavailable, never dry.",
+      "dry_day_threshold_mm": 1.0,
       "expected_days_30d": 30,
       "expected_days_7d": 7,
       "minimum_coverage_rule": "7-day total requires 7/7 valid precipitation days; 30-day total requires at least 27/30 valid precipitation days. DWD -999/missing and absent dates are unavailable, not zero.",
       "valid_days_30d": 28,
-      "valid_days_7d": 7
+      "valid_days_7d": 7,
+      "valid_temperature_days_30d": 28,
+      "valid_temperature_days_7d": 7
     },
     "data_status": "ok",
+    "dry_days_30d": 15,
+    "dry_days_7d": 3,
     "label": "weather pressure",
     "latest_date": "2026-07-08",
+    "latest_precipitation_mm": 0.0,
     "rainfall_30d_mm": 70.1,
     "rainfall_7d_mm": 13.7,
     "source": {
@@ -240,6 +248,8 @@
       "station_name": "Wittmundhafen"
     },
     "temperature_c": 16.5,
-    "temperature_label": "latest valid daily mean temperature (TMK), not an instantaneous/current temperature"
+    "temperature_label": "latest valid daily mean temperature (TMK), not an instantaneous/current temperature",
+    "temperature_mean_30d_c": 17.5,
+    "temperature_mean_7d_c": 16.6
   }
 }
