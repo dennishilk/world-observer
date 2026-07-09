@@ -1,3 +1,6 @@
 dnspython
 matplotlib
 pillow
+
+netCDF4
+pyproj

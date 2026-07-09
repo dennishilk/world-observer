@@ -250,3 +250,79 @@ def test_nlwkn_nested_values_preserve_missing_as_null_not_zero() -> None:
     station = observer.parse_nlwkn_station(real_nlwkn_fixture()["getStammdatenResult"][1])
     assert station.latest_value is None
     assert station.data_status == "partial"
+
+
+def test_dwd_soil_moisture_selects_wiesmoor_grid_cell_deterministically(monkeypatch) -> None:
+    observer = load_observer()
+    year_url = observer._soil_moisture_year_url(2026)
+    file_name = "grids_germany_daily_soil_moisture_grass_2026_0-60_v1.nc"
+
+    def fake_fetch(url, diagnostics):
+        if url == year_url:
+            return f'<a href="{file_name}">{file_name}</a>'.encode()
+        assert url == year_url + file_name
+        return b"netcdf"
+
+    def fake_extract(data, source_url):
+        assert data == b"netcdf"
+        assert source_url == year_url + file_name
+        return observer.DwdSoilMoistureObservation(date(2026, 6, 30), 456.0, observer.DWD_SOIL_MOISTURE_UNIT, 3475000.0, 5921000.0, 53.416, 7.735, source_url)
+
+    monkeypatch.setenv("WORLD_OBSERVER_DATE_UTC", "2026-07-09")
+    monkeypatch.setattr(observer, "_fetch_url", fake_fetch)
+    monkeypatch.setattr(observer, "_extract_soil_moisture_observation", fake_extract)
+    payload, diagnostics = observer.regional_soil_water()
+    assert diagnostics.error is None
+    assert payload["status"] == "ok"
+    assert payload["latest_date"] == "2026-06-30"
+    assert payload["latest_value"] == 456.0
+    assert payload["unit"] == "‰ nFK"
+    assert payload["grid_cell"]["latitude"] == 53.416
+    assert payload["source"]["selected_file_url"].endswith(file_name)
+
+
+def test_dwd_soil_moisture_missing_fill_values_remain_unavailable() -> None:
+    observer = load_observer()
+    assert observer._parse_soil_moisture_value("-9999") is None
+    assert observer._parse_soil_moisture_value(-9999.0) is None
+    assert observer._parse_soil_moisture_value("") is None
+
+
+def test_dwd_soil_moisture_real_numeric_zero_is_valid() -> None:
+    observer = load_observer()
+    assert observer._parse_soil_moisture_value("0") == 0.0
+    assert observer._parse_soil_moisture_value(0.0) == 0.0
+
+
+def test_dwd_soil_moisture_date_parsing_and_unit_preservation(monkeypatch) -> None:
+    observer = load_observer()
+    monkeypatch.setenv("WORLD_OBSERVER_DATE_UTC", "2026-07-09")
+    assert observer._date_utc() == "2026-07-09"
+    obs = observer.DwdSoilMoistureObservation(date(2026, 1, 2), 12.5, observer.DWD_SOIL_MOISTURE_UNIT, None, None, None, None, "u")
+    assert obs.observation_date.isoformat() == "2026-01-02"
+    assert obs.unit == "‰ nFK"
+
+
+def test_dwd_soil_moisture_graceful_upstream_failure(monkeypatch) -> None:
+    observer = load_observer()
+
+    def fake_fetch(url, diagnostics):
+        raise RuntimeError("simulated DWD soil outage")
+
+    monkeypatch.setattr(observer, "_fetch_url", fake_fetch)
+    payload, diagnostics = observer.regional_soil_water()
+    assert payload["status"] == "unavailable"
+    assert payload["latest_value"] is None
+    assert payload["source"]["status"] == "temporarily_unavailable"
+    assert "simulated DWD soil outage" in diagnostics.error
+
+
+def test_dwd_soil_moisture_directory_file_selection() -> None:
+    observer = load_observer()
+    html = """
+<a href="grids_germany_daily_soil_moisture_grass_2026_0-50_v1.nc">wrong layer</a>
+<a href="grids_germany_daily_soil_moisture_grass_2026_0-60_v1.nc">v1</a>
+<a href="grids_germany_daily_soil_moisture_grass_2025_0-60_v1.nc">wrong year</a>
+"""
+    hrefs = observer.parse_directory_hrefs(html)
+    assert observer.select_soil_moisture_file(hrefs, 2026) == "grids_germany_daily_soil_moisture_grass_2026_0-60_v1.nc"
