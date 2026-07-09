@@ -326,3 +326,111 @@ def test_dwd_soil_moisture_directory_file_selection() -> None:
 """
     hrefs = observer.parse_directory_hrefs(html)
     assert observer.select_soil_moisture_file(hrefs, 2026) == "grids_germany_daily_soil_moisture_grass_2026_0-60_v1.nc"
+
+
+def daily_rows(latest: date, precip: list[float | None], temps: list[float | None] | None = None) -> list[dict]:
+    temps = temps if temps is not None else [10.0] * len(precip)
+    return [
+        {"date": latest - timedelta(days=len(precip) - 1 - i), "precip_mm": p, "temperature_c": temps[i]}
+        for i, p in enumerate(precip)
+    ]
+
+
+def test_rolling_temperature_means_require_documented_coverage() -> None:
+    observer = load_observer()
+    latest = date(2026, 1, 30)
+    rows = daily_rows(latest, [1.0] * 30, [float(i + 1) for i in range(30)])
+    mean_7d, valid_7d, expected_7d = observer.rolling_mean(rows, latest, 7, observer.MIN_COVERAGE_7D, "temperature_c")
+    mean_30d, valid_30d, expected_30d = observer.rolling_mean(rows, latest, 30, observer.MIN_COVERAGE_30D, "temperature_c")
+    assert mean_7d == 27.0
+    assert valid_7d == expected_7d == 7
+    assert mean_30d == 15.5
+    assert valid_30d == expected_30d == 30
+
+
+def test_temperature_mean_missing_and_absent_dates_block_insufficient_coverage() -> None:
+    observer = load_observer()
+    latest = date(2026, 1, 7)
+    rows = daily_rows(latest, [1.0] * 6, [10.0] * 6)
+    mean, valid, expected = observer.rolling_mean(rows, latest, 7, observer.MIN_COVERAGE_7D, "temperature_c")
+    assert mean is None
+    assert valid == 6
+    assert expected == 7
+
+
+def test_dry_day_threshold_boundary_behavior() -> None:
+    observer = load_observer()
+    latest = date(2026, 1, 7)
+    rows = daily_rows(latest, [0.0, 0.2, 0.999, 1.0, 1.1, None, 0.5])
+    count, valid, expected = observer.dry_day_count(rows, latest, 7, 7)
+    assert count is None
+    assert valid == 6
+    assert expected == 7
+    complete_rows = daily_rows(latest, [0.0, 0.2, 0.999, 1.0, 1.1, 2.0, 0.5])
+    count, valid, expected = observer.dry_day_count(complete_rows, latest, 7, 7)
+    assert count == 4
+    assert valid == expected == 7
+
+
+def test_7_day_and_30_day_dry_day_counts_follow_precipitation_coverage() -> None:
+    observer = load_observer()
+    latest = date(2026, 1, 30)
+    precip = [0.0] * 20 + [1.0] * 7 + [None] * 3
+    rows = daily_rows(latest, precip)
+    dry_30d, valid_30d, expected_30d = observer.dry_day_count(rows, latest, 30, observer.MIN_COVERAGE_30D)
+    assert dry_30d == 20
+    assert valid_30d == 27
+    assert expected_30d == 30
+    dry_7d, valid_7d, expected_7d = observer.dry_day_count(rows, latest, 7, observer.MIN_COVERAGE_7D)
+    assert dry_7d is None
+    assert valid_7d == 4
+    assert expected_7d == 7
+
+
+def test_consecutive_dry_days_ending_at_latest_observation_stops_at_wet_or_missing() -> None:
+    observer = load_observer()
+    latest = date(2026, 1, 10)
+    rows = daily_rows(latest, [0.0, 0.5, 1.0, 0.2, 0.3])
+    assert observer.consecutive_dry_days(rows, latest) == 2
+    rows_with_missing_gap = daily_rows(latest, [0.0, None, 0.2, 0.3, 0.4])
+    assert observer.consecutive_dry_days(rows_with_missing_gap, latest) == 3
+    rows_with_absent_gap = [r for r in rows_with_missing_gap if r["date"] != latest - timedelta(days=3)]
+    assert observer.consecutive_dry_days(rows_with_absent_gap, latest) == 3
+    rows_latest_wet = daily_rows(latest, [0.0, 0.5, 0.2, 0.3, 1.0])
+    assert observer.consecutive_dry_days(rows_latest_wet, latest) == 0
+
+
+def test_weather_pressure_emits_extended_metrics_from_dwd_daily_climate(monkeypatch) -> None:
+    observer = load_observer()
+    station_text = """
+Stations_id von_datum bis_datum Stationshoehe geoBreite geoLaenge Stationsname Bundesland Abgabe
+00001 20200101 20260731 1 53.4200 7.7400 Wiesmoor_Test Niedersachsen frei
+"""
+    lines = ["STATIONS_ID;MESS_DATUM;QN_3;FX;FM;QN_4;RSK;RSKF;SDK;SHK_TAG;NM;VPM;PM;TMK;UPM;TXK;TNK;TGK;eor"]
+    start = date(2026, 1, 1)
+    for i in range(30):
+        day = start + timedelta(days=i)
+        precip = 0.0 if i >= 27 else 1.0
+        temp = 10 + i
+        lines.append(f"1;{day:%Y%m%d};-999;-999;-999;3;{precip};0;-999;-999;-999;-999;-999;{temp};-999;-999;-999;-999;eor")
+
+    def fake_fetch(url, diagnostics):
+        if url.endswith(observer.DWD_STATION_DESCRIPTION):
+            return station_text.encode("latin1")
+        if url.endswith("tageswerte_KL_00001_akt.zip"):
+            return product_zip(lines)
+        raise AssertionError(url)
+
+    monkeypatch.setattr(observer, "_fetch_url", fake_fetch)
+    payload, diagnostics = observer.weather_pressure()
+    assert diagnostics.error is None
+    assert payload["latest_precipitation_mm"] == 0.0
+    assert payload["rainfall_7d_mm"] == 4.0
+    assert payload["rainfall_30d_mm"] == 27.0
+    assert payload["temperature_c"] == 39.0
+    assert payload["temperature_mean_7d_c"] == 36.0
+    assert payload["temperature_mean_30d_c"] == 24.5
+    assert payload["dry_days_7d"] == 3
+    assert payload["dry_days_30d"] == 3
+    assert payload["consecutive_dry_days"] == 3
+    assert payload["coverage"]["dry_day_threshold_mm"] == 1.0

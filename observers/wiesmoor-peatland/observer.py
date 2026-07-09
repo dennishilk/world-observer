@@ -48,6 +48,7 @@ MAX_RETRIES = 2
 RECENT_OBSERVATION_MAX_AGE_DAYS = 14
 MIN_COVERAGE_7D = 7
 MIN_COVERAGE_30D = 27
+DRY_DAY_THRESHOLD_MM = 1.0
 MISSING_VALUES = {"", "-999", "-999.0"}
 SOIL_MOISTURE_MISSING_VALUES = {"", "-9999", "-9999.0", "nan", "NaN"}
 GERMANY_LATITUDE_RANGE = (47.0, 56.0)
@@ -331,13 +332,40 @@ def parse_daily_product(zip_bytes: bytes) -> list[dict[str, Any]]:
         rows.append({"date": obs_date, "precip_mm": _parse_float(row.get("RSK")), "temperature_c": _parse_float(row.get("TMK"))})
     return sorted(rows, key=lambda r: r["date"])
 
+def _window_values(rows: list[dict[str, Any]], latest: date, days: int, field: str) -> tuple[list[float], int]:
+    start = latest - timedelta(days=days - 1)
+    by_date = {r["date"]: r for r in rows if start <= r["date"] <= latest}
+    values = [by_date[d][field] for d in (start + timedelta(days=i) for i in range(days)) if d in by_date and by_date[d].get(field) is not None]
+    return values, days
+
 def rolling_total(rows: list[dict[str, Any]], latest: date, days: int, min_valid: int) -> tuple[float | None, int, int]:
     # Coverage rule: only sum observations inside the calendar window. Missing DWD values (-999/null)
     # and absent days reduce valid_days; they are never treated as dry 0.0 mm days.
-    start = latest - timedelta(days=days - 1)
-    by_date = {r["date"]: r for r in rows if start <= r["date"] <= latest}
-    values = [by_date[d]["precip_mm"] for d in (start + timedelta(days=i) for i in range(days)) if d in by_date and by_date[d]["precip_mm"] is not None]
-    return (round(sum(values), 1) if len(values) >= min_valid else None, len(values), days)
+    values, expected = _window_values(rows, latest, days, "precip_mm")
+    return (round(sum(values), 1) if len(values) >= min_valid else None, len(values), expected)
+
+def rolling_mean(rows: list[dict[str, Any]], latest: date, days: int, min_valid: int, field: str) -> tuple[float | None, int, int]:
+    values, expected = _window_values(rows, latest, days, field)
+    return (round(sum(values) / len(values), 1) if len(values) >= min_valid else None, len(values), expected)
+
+def dry_day_count(rows: list[dict[str, Any]], latest: date, days: int, min_valid: int) -> tuple[int | None, int, int]:
+    values, expected = _window_values(rows, latest, days, "precip_mm")
+    if len(values) < min_valid:
+        return None, len(values), expected
+    return sum(1 for value in values if value < DRY_DAY_THRESHOLD_MM), len(values), expected
+
+def consecutive_dry_days(rows: list[dict[str, Any]], latest: date) -> int | None:
+    by_date = {r["date"]: r for r in rows}
+    count = 0
+    day = latest
+    while True:
+        row = by_date.get(day)
+        if row is None or row.get("precip_mm") is None:
+            return count if count > 0 else None
+        if row["precip_mm"] >= DRY_DAY_THRESHOLD_MM:
+            return count
+        count += 1
+        day -= timedelta(days=1)
 
 def _station_metadata(station: DwdStation | None) -> dict[str, Any] | None:
     if station is None: return None
@@ -591,9 +619,15 @@ def weather_pressure() -> tuple[dict[str, Any], AdapterDiagnostics]:
     }
     base: dict[str, Any] = {
         "label": "weather pressure",
+        "latest_precipitation_mm": None,
         "rainfall_7d_mm": None,
         "rainfall_30d_mm": None,
         "temperature_c": None,
+        "temperature_mean_7d_c": None,
+        "temperature_mean_30d_c": None,
+        "dry_days_7d": None,
+        "dry_days_30d": None,
+        "consecutive_dry_days": None,
         "temperature_label": "latest valid daily mean temperature (TMK), not an instantaneous/current temperature",
         "latest_date": None,
         "data_status": "unavailable",
@@ -603,6 +637,10 @@ def weather_pressure() -> tuple[dict[str, Any], AdapterDiagnostics]:
             "expected_days_7d": 7,
             "valid_days_30d": 0,
             "expected_days_30d": 30,
+            "valid_temperature_days_7d": 0,
+            "valid_temperature_days_30d": 0,
+            "dry_day_threshold_mm": DRY_DAY_THRESHOLD_MM,
+            "dry_day_rule": f"A dry day is a valid DWD daily precipitation (RSK) observation below {DRY_DAY_THRESHOLD_MM:.1f} mm/day; exactly {DRY_DAY_THRESHOLD_MM:.1f} mm/day is not dry. Missing markers and absent dates are unavailable, never dry.",
             "minimum_coverage_rule": f"7-day total requires {MIN_COVERAGE_7D}/7 valid precipitation days; 30-day total requires at least {MIN_COVERAGE_30D}/30 valid precipitation days. DWD -999/missing and absent dates are unavailable, not zero.",
         },
         "source": source,
@@ -621,13 +659,24 @@ def weather_pressure() -> tuple[dict[str, Any], AdapterDiagnostics]:
         if not valid_precip_rows:
             raise RuntimeError("Selected DWD station has no valid precipitation observations")
         latest = max(r["date"] for r in valid_precip_rows)
+        latest_precip = next(r["precip_mm"] for r in reversed(rows) if r["date"] == latest and r["precip_mm"] is not None)
         rainfall_7d, valid_7d, expected_7d = rolling_total(rows, latest, 7, MIN_COVERAGE_7D)
         rainfall_30d, valid_30d, expected_30d = rolling_total(rows, latest, 30, MIN_COVERAGE_30D)
+        temp_7d, valid_temp_7d, _ = rolling_mean(rows, latest, 7, MIN_COVERAGE_7D, "temperature_c")
+        temp_30d, valid_temp_30d, _ = rolling_mean(rows, latest, 30, MIN_COVERAGE_30D, "temperature_c")
+        dry_7d, _, _ = dry_day_count(rows, latest, 7, MIN_COVERAGE_7D)
+        dry_30d, _, _ = dry_day_count(rows, latest, 30, MIN_COVERAGE_30D)
         latest_temp = next((r["temperature_c"] for r in reversed(rows) if r["date"] <= latest and r["temperature_c"] is not None), None)
         base.update({
+            "latest_precipitation_mm": latest_precip,
             "rainfall_7d_mm": rainfall_7d,
             "rainfall_30d_mm": rainfall_30d,
             "temperature_c": latest_temp,
+            "temperature_mean_7d_c": temp_7d,
+            "temperature_mean_30d_c": temp_30d,
+            "dry_days_7d": dry_7d,
+            "dry_days_30d": dry_30d,
+            "consecutive_dry_days": consecutive_dry_days(rows, latest),
             "latest_date": latest.isoformat(),
             "data_status": "ok" if rainfall_7d is not None and rainfall_30d is not None else "partial",
             "coverage": {
@@ -636,6 +685,8 @@ def weather_pressure() -> tuple[dict[str, Any], AdapterDiagnostics]:
                 "expected_days_7d": expected_7d,
                 "valid_days_30d": valid_30d,
                 "expected_days_30d": expected_30d,
+                "valid_temperature_days_7d": valid_temp_7d,
+                "valid_temperature_days_30d": valid_temp_30d,
             },
         })
         source["observation_date"] = latest.isoformat()
