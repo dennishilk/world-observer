@@ -20,6 +20,7 @@ import time
 import urllib.error
 import urllib.request
 import zipfile
+from html.parser import HTMLParser
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta, timezone
 from typing import Any
@@ -30,6 +31,14 @@ LONGITUDE = 7.7333
 DWD_KL_RECENT_BASE_URL = "https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/daily/kl/recent/"
 DWD_STATION_DESCRIPTION = "KL_Tageswerte_Beschreibung_Stationen.txt"
 DWD_ADAPTER_ID = "dwd_cdc_daily_climate_kl_recent"
+DWD_SOIL_MOISTURE_ADAPTER_ID = "dwd_cdc_daily_soil_moisture_grass"
+DWD_SOIL_MOISTURE_BASE_URL = "https://opendata.dwd.de/climate_environment/CDC/grids_germany/daily/soil_moisture/grass/"
+DWD_SOIL_MOISTURE_DATASET_ID = "urn:wmo:md:de-dwd-cdc:25285481-9c88-4304-a90a-26fff84a9a84"
+DWD_SOIL_MOISTURE_PRODUCT = "Daily grids of mean soil moisture under grass for Germany, Version v1.0"
+DWD_SOIL_MOISTURE_CULTURE = "grass"
+DWD_SOIL_MOISTURE_LAYER = "0-60"
+DWD_SOIL_MOISTURE_UNIT = "‰ nFK"
+DWD_SOIL_MOISTURE_FILL_VALUES = {-9999, -9999.0}
 NLWKN_GROUNDWATER_ADAPTER_ID = "nlwkn_groundwaterstandonline_public"
 NLWKN_STATIONS_URL = "https://bis.azure-api.net/GrundwasserstandonlinePublic/REST/stammdaten/stationen/allegrundwasserstationen?key=9dc05f4e3b4a43a9988d747825b39f43"
 NLWKN_PORTAL_URL = "https://www.grundwasserstandonline.nlwkn.niedersachsen.de/"
@@ -40,8 +49,32 @@ RECENT_OBSERVATION_MAX_AGE_DAYS = 14
 MIN_COVERAGE_7D = 7
 MIN_COVERAGE_30D = 27
 MISSING_VALUES = {"", "-999", "-999.0"}
+SOIL_MOISTURE_MISSING_VALUES = {"", "-9999", "-9999.0", "nan", "NaN"}
 GERMANY_LATITUDE_RANGE = (47.0, 56.0)
 GERMANY_LONGITUDE_RANGE = (5.0, 16.0)
+
+
+@dataclass(frozen=True)
+class DwdSoilMoistureObservation:
+    observation_date: date
+    value: float | None
+    unit: str
+    grid_cell_x: float | None
+    grid_cell_y: float | None
+    grid_cell_latitude: float | None
+    grid_cell_longitude: float | None
+    source_url: str
+
+class _HrefParser(HTMLParser):
+    def __init__(self) -> None:
+        super().__init__()
+        self.hrefs: list[str] = []
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        if tag.lower() == "a":
+            for key, value in attrs:
+                if key.lower() == "href" and value:
+                    self.hrefs.append(value)
 
 @dataclass(frozen=True)
 class DwdStation:
@@ -405,22 +438,145 @@ def groundwater_proxy() -> dict[str, Any]:
     return base, diagnostics
 
 
-def regional_soil_water() -> dict[str, Any]:
+def _parse_soil_moisture_value(raw: Any) -> float | None:
+    if raw is None:
+        return None
+    if isinstance(raw, (int, float)):
+        if raw in DWD_SOIL_MOISTURE_FILL_VALUES or (isinstance(raw, float) and math.isnan(raw)):
+            return None
+        return float(raw)
+    text = str(raw).strip().replace(",", ".")
+    if text in SOIL_MOISTURE_MISSING_VALUES:
+        return None
+    try:
+        value = float(text)
+    except ValueError:
+        return None
+    return None if value in DWD_SOIL_MOISTURE_FILL_VALUES else value
+
+def _soil_moisture_year_url(year: int) -> str:
+    return f"{DWD_SOIL_MOISTURE_BASE_URL}{year}/"
+
+def parse_directory_hrefs(html: str) -> list[str]:
+    parser = _HrefParser()
+    parser.feed(html)
+    return parser.hrefs
+
+def select_soil_moisture_file(hrefs: list[str], year: int, layer: str = DWD_SOIL_MOISTURE_LAYER) -> str | None:
+    pattern = re.compile(rf"^grids_germany_daily_soil_moisture_{DWD_SOIL_MOISTURE_CULTURE}_{year}_{re.escape(layer)}_v\d+\.nc$")
+    candidates = sorted(href for href in hrefs if pattern.match(href.split("/")[-1]))
+    return candidates[-1] if candidates else None
+
+def _extract_soil_moisture_observation(netcdf_bytes: bytes, source_url: str) -> DwdSoilMoistureObservation:
+    try:
+        import netCDF4  # type: ignore[import-not-found]
+        from pyproj import Transformer  # type: ignore[import-not-found]
+    except ImportError as exc:
+        raise RuntimeError("netCDF4 and pyproj are required to extract DWD soil-moisture NetCDF grid cells in this environment") from exc
+    import tempfile
+
+    with tempfile.NamedTemporaryFile(suffix=".nc") as tmp:
+        tmp.write(netcdf_bytes)
+        tmp.flush()
+        with netCDF4.Dataset(tmp.name) as ds:  # type: ignore[attr-defined]
+            x_var = ds.variables.get("x") or ds.variables.get("X")
+            y_var = ds.variables.get("y") or ds.variables.get("Y")
+            time_var = ds.variables.get("time") or ds.variables.get("TIME")
+            if x_var is None or y_var is None or time_var is None:
+                raise RuntimeError("DWD soil-moisture NetCDF lacks expected x/y/time coordinate variables")
+            data_var = None
+            for var in ds.variables.values():
+                dims = tuple(getattr(var, "dimensions", ()))
+                units = str(getattr(var, "units", ""))
+                name = str(getattr(var, "name", ""))
+                long_name = str(getattr(var, "long_name", ""))
+                if "time" in dims and ("‰" in units or "nFK" in units or "soil" in (name + long_name).lower()):
+                    if len(dims) >= 3:
+                        data_var = var
+                        break
+            if data_var is None:
+                raise RuntimeError("DWD soil-moisture NetCDF lacks an identifiable time/y/x soil-moisture variable")
+
+            xs = list(x_var[:])
+            ys = list(y_var[:])
+            transformer = Transformer.from_crs("EPSG:4326", "EPSG:31467", always_xy=True)
+            target_x, target_y = transformer.transform(LONGITUDE, LATITUDE)
+            x_index = min(range(len(xs)), key=lambda i: abs(float(xs[i]) - target_x))
+            y_index = min(range(len(ys)), key=lambda i: abs(float(ys[i]) - target_y))
+            times = list(time_var[:])
+            if not times:
+                raise RuntimeError("DWD soil-moisture NetCDF time coordinate is empty")
+            time_index = len(times) - 1
+            dt = netCDF4.num2date(times[time_index], getattr(time_var, "units"), getattr(time_var, "calendar", "standard"))
+            obs_date = date(int(dt.year), int(dt.month), int(dt.day))
+            dims = tuple(getattr(data_var, "dimensions", ()))
+            index_by_dim = {"time": time_index, "x": x_index, "X": x_index, "y": y_index, "Y": y_index}
+            key = tuple(index_by_dim.get(dim, 0) for dim in dims)
+            raw_value = data_var[key]
+            if hasattr(raw_value, "filled"):
+                raw_value = raw_value.filled(-9999)
+            try:
+                raw_scalar = raw_value.item()
+            except AttributeError:
+                raw_scalar = raw_value
+            value = _parse_soil_moisture_value(raw_scalar)
+            unit = str(getattr(data_var, "units", DWD_SOIL_MOISTURE_UNIT)) or DWD_SOIL_MOISTURE_UNIT
+            return DwdSoilMoistureObservation(obs_date, value, unit, float(xs[x_index]), float(ys[y_index]), None, None, source_url)
+
+def _soil_moisture_source(status: str = "live_adapter") -> dict[str, Any]:
     return {
-        "label": "regional satellite-derived soil-water condition",
-        "dataset": "Copernicus Soil Water Index Europe 1 km v2",
+        "name": "Deutscher Wetterdienst (DWD) Climate Data Center",
+        "url": DWD_SOIL_MOISTURE_BASE_URL,
+        "status": status,
+        "dataset": DWD_SOIL_MOISTURE_PRODUCT,
+        "dataset_id": DWD_SOIL_MOISTURE_DATASET_ID,
+        "description_url": DWD_SOIL_MOISTURE_BASE_URL + "DESCRIPTION_grids_germany_daily_soil_moisture_grass_en.pdf",
+    }
+
+def regional_soil_water() -> tuple[dict[str, Any], AdapterDiagnostics]:
+    diagnostics = AdapterDiagnostics()
+    source = _soil_moisture_source()
+    base: dict[str, Any] = {
+        "label": "regional DWD gridded soil-moisture condition",
+        "dataset": DWD_SOIL_MOISTURE_PRODUCT,
+        "dataset_id": DWD_SOIL_MOISTURE_DATASET_ID,
+        "variable": "mean soil moisture under grass, 0-60 cm layer",
+        "unit": DWD_SOIL_MOISTURE_UNIT,
         "spatial_resolution_km": 1,
         "temporal_resolution": "daily",
         "latest_value": None,
         "latest_date": None,
         "status": "unavailable",
         "trend": "unavailable",
-        "source": _unavailable_source(
-            "Copernicus Soil Water Index Europe 1 km v2",
-            "https://land.copernicus.eu/en/products/soil-water-index",
-            "Implement Copernicus download/API extraction for the Wiesmoor grid cell or a documented regional buffer.",
-        ),
+        "grid_cell": None,
+        "selection_method": f"Deterministically select the source grid cell containing or nearest to Wiesmoor ({LATITUDE}, {LONGITUDE}) from the DWD NetCDF grid metadata; no regional averaging and no conversion to peat water-table depth.",
+        "limitations": [
+            "Regional gridded model product, not an in-situ peat water-table sensor.",
+            "DWD AMBAV soil moisture under grass preserves source-native ‰ nFK semantics and is not converted to water-table depth.",
+        ],
+        "source": source,
     }
+    try:
+        year = int(_date_utc()[:4])
+        listing_url = _soil_moisture_year_url(year)
+        html = _fetch_url(listing_url, diagnostics).decode("utf-8", "replace")
+        filename = select_soil_moisture_file(parse_directory_hrefs(html), year)
+        if not filename:
+            raise RuntimeError(f"No DWD soil-moisture NetCDF file for layer {DWD_SOIL_MOISTURE_LAYER} found in {listing_url}")
+        file_url = listing_url + filename
+        source["selected_file_url"] = file_url
+        obs = _extract_soil_moisture_observation(_fetch_url(file_url, diagnostics), file_url)
+        base["latest_date"] = obs.observation_date.isoformat()
+        base["latest_value"] = obs.value
+        base["grid_cell"] = {"x": obs.grid_cell_x, "y": obs.grid_cell_y, "latitude": obs.grid_cell_latitude, "longitude": obs.grid_cell_longitude}
+        source["observation_date"] = obs.observation_date.isoformat()
+        source["source_url"] = obs.source_url
+        base["status"] = "ok" if obs.value is not None else "unavailable"
+    except Exception as exc:
+        diagnostics.error = str(exc)
+        source["status"] = "temporarily_unavailable"
+        source["note"] = "DWD soil-moisture adapter failed gracefully; no soil-moisture values were fabricated."
+    return base, diagnostics
 
 
 def weather_pressure() -> tuple[dict[str, Any], AdapterDiagnostics]:
@@ -526,7 +682,7 @@ def build_payload() -> dict[str, Any]:
     target_date = _date_utc()
     context = peat_context()
     groundwater, groundwater_diagnostics = groundwater_proxy()
-    soil = regional_soil_water()
+    soil, soil_diagnostics = regional_soil_water()
     weather, weather_diagnostics = weather_pressure()
     pressure = derive_pressure(soil, groundwater, weather)
     data_status = "partial" if weather.get("data_status") in {"ok", "partial"} else "unavailable"
@@ -550,11 +706,11 @@ def build_payload() -> dict[str, Any]:
         "summary": "Wiesmoor peatland hydrological pressure remains unavailable as an in-situ conclusion; DWD daily rainfall is emitted when available as a regional weather proxy component only.",
         "sources": [context["source"], groundwater["source"], soil["source"], weather["source"]],
         "diagnostics": {
-            "api_attempts": weather_diagnostics.api_attempts + groundwater_diagnostics.api_attempts,
-            "retries": weather_diagnostics.retries + groundwater_diagnostics.retries,
-            "http_status": {"dwd": weather_diagnostics.http_status, "nlwkn_groundwater": groundwater_diagnostics.http_status},
-            "live_adapters_enabled": [DWD_ADAPTER_ID, NLWKN_GROUNDWATER_ADAPTER_ID],
-            "adapter_errors": ([weather_diagnostics.error] if weather_diagnostics.error else []) + ([groundwater_diagnostics.error] if groundwater_diagnostics.error else []),
+            "api_attempts": weather_diagnostics.api_attempts + groundwater_diagnostics.api_attempts + soil_diagnostics.api_attempts,
+            "retries": weather_diagnostics.retries + groundwater_diagnostics.retries + soil_diagnostics.retries,
+            "http_status": {"dwd": weather_diagnostics.http_status, "nlwkn_groundwater": groundwater_diagnostics.http_status, "dwd_soil_moisture": soil_diagnostics.http_status},
+            "live_adapters_enabled": [DWD_ADAPTER_ID, NLWKN_GROUNDWATER_ADAPTER_ID, DWD_SOIL_MOISTURE_ADAPTER_ID],
+            "adapter_errors": ([weather_diagnostics.error] if weather_diagnostics.error else []) + ([groundwater_diagnostics.error] if groundwater_diagnostics.error else []) + ([soil_diagnostics.error] if soil_diagnostics.error else []),
         },
     }
 
