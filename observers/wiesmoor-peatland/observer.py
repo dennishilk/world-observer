@@ -32,6 +32,7 @@ DWD_KL_RECENT_BASE_URL = "https://opendata.dwd.de/climate_environment/CDC/observ
 DWD_STATION_DESCRIPTION = "KL_Tageswerte_Beschreibung_Stationen.txt"
 DWD_ADAPTER_ID = "dwd_cdc_daily_climate_kl_recent"
 DWD_SOIL_MOISTURE_ADAPTER_ID = "dwd_cdc_daily_soil_moisture_grass"
+COPERNICUS_SWI_ADAPTER_ID = "copernicus_clms_swi_europe_1km_daily_v2"
 DWD_SOIL_MOISTURE_BASE_URL = "https://opendata.dwd.de/climate_environment/CDC/grids_germany/daily/soil_moisture/grass/"
 DWD_SOIL_MOISTURE_DATASET_ID = "urn:wmo:md:de-dwd-cdc:25285481-9c88-4304-a90a-26fff84a9a84"
 DWD_SOIL_MOISTURE_PRODUCT = "Daily grids of mean soil moisture under grass for Germany, Version v1.0"
@@ -53,7 +54,33 @@ MISSING_VALUES = {"", "-999", "-999.0"}
 SOIL_MOISTURE_MISSING_VALUES = {"", "-9999", "-9999.0", "nan", "NaN"}
 GERMANY_LATITUDE_RANGE = (47.0, 56.0)
 GERMANY_LONGITUDE_RANGE = (5.0, 16.0)
+COPERNICUS_SWI_PRODUCT_URL = "https://land.copernicus.eu/en/products/soil-moisture/daily-soil-water-index-europe-1km-v2"
+COPERNICUS_SWI_PUM_URL = "https://land.copernicus.eu/en/technical-library/product-user-manual-soil-water-index/@@download/file"
+COPERNICUS_SWI_PRODUCT = "Soil Water Index 2025-present (raster 1 km), Europe, daily – version 2"
+COPERNICUS_SWI_PRODUCT_VERSION = "V2.0.1"
+COPERNICUS_SWI_FILENAME_PATTERN = "c_gls_SWI1km_YYYYMMDD1200_CEURO_SCATSAR_VX.Y.X.nc"
+COPERNICUS_SWI_VARIABLE = "SWI_002"
+COPERNICUS_SWI_UNIT = "%"
+COPERNICUS_SWI_PIXEL_SIZE_DEGREES = 1 / 112
+COPERNICUS_SWI_VALID_RAW_RANGE = (0, 200)
+COPERNICUS_SWI_FILL_VALUE = 255
+COPERNICUS_SWI_FLAG_VALUES = {241, 242, 251, 252, 253, 254}
+COPERNICUS_SWI_UNAVAILABLE_RAW_VALUES = COPERNICUS_SWI_FLAG_VALUES | {COPERNICUS_SWI_FILL_VALUE}
+COPERNICUS_SWI_SCALE_FACTOR = 0.5
 
+
+
+@dataclass(frozen=True)
+class CopernicusSwiObservation:
+    observation_date: date
+    value: float | None
+    unit: str
+    grid_cell_latitude: float | None
+    grid_cell_longitude: float | None
+    grid_cell_row: int | None
+    grid_cell_column: int | None
+    source_url: str
+    product_version: str | None = None
 
 @dataclass(frozen=True)
 class DwdSoilMoistureObservation:
@@ -607,6 +634,99 @@ def regional_soil_water() -> tuple[dict[str, Any], AdapterDiagnostics]:
     return base, diagnostics
 
 
+def select_copernicus_swi_grid_cell(latitude: float = LATITUDE, longitude: float = LONGITUDE, pixel_size: float = COPERNICUS_SWI_PIXEL_SIZE_DEGREES) -> dict[str, Any]:
+    """Select the deterministic EPSG:4326 1/112° grid cell nearest to coordinates."""
+    lon_min, lat_max = -11.0, 72.0
+    col = int(round((longitude - lon_min) / pixel_size))
+    row = int(round((lat_max - latitude) / pixel_size))
+    cell_lon = lon_min + col * pixel_size
+    cell_lat = lat_max - row * pixel_size
+    return {
+        "row": row,
+        "column": col,
+        "latitude": round(cell_lat, 7),
+        "longitude": round(cell_lon, 7),
+        "pixel_size_degrees": pixel_size,
+        "crs": "EPSG:4326",
+        "distance_km": round(haversine_km(latitude, longitude, cell_lat, cell_lon), 3),
+    }
+
+def _parse_copernicus_swi_date(raw: Any) -> date:
+    if isinstance(raw, date) and not isinstance(raw, datetime):
+        return raw
+    text = str(raw).strip()
+    match = re.search(r"(20\d{2})[-_]?([01]\d)[-_]?([0-3]\d)(?:1200)?", text)
+    if not match:
+        raise ValueError(f"Cannot parse Copernicus SWI date from {raw!r}")
+    return date(int(match.group(1)), int(match.group(2)), int(match.group(3)))
+
+def _parse_copernicus_swi_value(raw: Any, scale_factor: float = COPERNICUS_SWI_SCALE_FACTOR) -> float | None:
+    if raw is None:
+        return None
+    if hasattr(raw, "filled"):
+        raw = raw.filled(255)
+    try:
+        value = raw.item()
+    except AttributeError:
+        value = raw
+    if isinstance(value, float) and math.isnan(value):
+        return None
+    try:
+        numeric = float(value)
+    except (TypeError, ValueError):
+        return None
+    if numeric in COPERNICUS_SWI_UNAVAILABLE_RAW_VALUES:
+        return None
+    low, high = COPERNICUS_SWI_VALID_RAW_RANGE
+    if numeric < low or numeric > high:
+        return None
+    return round(numeric * scale_factor, 3)
+
+def copernicus_soil_water() -> tuple[dict[str, Any], AdapterDiagnostics]:
+    diagnostics = AdapterDiagnostics()
+    source = {
+        "name": "Copernicus Land Monitoring Service",
+        "url": COPERNICUS_SWI_PRODUCT_URL,
+        "status": "metadata_only",
+        "dataset": COPERNICUS_SWI_PRODUCT,
+        "product_version": COPERNICUS_SWI_PRODUCT_VERSION,
+        "file_naming_convention": COPERNICUS_SWI_FILENAME_PATTERN,
+        "product_user_manual_url": COPERNICUS_SWI_PUM_URL,
+        "access_method": "Copernicus Data Space Ecosystem via Copernicus Browser, OData API, or S3; this adapter does not guess collection identifiers or file paths without verified anonymous discovery.",
+    }
+    grid_cell = select_copernicus_swi_grid_cell()
+    base: dict[str, Any] = {
+        "label": "Copernicus satellite soil-water proxy",
+        "data_status": "unavailable",
+        "latest_date": None,
+        "latest_value": None,
+        "unit": COPERNICUS_SWI_UNIT,
+        "product": COPERNICUS_SWI_PRODUCT,
+        "product_version": COPERNICUS_SWI_PRODUCT_VERSION,
+        "file_naming_convention": COPERNICUS_SWI_FILENAME_PATTERN,
+        "variable": COPERNICUS_SWI_VARIABLE,
+        "variable_meaning": "SWI_002 means T=2",
+        "raw_valid_range": list(COPERNICUS_SWI_VALID_RAW_RANGE),
+        "scale_factor": COPERNICUS_SWI_SCALE_FACTOR,
+        "fill_value": COPERNICUS_SWI_FILL_VALUE,
+        "flag_values": sorted(COPERNICUS_SWI_FLAG_VALUES),
+        "spatial_resolution_km": 1,
+        "spatial_resolution": "1/112° (~1 km), EPSG:4326",
+        "grid_cell": grid_cell,
+        "source": source,
+        "source_url": COPERNICUS_SWI_PRODUCT_URL,
+        "file_url": None,
+        "selection_method": f"Deterministically select the nearest/containing EPSG:4326 1/112° Copernicus SWI grid cell to Wiesmoor ({LATITUDE}, {LONGITUDE}); no averaging, no conversion to peat water-table depth.",
+        "limitations": [
+            "Regional proxy, satellite/model product, not an in-situ peat water-table sensor.",
+            "Copernicus SWI is emitted as an independent proxy and is not used to derive peat water-table depth.",
+            "Hydrological pressure classes are not derived from SWI at this stage.",
+            "Raw valid values are 0..200 and decoded with scale_factor 0.5 to percent; fill value 255 and flags 241, 242, 251, 252, 253 and 254 are unavailable, never converted to zero.",
+        ],
+    }
+    diagnostics.error = "Live Copernicus SWI discovery/download is not enabled: anonymous CDSE product discovery was not verified in this environment, and the adapter must not guess OData collection identifiers or file paths."
+    return base, diagnostics
+
 def weather_pressure() -> tuple[dict[str, Any], AdapterDiagnostics]:
     diagnostics = AdapterDiagnostics()
     source_url = DWD_KL_RECENT_BASE_URL
@@ -734,6 +854,7 @@ def build_payload() -> dict[str, Any]:
     context = peat_context()
     groundwater, groundwater_diagnostics = groundwater_proxy()
     soil, soil_diagnostics = regional_soil_water()
+    copernicus_soil, copernicus_diagnostics = copernicus_soil_water()
     weather, weather_diagnostics = weather_pressure()
     pressure = derive_pressure(soil, groundwater, weather)
     data_status = "partial" if weather.get("data_status") in {"ok", "partial"} else "unavailable"
@@ -751,17 +872,19 @@ def build_payload() -> dict[str, Any]:
         "peat_context": context,
         "groundwater_proxy": groundwater,
         "regional_soil_water": soil,
+        "copernicus_soil_water": copernicus_soil,
         "weather_pressure": weather,
         "peatland_hydrological_pressure": pressure,
         "primary_metric_value": pressure["value"],
         "summary": "Wiesmoor peatland hydrological pressure remains unavailable as an in-situ conclusion; DWD daily rainfall is emitted when available as a regional weather proxy component only.",
-        "sources": [context["source"], groundwater["source"], soil["source"], weather["source"]],
+        "sources": [context["source"], groundwater["source"], soil["source"], copernicus_soil["source"], weather["source"]],
         "diagnostics": {
-            "api_attempts": weather_diagnostics.api_attempts + groundwater_diagnostics.api_attempts + soil_diagnostics.api_attempts,
-            "retries": weather_diagnostics.retries + groundwater_diagnostics.retries + soil_diagnostics.retries,
-            "http_status": {"dwd": weather_diagnostics.http_status, "nlwkn_groundwater": groundwater_diagnostics.http_status, "dwd_soil_moisture": soil_diagnostics.http_status},
+            "api_attempts": weather_diagnostics.api_attempts + groundwater_diagnostics.api_attempts + soil_diagnostics.api_attempts + copernicus_diagnostics.api_attempts,
+            "retries": weather_diagnostics.retries + groundwater_diagnostics.retries + soil_diagnostics.retries + copernicus_diagnostics.retries,
+            "http_status": {"dwd": weather_diagnostics.http_status, "nlwkn_groundwater": groundwater_diagnostics.http_status, "dwd_soil_moisture": soil_diagnostics.http_status, "copernicus_swi": copernicus_diagnostics.http_status},
+            "metadata_adapters": [COPERNICUS_SWI_ADAPTER_ID],
             "live_adapters_enabled": [DWD_ADAPTER_ID, NLWKN_GROUNDWATER_ADAPTER_ID, DWD_SOIL_MOISTURE_ADAPTER_ID],
-            "adapter_errors": ([weather_diagnostics.error] if weather_diagnostics.error else []) + ([groundwater_diagnostics.error] if groundwater_diagnostics.error else []) + ([soil_diagnostics.error] if soil_diagnostics.error else []),
+            "adapter_errors": ([weather_diagnostics.error] if weather_diagnostics.error else []) + ([groundwater_diagnostics.error] if groundwater_diagnostics.error else []) + ([soil_diagnostics.error] if soil_diagnostics.error else []) + ([copernicus_diagnostics.error] if copernicus_diagnostics.error else []),
         },
     }
 
