@@ -9,11 +9,11 @@
     "min_lon": -118.5,
     "max_lon": -112.5
   },
-  "bucket_count": 2,
+  "bucket_count": 3,
   "au": {
-    "janet_like": 37,
-    "other": 19,
-    "total": 56
+    "janet_like": 63,
+    "other": 35,
+    "total": 98
   },
   "baseline_30d": {
     "janet_like": {
@@ -36,15 +36,15 @@
     "sigma_mult": 2.0,
     "janet_like": {
       "is_significant": false,
-      "z": -0.5839
+      "z": -0.2688
     },
     "other": {
       "is_significant": false,
-      "z": -0.4003
+      "z": 0.079
     },
     "total": {
       "is_significant": false,
-      "z": -0.5321
+      "z": -0.169
     },
     "any_significant": false
   },
