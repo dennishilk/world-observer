@@ -85,3 +85,56 @@ Stations_id von_datum bis_datum Stationshoehe geoBreite geoLaenge Stationsname B
     selected = observer.select_station(stations, today=date(2026, 1, 10))
     assert selected.station_id == "00001"
     assert selected.name == "Near recent"
+
+
+def test_haversine_distance_is_deterministic_for_wiesmoor_to_station() -> None:
+    observer = load_observer()
+    assert round(observer.haversine_km(53.4167, 7.7333, 53.5000, 7.8000), 2) == 10.26
+
+
+def test_nlwkn_station_selection_prefers_nearest_suitable_station() -> None:
+    observer = load_observer()
+    stations = [
+        observer.NlwknGroundwaterStation("far", "2", 54.0, 8.5, 82.0, "2026-01-01", 1.2, "m NHN", "normal", "ok", "u"),
+        observer.NlwknGroundwaterStation("near", "1", 53.42, 7.74, 0.57, "2026-01-01", 1.0, "m NHN", "low", "ok", "u"),
+        observer.NlwknGroundwaterStation("missing coords", "3", None, None, None, "2026-01-01", 2.0, "m NHN", "high", "ok", "u"),
+    ]
+    selected = observer.select_nlwkn_stations(stations, limit=2)
+    assert [s.station_id for s in selected] == ["1", "2"]
+
+
+def test_nlwkn_missing_latest_value_does_not_become_zero() -> None:
+    observer = load_observer()
+    station = observer.parse_nlwkn_station({
+        "id": "abc",
+        "name": "Test station",
+        "latitude": "53,42",
+        "longitude": "7,74",
+        "aktuellerWert": "",
+        "datum": "2026-01-01",
+    })
+    assert station.latest_value is None
+    assert station.data_status == "partial"
+
+
+def test_nlwkn_status_labels_normalize_safely() -> None:
+    observer = load_observer()
+    assert observer.normalize_nlwkn_status_label("sehr niedrig") == "very_low"
+    assert observer.normalize_nlwkn_status_label("hoch") == "high"
+    assert observer.normalize_nlwkn_status_label("source-native special") == "source-native special"
+
+
+def test_observer_emits_valid_json_if_nlwkn_unavailable(monkeypatch) -> None:
+    observer = load_observer()
+    real_fetch = observer._fetch_url
+
+    def fake_fetch(url, diagnostics):
+        if url == observer.NLWKN_STATIONS_URL:
+            raise RuntimeError("simulated NLWKN outage")
+        return real_fetch(url, diagnostics)
+
+    monkeypatch.setattr(observer, "_fetch_url", fake_fetch)
+    payload = observer.build_payload()
+    assert payload["groundwater_proxy"]["data_status"] == "unavailable"
+    assert payload["groundwater_proxy"]["nearest_station"] is None
+    assert any("simulated NLWKN outage" in error for error in payload["diagnostics"]["adapter_errors"])
