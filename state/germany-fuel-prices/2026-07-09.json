@@ -59,7 +59,7 @@
     "source": "www.ndr.de",
     "primary_source": "www.ndr.de",
     "fetch_url": "https://www.ndr.de/nachrichten/info/spritpreise-aktuell-so-entwickeln-sich-benzin-und-dieselpreise%2Cspritpreise-128.html",
-    "fetched_at_utc": "2026-07-09T13:54:16.331099Z",
+    "fetched_at_utc": "2026-07-09T15:45:17.605592Z",
     "parse_status": "ok",
     "fallback_used": false,
     "api_attempts": 1,

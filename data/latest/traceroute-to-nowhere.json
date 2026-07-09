@@ -10,7 +10,7 @@
     "fail_rate": 0.625,
     "median_last_replied_hop": 6.0,
     "early_blackhole_rate": 0.125,
-    "timeout_hop_density": 0.540009
+    "timeout_hop_density": 0.55303
   },
   "baseline_30d": {
     "fail_rate": {
