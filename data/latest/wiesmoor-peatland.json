@@ -1,6 +1,6 @@
 {
   "category": "environment",
-  "collected_at_utc": "2026-07-09T17:51:56Z",
+  "collected_at_utc": "2026-07-10T06:07:46Z",
   "copernicus_soil_water": {
     "data_status": "unavailable",
     "file_naming_convention": "c_gls_SWI1km_YYYYMMDD1200_CEURO_SCATSAR_VX.Y.X.nc",
@@ -58,8 +58,8 @@
     "variable_meaning": "SWI_002 means T=2"
   },
   "data_status": "partial",
-  "date": "2026-07-09",
-  "date_utc": "2026-07-09",
+  "date": "2026-07-10",
+  "date_utc": "2026-07-10",
   "diagnostics": {
     "adapter_errors": [
       "Live Copernicus SWI discovery/download is not enabled: anonymous CDSE product discovery was not verified in this environment, and the adapter must not guess OData collection identifiers or file paths."
@@ -89,7 +89,7 @@
     "nearest_station": {
       "data_status": "ok",
       "distance_km": 12.01,
-      "latest_date": "09.07.2026",
+      "latest_date": "10.07.2026",
       "latest_value": 3.96,
       "latest_value_unit": "m",
       "latitude": 53.308712851665724,
@@ -112,7 +112,7 @@
       {
         "data_status": "ok",
         "distance_km": 12.01,
-        "latest_date": "09.07.2026",
+        "latest_date": "10.07.2026",
         "latest_value": 3.96,
         "latest_value_unit": "m",
         "latitude": 53.308712851665724,
@@ -125,8 +125,8 @@
       {
         "data_status": "ok",
         "distance_km": 12.3,
-        "latest_date": "09.07.2026",
-        "latest_value": 1.91,
+        "latest_date": "10.07.2026",
+        "latest_value": 1.92,
         "latest_value_unit": "m",
         "latitude": 53.50290852872384,
         "longitude": 7.616982588807925,
@@ -138,8 +138,8 @@
       {
         "data_status": "ok",
         "distance_km": 17.68,
-        "latest_date": "09.07.2026",
-        "latest_value": 1.41,
+        "latest_date": "10.07.2026",
+        "latest_value": 1.42,
         "latest_value_unit": "m",
         "latitude": 53.55419782828839,
         "longitude": 7.867499351844094,
