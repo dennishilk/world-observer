@@ -73,13 +73,7 @@ The live adapter uses only the documented official **NLWKN Pegelonline public RE
 - Authentication: no per-user account or browser session; the documented public examples include a `key` query parameter.
 - Reuse notes: NLWKN says the webservice can be used free of charge, `www.pegelonline.nlwkn.niedersachsen.de` must be cited, raw values are unchecked, and no completeness/correctness/availability warranty is made.
 
-The metadata response inspection records these diagnostics on every NLWKN fetch attempt:
-
-- number of station objects returned
-- first 20 station IDs in response order
-- station metadata matches containing `Bensersiel`, `Norden`, `Norddeich`, `Aurich`, `Emden`, or `Wittmund`
-- exact pinned station object when present
-- parameter list for the pinned station
+The adapter fails closed unless station `184` and parameter `1` validate against the pinned official metadata. It logs the raw measurement timestamp string exactly as returned before parsing in `diagnostics.raw_measurement_timestamp`, then accepts only the timestamp form observed from the official JSON measurement endpoint: Microsoft JSON date strings with an explicit numeric offset, for example `/Date(1783786800000+0200)/`. Parsed timestamps are normalized to UTC for emitted observations. Malformed timestamps, missing offsets, duplicate timestamps, non-numeric values, and changed pinned metadata keep the NLWKN adapter unavailable rather than silently dropping records.
 
 | Field | Value |
 |---|---|

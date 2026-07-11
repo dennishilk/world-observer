@@ -326,7 +326,14 @@ nlwkn = observer.nlwkn
 NLWKN_ID = "184"
 
 
-def nlwkn_station(unit="cm", current_timestamp="11.07.2026 18:20", current_value="401,3"):
+def nlwkn_ts(value: str) -> str:
+    stamp = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    return f"/Date({int(stamp.timestamp() * 1000)}+0200)/"
+
+
+def nlwkn_station(unit="cm", current_timestamp=None, current_value="401,3"):
+    if current_timestamp is None:
+        current_timestamp = nlwkn_ts("2026-07-11T16:20:00Z")
     return {
         "getStammdatenResult": [
             {
@@ -369,11 +376,12 @@ def fetch_nlwkn(monkeypatch, vals, station_payload=None):
 
 
 def test_nlwkn_valid_current_measurement(monkeypatch):
-    result = fetch_nlwkn(monkeypatch, [("11.07.2026 18:00", 399), ("11.07.2026 18:10", 400), ("11.07.2026 18:15", 401), ("11.07.2026 18:20", 401.3)])
+    result = fetch_nlwkn(monkeypatch, [(nlwkn_ts("2026-07-11T16:00:00Z"), 399), (nlwkn_ts("2026-07-11T16:10:00Z"), 400), (nlwkn_ts("2026-07-11T16:15:00Z"), 401), (nlwkn_ts("2026-07-11T16:20:00Z"), 401.3)])
     assert result.status == "live"
     assert result.observations["station_id"] == NLWKN_ID
     assert result.observations["unit"] == "cm"
     assert result.observations["source_organization"].startswith("Niedersächsischer Landesbetrieb")
+    assert result.diagnostics["raw_measurement_timestamp"] == nlwkn_ts("2026-07-11T16:20:00Z")
 
 
 
@@ -382,7 +390,7 @@ def test_nlwkn_regression_uses_confirmed_official_fields(monkeypatch):
     station_obj = payload["getStammdatenResult"][0]
     station_obj["legacy_ID_should_not_be_used"] = "not-a-station-id"
     station_obj["Parameter"][0]["legacy_ID_should_not_be_used"] = "not-a-parameter-id"
-    result = fetch_nlwkn(monkeypatch, [("11.07.2026 18:00", 399), ("11.07.2026 18:10", 400), ("11.07.2026 18:15", 401), ("11.07.2026 18:20", 401.3)], payload)
+    result = fetch_nlwkn(monkeypatch, [(nlwkn_ts("2026-07-11T16:00:00Z"), 399), (nlwkn_ts("2026-07-11T16:10:00Z"), 400), (nlwkn_ts("2026-07-11T16:15:00Z"), 401), (nlwkn_ts("2026-07-11T16:20:00Z"), 401.3)], payload)
     assert result.status == "live"
     assert result.observations["station_id"] == "184"
     assert result.diagnostics["confirmed_station"]["station_id"] == "184"
@@ -395,12 +403,12 @@ def test_nlwkn_regression_uses_confirmed_official_fields(monkeypatch):
     assert "PAT_ID" in result.diagnostics["confirmed_parameter_key_names"][0]
 
 def test_nlwkn_valid_zero_measurement(monkeypatch):
-    result = fetch_nlwkn(monkeypatch, [("11.07.2026 18:00", 0), ("11.07.2026 18:10", 0), ("11.07.2026 18:15", 0), ("11.07.2026 18:20", 0)])
+    result = fetch_nlwkn(monkeypatch, [(nlwkn_ts("2026-07-11T16:00:00Z"), 0), (nlwkn_ts("2026-07-11T16:10:00Z"), 0), (nlwkn_ts("2026-07-11T16:15:00Z"), 0), (nlwkn_ts("2026-07-11T16:20:00Z"), 0)])
     assert result.observations["latest_measurement_value"] == 0.0
 
 
 def test_nlwkn_stale_measurement(monkeypatch):
-    result = fetch_nlwkn(monkeypatch, [("11.07.2026 12:00", 1), ("11.07.2026 12:10", 1), ("11.07.2026 12:15", 1), ("11.07.2026 12:20", 1)], nlwkn_station(current_timestamp="11.07.2026 12:20", current_value="1"))
+    result = fetch_nlwkn(monkeypatch, [(nlwkn_ts("2026-07-11T10:00:00Z"), 1), (nlwkn_ts("2026-07-11T10:10:00Z"), 1), (nlwkn_ts("2026-07-11T10:15:00Z"), 1), (nlwkn_ts("2026-07-11T10:20:00Z"), 1)], nlwkn_station(current_timestamp=nlwkn_ts("2026-07-11T10:20:00Z"), current_value="1"))
     assert result.observations["freshness_status"] == "stale_measurement"
 
 
@@ -408,10 +416,17 @@ def test_nlwkn_malformed_timestamp(monkeypatch):
     result = fetch_nlwkn(monkeypatch, [("not-a-date", 1)])
     assert result.status == "unavailable"
     assert "malformed_timestamp" in result.diagnostics["adapter_errors"][0]
+    assert result.diagnostics["raw_measurement_timestamp"] == "not-a-date"
+
+
+def test_nlwkn_json_timestamp_without_offset_fails_closed(monkeypatch):
+    result = fetch_nlwkn(monkeypatch, [("/Date(1783785600000)/", 1)])
+    assert result.status == "unavailable"
+    assert "malformed_timestamp" in result.diagnostics["adapter_errors"][0]
 
 
 def test_nlwkn_unexpected_unit(monkeypatch):
-    result = fetch_nlwkn(monkeypatch, [("11.07.2026 18:00", 1)], nlwkn_station(unit="m"))
+    result = fetch_nlwkn(monkeypatch, [(nlwkn_ts("2026-07-11T16:00:00Z"), 1)], nlwkn_station(unit="m"))
     assert result.status == "unavailable"
 
 
@@ -441,7 +456,7 @@ def test_nlwkn_missing_pinned_station_prints_live_metadata_diagnostics(monkeypat
 def test_nlwkn_does_not_select_another_matching_station(monkeypatch):
     payload = nlwkn_station()
     payload["getStammdatenResult"][0]["STA_ID"] = "9303"
-    patch_nlwkn_json(monkeypatch, payload, nlwkn_measurements([("11.07.2026 18:00", 1)]))
+    patch_nlwkn_json(monkeypatch, payload, nlwkn_measurements([(nlwkn_ts("2026-07-11T16:00:00Z"), 1)]))
     result = nlwkn.fetch(now=NOW)
     assert result.status == "unavailable"
     assert result.diagnostics["station_name_matches"]["Bensersiel"] == [{"station_id": "9303", "station_name": "Bensersiel", "key_names": ["STA_ID", "Name", "GewaesserName", "Betreiber", "Code", "Parameter"]}]
@@ -451,7 +466,7 @@ def test_nlwkn_does_not_select_another_matching_station(monkeypatch):
 def test_nlwkn_pinned_station_identity_change_fails_closed(monkeypatch):
     payload = nlwkn_station()
     payload["getStammdatenResult"][0]["Name"] = "Bensersiel Ersatz"
-    patch_nlwkn_json(monkeypatch, payload, nlwkn_measurements([("11.07.2026 18:00", 1)]))
+    patch_nlwkn_json(monkeypatch, payload, nlwkn_measurements([(nlwkn_ts("2026-07-11T16:00:00Z"), 1)]))
     result = nlwkn.fetch(now=NOW)
     assert result.status == "unavailable"
     assert "pinned NLWKN station name changed" in result.diagnostics["adapter_errors"][0]
@@ -463,12 +478,12 @@ def test_nlwkn_http_failure_or_timeout(monkeypatch):
 
 
 def test_nlwkn_duplicate_timestamps(monkeypatch):
-    result = fetch_nlwkn(monkeypatch, [("11.07.2026 18:00", 1), ("11.07.2026 18:00", 2)])
+    result = fetch_nlwkn(monkeypatch, [(nlwkn_ts("2026-07-11T16:00:00Z"), 1), (nlwkn_ts("2026-07-11T16:00:00Z"), 2)])
     assert result.status == "unavailable"
 
 
 def test_nlwkn_insufficient_values_produces_unavailable_trend(monkeypatch):
-    result = fetch_nlwkn(monkeypatch, [("11.07.2026 18:00", 1)])
+    result = fetch_nlwkn(monkeypatch, [(nlwkn_ts("2026-07-11T16:00:00Z"), 1)])
     assert result.observations["trend_direction"] == "unavailable"
 
 

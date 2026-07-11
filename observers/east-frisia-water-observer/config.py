@@ -1,8 +1,6 @@
 """Configuration and official source research for East Frisia Water Observer."""
 from __future__ import annotations
 
-from zoneinfo import ZoneInfo
-
 from models import SourceResearch
 
 OBSERVER = "east-frisia-water-observer"
@@ -56,7 +54,6 @@ NLWKN_CONFIG = {
     "unit": "cm",
     "expected_units": {"cm"},
     "recent_days": "-1",
-    "source_timezone": ZoneInfo("Europe/Berlin"),
     "timeout_seconds": 10,
     "max_retries": 1,
     "freshness_threshold_minutes": 90,
