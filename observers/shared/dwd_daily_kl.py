@@ -72,18 +72,48 @@ def parse_float(raw: str | None) -> float | None:
         return None
 
 
-def parse_daily_product(zip_bytes: bytes) -> list[dict[str, Any]]:
+def _detect_delimiter(text: str) -> str:
+    sample = "\n".join(text.splitlines()[:10])
+    try:
+        return csv.Sniffer().sniff(sample, delimiters=";,\t|").delimiter
+    except csv.Error:
+        return ";"
+
+
+def inspect_daily_product(zip_bytes: bytes, zip_filename: str | None = None) -> dict[str, Any]:
+    """Return raw inspection details for a DWD daily KL ZIP without normalizing fields."""
     with zipfile.ZipFile(io.BytesIO(zip_bytes)) as zf:
-        names = [n for n in zf.namelist() if n.lower().startswith("produkt_klima_tag_") and n.lower().endswith(".txt")]
+        contained_filenames = zf.namelist()
+        names = [n for n in contained_filenames if n.lower().startswith("produkt_klima_tag_") and n.lower().endswith(".txt")]
         if not names:
             raise ValueError("DWD ZIP did not contain a daily climate product file")
-        with zf.open(sorted(names)[0]) as fh:
+        selected_filename = sorted(names)[0]
+        with zf.open(selected_filename) as fh:
             text = fh.read().decode("latin1")
-    reader = csv.DictReader(io.StringIO(text), delimiter=";")
+    lines = text.splitlines()
+    delimiter = _detect_delimiter(text)
+    reader = csv.DictReader(io.StringIO(text), delimiter=delimiter)
+    return {
+        "zip_filename": zip_filename,
+        "contained_filenames": contained_filenames,
+        "selected_filename": selected_filename,
+        "first_10_lines": lines[:10],
+        "header_row": lines[0] if lines else "",
+        "delimiter": delimiter,
+        "fieldnames": reader.fieldnames,
+    }
+
+
+def parse_daily_product(zip_bytes: bytes) -> list[dict[str, Any]]:
+    inspection = inspect_daily_product(zip_bytes)
+    with zipfile.ZipFile(io.BytesIO(zip_bytes)) as zf:
+        with zf.open(inspection["selected_filename"]) as fh:
+            text = fh.read().decode("latin1")
+    reader = csv.DictReader(io.StringIO(text), delimiter=inspection["delimiter"])
     if reader.fieldnames:
         reader.fieldnames = [name.strip() for name in reader.fieldnames]
     if not reader.fieldnames or "MESS_DATUM" not in reader.fieldnames or "RSK" not in reader.fieldnames:
-        raise ValueError("DWD daily climate CSV missing required columns MESS_DATUM/RSK")
+        raise ValueError(f"DWD daily climate CSV missing required columns MESS_DATUM/RSK; delimiter={inspection['delimiter']!r}; fieldnames={inspection['fieldnames']!r}; header={inspection['header_row']!r}")
     rows: list[dict[str, Any]] = []
     for raw in reader:
         row = {str(k).strip(): (v.strip() if isinstance(v, str) else v) for k, v in raw.items() if k is not None}
