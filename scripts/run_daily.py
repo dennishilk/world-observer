@@ -26,6 +26,7 @@ OBSERVERS: List[str] = [
     "debian-package-count",
     "dns-time-to-answer-index",
     "dns-tta-stress-index",
+    "east-frisia-water-observer",
     "east-frisian-tea-prices",
     "geomagnetic-storm-observer",
     "germany-electricity-prices",
