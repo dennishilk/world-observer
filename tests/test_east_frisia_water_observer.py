@@ -142,3 +142,150 @@ def test_overall_payload_partial_when_wsv_succeeds_and_others_pending(monkeypatc
 def test_payload_serializes(monkeypatch):
     payload = observer.build_payload()
     json.dumps(payload)
+
+# DWD daily precipitation adapter tests
+import io
+import zipfile
+from urllib.error import HTTPError
+
+dwd = observer.dwd
+
+
+def dwd_zip(rows, member="produkt_klima_tag_20260601_20260630_05640.txt"):
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w") as zf:
+        zf.writestr(member, "\n".join(rows) + "\n")
+    return buf.getvalue()
+
+
+def dwd_lines(values):
+    lines = ["STATIONS_ID;MESS_DATUM;QN_3;FX;FM;QN_4;RSK;RSKF;SDK;SHK_TAG;NM;VPM;PM;TMK;UPM;TXK;TNK;TGK;eor"]
+    for idx, value in enumerate(values, start=1):
+        day = f"202606{idx:02d}"
+        lines.append(f"5640;{day};-999;-999;-999;3;{value};0;-999;-999;-999;-999;-999;12.0;-999;-999;-999;-999;eor")
+    return lines
+
+
+def patch_dwd_fetch(monkeypatch, zip_bytes=None, exc=None):
+    def fake(url, diagnostics, **kwargs):
+        diagnostics.api_attempts += 1
+        if exc:
+            raise exc
+        return zip_bytes
+    monkeypatch.setattr(dwd.dwd_daily_kl, "fetch_url", fake)
+
+
+def test_dwd_valid_zero_rainfall(monkeypatch):
+    patch_dwd_fetch(monkeypatch, dwd_zip(dwd_lines(["0.0"] * 30)))
+    result = dwd.fetch()
+    assert result.status == "live"
+    assert result.observations["latest_rainfall_mm"] == 0.0
+    assert result.observations["rainfall_7d_total_mm"] == 0.0
+
+
+def test_dwd_valid_latest_rainfall(monkeypatch):
+    patch_dwd_fetch(monkeypatch, dwd_zip(dwd_lines(["1.0"] * 29 + ["4.2"])))
+    result = dwd.fetch()
+    assert result.observations["latest_date"] == "2026-06-30"
+    assert result.observations["latest_rainfall_mm"] == 4.2
+    assert result.observations["proxy_label"] == "inland/central East Frisia rainfall proxy"
+
+
+def test_dwd_7_of_7_coverage(monkeypatch):
+    patch_dwd_fetch(monkeypatch, dwd_zip(dwd_lines(["1.0"] * 30)))
+    obs = dwd.fetch().observations
+    assert obs["rainfall_7d_total_mm"] == 7.0
+    assert obs["coverage"]["valid_days_7d"] == 7
+
+
+def test_dwd_incomplete_7_day_coverage(monkeypatch):
+    patch_dwd_fetch(monkeypatch, dwd_zip(dwd_lines(["1.0"] * 29 + ["-999"])))
+    obs = dwd.fetch().observations
+    assert obs["rainfall_7d_total_mm"] is None
+    assert obs["coverage"]["valid_days_7d"] == 6
+
+
+def test_dwd_27_of_30_accepted(monkeypatch):
+    patch_dwd_fetch(monkeypatch, dwd_zip(dwd_lines(["-999"] * 3 + ["1.0"] * 27)))
+    obs = dwd.fetch().observations
+    assert obs["rainfall_30d_total_mm"] == 27.0
+    assert obs["coverage"]["valid_days_30d"] == 27
+
+
+def test_dwd_below_27_of_30_rejected(monkeypatch):
+    patch_dwd_fetch(monkeypatch, dwd_zip(dwd_lines(["-999"] * 4 + ["1.0"] * 26)))
+    obs = dwd.fetch().observations
+    assert obs["rainfall_30d_total_mm"] is None
+    assert obs["coverage"]["valid_days_30d"] == 26
+
+
+def test_dwd_missing_marker_unavailable_not_zero(monkeypatch):
+    patch_dwd_fetch(monkeypatch, dwd_zip(dwd_lines(["1.0"] * 29 + ["-999"])))
+    obs = dwd.fetch().observations
+    assert obs["latest_date"] == "2026-06-30"
+    assert obs["latest_rainfall_mm"] is None
+
+
+def test_dwd_malformed_csv(monkeypatch):
+    patch_dwd_fetch(monkeypatch, dwd_zip(["not;the;right;columns", "x;y;z"]))
+    result = dwd.fetch()
+    assert result.status == "unavailable"
+    assert "missing required columns" in result.diagnostics["adapter_errors"][0]
+
+
+def test_dwd_missing_zip_member(monkeypatch):
+    patch_dwd_fetch(monkeypatch, dwd_zip(["x"], member="readme.txt"))
+    result = dwd.fetch()
+    assert result.status == "unavailable"
+    assert "did not contain" in result.diagnostics["adapter_errors"][0]
+
+
+def test_dwd_http_failure(monkeypatch):
+    patch_dwd_fetch(monkeypatch, exc=HTTPError("u", 503, "Service Unavailable", {}, None))
+    result = dwd.fetch()
+    assert result.status == "unavailable"
+    assert "dwd_fetch_failed" in result.diagnostics["adapter_errors"][0]
+
+
+def test_dwd_timeout_and_retry_diagnostics(monkeypatch):
+    diag_seen = {}
+    def fake(url, diagnostics, **kwargs):
+        diagnostics.api_attempts += 2
+        diagnostics.retries += 1
+        diag_seen.update(kwargs)
+        raise TimeoutError("timed out")
+    monkeypatch.setattr(dwd.dwd_daily_kl, "fetch_url", fake)
+    result = dwd.fetch()
+    assert result.status == "unavailable"
+    assert result.diagnostics["api_attempts"] == 2
+    assert result.diagnostics["retries"] == 1
+    assert diag_seen["timeout_seconds"] == dwd.DWD_CONFIG["timeout_seconds"]
+
+
+def test_dwd_failure_does_not_break_wsv(monkeypatch):
+    monkeypatch.setattr(observer.dwd, "fetch", lambda: (_ for _ in ()).throw(RuntimeError("dwd boom")))
+    monkeypatch.setattr(observer.wsv, "_get_json", lambda url, diagnostics: (diagnostics.__setitem__("api_attempts", diagnostics["api_attempts"] + 1) or (station() if "measurements" not in url else measurements([("2026-07-11T18:00:00+02:00", 1), ("2026-07-11T18:10:00+02:00", 2), ("2026-07-11T18:20:00+02:00", 3), ("2026-07-11T18:25:00+02:00", 5)]))))
+    payload = observer.build_payload()
+    assert payload["adapters"][0]["status"] == "adapter_error"
+    assert payload["adapters"][2]["status"] == "live"
+
+
+def test_wsv_failure_does_not_break_dwd(monkeypatch):
+    monkeypatch.setattr(observer.wsv, "fetch", lambda: (_ for _ in ()).throw(RuntimeError("wsv boom")))
+    patch_dwd_fetch(monkeypatch, dwd_zip(dwd_lines(["1.0"] * 30)))
+    payload = observer.build_payload()
+    assert payload["adapters"][0]["status"] == "live"
+    assert payload["adapters"][2]["status"] == "adapter_error"
+
+
+def test_both_live_adapters_succeed_together(monkeypatch):
+    patch_dwd_fetch(monkeypatch, dwd_zip(dwd_lines(["1.0"] * 30)))
+    monkeypatch.setattr(observer.wsv, "_get_json", lambda url, diagnostics: (diagnostics.__setitem__("api_attempts", diagnostics["api_attempts"] + 1) or (station() if "measurements" not in url else measurements([("2026-07-11T18:00:00+02:00", 1), ("2026-07-11T18:10:00+02:00", 2), ("2026-07-11T18:20:00+02:00", 3), ("2026-07-11T18:25:00+02:00", 5)]))))
+    payload = observer.build_payload()
+    statuses = {item["adapter"]: item["status"] for item in payload["adapters"]}
+    assert statuses["dwd"] == "live"
+    assert statuses["wsv"] == "live"
+    assert statuses["nlwkn"] == "adapter_pending"
+    assert statuses["bsh"] == "adapter_pending"
+    assert payload["data_status"] == "partial"
+    assert payload["recommendation"]["next_recommended_adapter"] == "nlwkn"
