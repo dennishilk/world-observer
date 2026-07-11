@@ -506,9 +506,50 @@ def test_nlwkn_http_failure_or_timeout(monkeypatch):
     assert nlwkn.fetch(now=NOW).status == "unavailable"
 
 
-def test_nlwkn_duplicate_timestamps(monkeypatch):
+def test_nlwkn_identical_duplicate_timestamp_value_accepted(monkeypatch):
+    result = fetch_nlwkn(
+        monkeypatch,
+        [
+            (nlwkn_ts("2026-07-11T16:00:00Z"), 399),
+            (nlwkn_ts("2026-07-11T16:10:00Z"), 400),
+            (nlwkn_ts("2026-07-11T16:10:00Z"), "400,0"),
+            (nlwkn_ts("2026-07-11T16:15:00Z"), 401),
+            (nlwkn_ts("2026-07-11T16:20:00Z"), 401.3),
+        ],
+    )
+    assert result.status == "live"
+    assert result.diagnostics["duplicate_timestamp_count"] == 1
+    assert result.diagnostics["conflicting_duplicate_timestamp_count"] == 0
+    assert result.observations["valid_values_used"] == 4
+
+
+def test_nlwkn_conflicting_duplicate_timestamp_values_rejected(monkeypatch):
     result = fetch_nlwkn(monkeypatch, [(nlwkn_ts("2026-07-11T16:00:00Z"), 1), (nlwkn_ts("2026-07-11T16:00:00Z"), 2)])
     assert result.status == "unavailable"
+    assert result.diagnostics["duplicate_timestamp_count"] == 0
+    assert result.diagnostics["conflicting_duplicate_timestamp_count"] == 1
+    assert "conflicting_duplicate_timestamp" in result.diagnostics["adapter_errors"][0]
+
+
+def test_nlwkn_trend_calculation_after_deduplication(monkeypatch):
+    result = fetch_nlwkn(
+        monkeypatch,
+        [
+            (nlwkn_ts("2026-07-11T16:20:00Z"), 405),
+            (nlwkn_ts("2026-07-11T16:00:00Z"), 400),
+            (nlwkn_ts("2026-07-11T16:10:00Z"), 402),
+            (nlwkn_ts("2026-07-11T16:10:00Z"), 402),
+            (nlwkn_ts("2026-07-11T16:15:00Z"), 403),
+        ],
+        nlwkn_station(current_timestamp=nlwkn_ts("2026-07-11T16:20:00Z"), current_value="405"),
+    )
+    assert result.status == "live"
+    assert result.diagnostics["duplicate_timestamp_count"] == 1
+    assert result.observations["trend_direction"] == "rising"
+    assert result.observations["trend"]["window_start_utc"] == "2026-07-11T16:00:00Z"
+    assert result.observations["trend"]["window_end_utc"] == "2026-07-11T16:20:00Z"
+    assert result.observations["trend"]["signed_change"] == 5.0
+    assert result.observations["valid_values_used"] == 4
 
 
 def test_nlwkn_insufficient_values_produces_unavailable_trend(monkeypatch):
