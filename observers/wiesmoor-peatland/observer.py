@@ -24,6 +24,13 @@ from html.parser import HTMLParser
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta, timezone
 from typing import Any
+from pathlib import Path
+
+ROOT_DIR = Path(__file__).resolve().parents[2]
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
+
+from observers.shared import dwd_daily_kl
 
 OBSERVER = "wiesmoor-peatland"
 LATITUDE = 53.4167
@@ -350,31 +357,15 @@ def _station_to_dict(station: NlwknGroundwaterStation) -> dict[str, Any]:
     }
 
 def parse_daily_product(zip_bytes: bytes) -> list[dict[str, Any]]:
-    with zipfile.ZipFile(io.BytesIO(zip_bytes)) as zf:
-        names = [n for n in zf.namelist() if n.lower().startswith("produkt_klima_tag_") and n.lower().endswith(".txt")]
-        if not names: raise ValueError("DWD ZIP did not contain a daily climate product file")
-        with zf.open(sorted(names)[0]) as fh:
-            text = fh.read().decode("latin1")
-    rows: list[dict[str, Any]] = []
-    reader = csv.DictReader(io.StringIO(text), delimiter=";")
-    for raw in reader:
-        row = {str(k).strip(): (v.strip() if isinstance(v, str) else v) for k, v in raw.items() if k is not None}
-        try: obs_date = _parse_dwd_date(row["MESS_DATUM"])
-        except (KeyError, ValueError): continue
-        rows.append({"date": obs_date, "precip_mm": _parse_float(row.get("RSK")), "temperature_c": _parse_float(row.get("TMK"))})
-    return sorted(rows, key=lambda r: r["date"])
+    return dwd_daily_kl.parse_daily_product(zip_bytes)
 
 def _window_values(rows: list[dict[str, Any]], latest: date, days: int, field: str) -> tuple[list[float], int]:
-    start = latest - timedelta(days=days - 1)
-    by_date = {r["date"]: r for r in rows if start <= r["date"] <= latest}
-    values = [by_date[d][field] for d in (start + timedelta(days=i) for i in range(days)) if d in by_date and by_date[d].get(field) is not None]
-    return values, days
+    return dwd_daily_kl.window_values(rows, latest, days, field)
 
 def rolling_total(rows: list[dict[str, Any]], latest: date, days: int, min_valid: int) -> tuple[float | None, int, int]:
     # Coverage rule: only sum observations inside the calendar window. Missing DWD values (-999/null)
     # and absent days reduce valid_days; they are never treated as dry 0.0 mm days.
-    values, expected = _window_values(rows, latest, days, "precip_mm")
-    return (round(sum(values), 1) if len(values) >= min_valid else None, len(values), expected)
+    return dwd_daily_kl.rolling_total(rows, latest, days, min_valid)
 
 def rolling_mean(rows: list[dict[str, Any]], latest: date, days: int, min_valid: int, field: str) -> tuple[float | None, int, int]:
     values, expected = _window_values(rows, latest, days, field)

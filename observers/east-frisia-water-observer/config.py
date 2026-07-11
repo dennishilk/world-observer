@@ -10,6 +10,20 @@ REGION = "East Frisia, Lower Saxony, Germany"
 LIVE_ADAPTERS_ENABLED = True
 MAX_RETRIES = 1
 
+DWD_CONFIG = {
+    "station_id": "05640",
+    "station_name": "Wittmundhafen",
+    "station_latitude": 53.5478,
+    "station_longitude": 7.6672,
+    "station_state": "Niedersachsen",
+    "station_selection_reason": "Fixed DWD CDC recent daily KL station selected as an active official inland/central East Frisia rainfall proxy; Wittmundhafen is a mainland station near Wittmund, closer to the inland East Frisia water-observer area than island/coastal alternatives such as Norderney.",
+    "base_url": "https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/daily/kl/recent/",
+    "timeout_seconds": 20,
+    "max_retries": 1,
+    "min_coverage_7d": 7,
+    "min_coverage_30d": 27,
+}
+
 WSV_CONFIG = {
     "base_url": "https://www.pegelonline.wsv.de/webservices/rest-api/v2",
     "station_uuid": "abb23dad-0880-41ab-8d2d-dd33e11f148f",

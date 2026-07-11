@@ -3,7 +3,7 @@
 
 Architectural scaffold for an Environment observer covering water-related
 signals in East Frisia. This version enables WSV PEGELONLINE as the first live water-level adapter while
-DWD, NLWKN, and BSH remain structured pending adapters.
+NLWKN and BSH remain structured pending adapters.
 """
 from __future__ import annotations
 
@@ -12,6 +12,7 @@ import os
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
+from types import ModuleType
 from typing import Any, Callable
 
 CURRENT_DIR = Path(__file__).resolve().parent
@@ -23,7 +24,7 @@ from config import CATEGORY, LIVE_ADAPTERS_ENABLED, MAX_RETRIES, OBSERVER, OBSER
 from models import AdapterResult
 
 AdapterFetch = Callable[[], AdapterResult]
-ADAPTERS: tuple[AdapterFetch, ...] = (dwd.fetch, nlwkn.fetch, wsv.fetch, bsh.fetch)
+ADAPTERS: tuple[ModuleType, ...] = (dwd, nlwkn, wsv, bsh)
 
 
 def _date_utc() -> str:
@@ -40,11 +41,11 @@ def _now_utc() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
 
-def _run_adapter(fetch: AdapterFetch) -> dict[str, Any]:
+def _run_adapter(adapter: ModuleType) -> dict[str, Any]:
     try:
-        return fetch().to_payload()
+        return adapter.fetch().to_payload()
     except Exception as exc:  # defensive diagnostics boundary between adapters
-        adapter_name = getattr(fetch, "__module__", "unknown").split(".")[-1]
+        adapter_name = getattr(adapter, "ADAPTER_ID", adapter.__name__.split(".")[-1])
         return {
             "adapter": adapter_name,
             "status": "adapter_error",
@@ -90,8 +91,8 @@ def build_payload() -> dict[str, Any]:
             "max_retries": MAX_RETRIES,
         },
         "recommendation": {
-            "integrate_first": "dwd",
-            "reason": "WSV PEGELONLINE is the first live water-level source; retain NLWKN as a separate pending adapter for Lower Saxony gauges, integrate DWD next for meteorological context, and BSH later for coastal marine context.",
+            "next_recommended_adapter": "nlwkn",
+            "reason": "WSV PEGELONLINE and DWD CDC daily precipitation are live sources; retain NLWKN as the next separate pending adapter for Lower Saxony gauges, and BSH later for coastal marine context.",
         },
     }
 
