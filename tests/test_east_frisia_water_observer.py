@@ -183,6 +183,16 @@ def test_dwd_valid_zero_rainfall(monkeypatch):
     assert result.observations["rainfall_7d_total_mm"] == 0.0
 
 
+def test_dwd_parses_official_spaced_header_names(monkeypatch):
+    lines = dwd_lines(["0.5"] * 30)
+    lines[0] = "STATIONS_ID;MESS_DATUM; QN_3; FX; FM; QN_4; RSK; RSKF; SDK; SHK_TAG; NM; VPM; PM; TMK; UPM; TXK; TNK; TGK; eor"
+    patch_dwd_fetch(monkeypatch, dwd_zip(lines))
+    result = dwd.fetch()
+    assert result.status == "live"
+    assert result.observations["latest_rainfall_mm"] == 0.5
+    assert result.observations["rainfall_7d_total_mm"] == 3.5
+
+
 def test_dwd_valid_latest_rainfall(monkeypatch):
     patch_dwd_fetch(monkeypatch, dwd_zip(dwd_lines(["1.0"] * 29 + ["4.2"])))
     result = dwd.fetch()

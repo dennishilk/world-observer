@@ -80,6 +80,8 @@ def parse_daily_product(zip_bytes: bytes) -> list[dict[str, Any]]:
         with zf.open(sorted(names)[0]) as fh:
             text = fh.read().decode("latin1")
     reader = csv.DictReader(io.StringIO(text), delimiter=";")
+    if reader.fieldnames:
+        reader.fieldnames = [name.strip() for name in reader.fieldnames]
     if not reader.fieldnames or "MESS_DATUM" not in reader.fieldnames or "RSK" not in reader.fieldnames:
         raise ValueError("DWD daily climate CSV missing required columns MESS_DATUM/RSK")
     rows: list[dict[str, Any]] = []
