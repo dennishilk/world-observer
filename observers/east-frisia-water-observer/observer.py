@@ -2,8 +2,8 @@
 """East Frisia Water Observer.
 
 Architectural scaffold for an Environment observer covering water-related
-signals in East Frisia. This version enables WSV PEGELONLINE as the first live water-level adapter while
-NLWKN and BSH remain structured pending adapters.
+signals in East Frisia. This version enables WSV PEGELONLINE and NLWKN Pegelonline as separate live water-level adapters while
+BSH remains a structured pending adapter.
 """
 from __future__ import annotations
 
@@ -91,8 +91,8 @@ def build_payload() -> dict[str, Any]:
             "max_retries": MAX_RETRIES,
         },
         "recommendation": {
-            "next_recommended_adapter": "nlwkn",
-            "reason": "WSV PEGELONLINE and DWD CDC daily precipitation are live sources; retain NLWKN as the next separate pending adapter for Lower Saxony gauges, and BSH later for coastal marine context.",
+            "next_recommended_adapter": "bsh",
+            "reason": "WSV PEGELONLINE, NLWKN Pegelonline, and DWD CDC daily precipitation are live sources; retain BSH later for coastal marine context.",
         },
     }
 
