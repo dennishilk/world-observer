@@ -3,16 +3,18 @@ from __future__ import annotations
 
 import json
 import math
+import re
 import socket
 import urllib.error
 import urllib.request
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from config import NLWKN_CONFIG, SOURCES
 from models import AdapterResult
 
 ADAPTER_ID = "nlwkn"
+_MS_JSON_DATE_RE = re.compile(r"^/Date\((?P<milliseconds>-?\d+)(?P<offset>[+-]\d{4})?\)/$")
 
 
 def _utc_now() -> datetime:
@@ -23,28 +25,36 @@ def _iso_z(value: datetime) -> str:
     return value.astimezone(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
 
-def _parse_timestamp(value: Any) -> datetime:
+def _remember_raw_timestamp(diagnostics: dict[str, Any] | None, value: Any) -> None:
+    if diagnostics is None or not isinstance(value, str):
+        return
+    diagnostics["raw_measurement_timestamp"] = value
+
+
+def _parse_timestamp(value: Any, diagnostics: dict[str, Any] | None = None) -> datetime:
+    _remember_raw_timestamp(diagnostics, value)
     if not isinstance(value, str) or not value.strip():
         raise ValueError("malformed timestamp")
     text = value.strip()
-    for fmt in ("%Y-%m-%dT%H:%M:%S%z", "%Y-%m-%dT%H:%M:%S.%f%z"):
-        try:
-            return datetime.strptime(text.replace("Z", "+0000"), fmt).astimezone(timezone.utc)
-        except ValueError:
-            pass
-    for fmt in ("%d.%m.%Y %H:%M", "%d.%m.%Y %H:%M:%S"):
-        try:
-            # NLWKN public pages and API examples use Lower Saxony local civil time.
-            return datetime.strptime(text, fmt).replace(tzinfo=NLWKN_CONFIG["source_timezone"]).astimezone(timezone.utc)
-        except ValueError:
-            pass
-    try:
-        parsed = datetime.fromisoformat(text.replace("Z", "+00:00"))
-    except ValueError as exc:
-        raise ValueError("malformed timestamp") from exc
-    if parsed.tzinfo is None or parsed.utcoffset() is None:
-        raise ValueError("timestamp is not timezone-aware")
-    return parsed.astimezone(timezone.utc)
+    match = _MS_JSON_DATE_RE.fullmatch(text)
+    if match:
+        offset_text = match.group("offset")
+        if offset_text is None:
+            raise ValueError("timestamp is not timezone-aware")
+        # The documented NLWKN REST service is JSON; its measurement endpoint
+        # currently returns Microsoft JSON date strings such as
+        # /Date(1783785600000+0200)/. The epoch milliseconds identify the UTC
+        # instant, while the required suffix documents the source civil offset.
+        parsed = datetime.fromtimestamp(int(match.group("milliseconds")) / 1000, timezone.utc)
+        offset_hours = int(offset_text[1:3])
+        offset_minutes = int(offset_text[3:5])
+        if offset_hours > 23 or offset_minutes > 59:
+            raise ValueError("malformed timestamp")
+        offset = timedelta(hours=offset_hours, minutes=offset_minutes)
+        if offset_text.startswith("-"):
+            offset = -offset
+        return parsed.astimezone(timezone(offset)).astimezone(timezone.utc)
+    raise ValueError("malformed timestamp")
 
 
 def _finite_number(value: Any) -> float:
@@ -195,7 +205,7 @@ def _water_parameter(station: dict[str, Any]) -> dict[str, Any]:
     raise ValueError("configured NLWKN water-level parameter missing")
 
 
-def _extract_current(station: dict[str, Any], parameter: dict[str, Any]) -> tuple[datetime, float]:
+def _extract_current(station: dict[str, Any], parameter: dict[str, Any], diagnostics: dict[str, Any] | None = None) -> tuple[datetime, float]:
     traces = _first(parameter.get("Datenspuren"), parameter.get("datenspuren"), [])
     containers = traces if isinstance(traces, list) else [parameter]
     for item in containers:
@@ -204,7 +214,7 @@ def _extract_current(station: dict[str, Any], parameter: dict[str, Any]) -> tupl
         value = _first(item.get("AktuellerMesswert"), item.get("Messwert"), item.get("value"), item.get("Wert"))
         ts = _first(item.get("AktuellerMesswert_Zeitpunkt"), item.get("Zeitpunkt"), item.get("timestamp"), item.get("Datum"))
         if value is not None and ts is not None:
-            return _parse_timestamp(ts), _finite_number(value)
+            return _parse_timestamp(ts, diagnostics), _finite_number(value)
     raise ValueError("current water-level measurement missing")
 
 
@@ -218,7 +228,7 @@ def _walk_dicts(value: Any):
             yield from _walk_dicts(child)
 
 
-def _valid_measurements(payload: Any) -> list[tuple[datetime, float]]:
+def _valid_measurements(payload: Any, diagnostics: dict[str, Any] | None = None) -> list[tuple[datetime, float]]:
     values: list[tuple[datetime, float]] = []
     seen: set[datetime] = set()
     for item in _walk_dicts(payload):
@@ -226,7 +236,7 @@ def _valid_measurements(payload: Any) -> list[tuple[datetime, float]]:
         ts = _first(item.get("Zeitpunkt"), item.get("timestamp"), item.get("Datum"), item.get("AktuellerMesswert_Zeitpunkt"))
         if value is None or ts is None:
             continue
-        parsed_ts = _parse_timestamp(ts)
+        parsed_ts = _parse_timestamp(ts, diagnostics)
         if parsed_ts in seen:
             raise ValueError("duplicate measurement timestamp")
         seen.add(parsed_ts)
@@ -264,9 +274,9 @@ def fetch(now: datetime | None = None) -> AdapterResult:
         parameter = _water_parameter(station)
         unit = _first(parameter.get("Einheit"), parameter.get("Unit"), parameter.get("unit"), NLWKN_CONFIG["unit"])
         _validate_pinned_station(station, parameter, unit)
-        current_ts, current_value = _extract_current(station, parameter)
+        current_ts, current_value = _extract_current(station, parameter, diagnostics)
         measurements_url = f"{base}/station/{station_id}/datenspuren/parameter/{NLWKN_CONFIG['parameter_id']}/tage/{NLWKN_CONFIG['recent_days']}?key={key}"
-        measurements = _valid_measurements(_get_json(measurements_url, diagnostics))
+        measurements = _valid_measurements(_get_json(measurements_url, diagnostics), diagnostics)
         if measurements[-1][0] >= current_ts:
             current_ts, current_value = measurements[-1]
         age_minutes = (now_utc - current_ts).total_seconds() / 60
