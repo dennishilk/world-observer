@@ -402,6 +402,43 @@ def test_nlwkn_malformed_payload(monkeypatch):
     assert nlwkn.fetch(now=NOW).status == "unavailable"
 
 
+def test_nlwkn_missing_pinned_station_prints_live_metadata_diagnostics(monkeypatch):
+    payload = {
+        "getStammdatenResult": [
+            {"ID": "101", "Name": "Emden Hafen", "Parameter": []},
+            {"ID": "102", "Name": "Norden Binnen", "Parameter": []},
+            {"ID": "103", "Name": "Wittmund Kanal", "Parameter": []},
+        ]
+    }
+    patch_nlwkn_json(monkeypatch, payload, nlwkn_measurements([]))
+    result = nlwkn.fetch(now=NOW)
+    assert result.status == "unavailable"
+    assert result.diagnostics["station_count"] == 3
+    assert result.diagnostics["first_20_station_ids"] == ["101", "102", "103"]
+    assert result.diagnostics["station_name_matches"]["Bensersiel"] == []
+    assert result.diagnostics["station_name_matches"]["Norden"] == [{"station_id": "102", "station_name": "Norden Binnen"}]
+    assert "pinned NLWKN station ID '184' missing" in result.diagnostics["adapter_errors"][0]
+
+
+def test_nlwkn_does_not_select_another_matching_station(monkeypatch):
+    payload = nlwkn_station()
+    payload["getStammdatenResult"][0]["ID"] = "9303"
+    patch_nlwkn_json(monkeypatch, payload, nlwkn_measurements([("11.07.2026 18:00", 1)]))
+    result = nlwkn.fetch(now=NOW)
+    assert result.status == "unavailable"
+    assert result.diagnostics["station_name_matches"]["Bensersiel"] == [{"station_id": "9303", "station_name": "Bensersiel"}]
+    assert "pinned NLWKN station ID '184' missing" in result.diagnostics["adapter_errors"][0]
+
+
+def test_nlwkn_pinned_station_identity_change_fails_closed(monkeypatch):
+    payload = nlwkn_station()
+    payload["getStammdatenResult"][0]["Name"] = "Bensersiel Ersatz"
+    patch_nlwkn_json(monkeypatch, payload, nlwkn_measurements([("11.07.2026 18:00", 1)]))
+    result = nlwkn.fetch(now=NOW)
+    assert result.status == "unavailable"
+    assert "pinned NLWKN station name changed" in result.diagnostics["adapter_errors"][0]
+
+
 def test_nlwkn_http_failure_or_timeout(monkeypatch):
     patch_nlwkn_json(monkeypatch, exc=URLError("timeout"))
     assert nlwkn.fetch(now=NOW).status == "unavailable"

@@ -60,18 +60,26 @@ Trend is descriptive only:
 
 A single current value is not a trend. Missing or malformed measurements are never converted to zero; an official `0` water-level value remains valid.
 
-## Selected NLWKN Pegelonline station
+## NLWKN Pegelonline station validation
 
-Production is pinned to official NLWKN station ID `184` for **Bensersiel**, a `Tideaußenpegel` on the North Sea operated by `NLWKN Betriebsstelle Aurich`. This is intentionally separate from WSV / PEGELONLINE.
+The NLWKN adapter is pinned to station ID `184` for **Bensersiel** and parameter ID `1` for water level. A live worldnode test showed that the official metadata endpoint responds but did not include station ID `184`, so the adapter now fails closed when the pinned station is missing instead of selecting another station from search-term matches.
 
 The live adapter uses only the documented official **NLWKN Pegelonline public REST** JSON service described in `Pegelonline Webservice - Benutzerhandbuch` dated 2023-10-26:
 
 - Base: `https://bis.azure-api.net/PegelonlinePublic/REST`
 - Station metadata/current values: `/stammdaten/stationen/All?key=...`
-- Recent measurements: `/station/184/datenspuren/parameter/1/tage/-1?key=...`
+- Recent measurements after pinned-station validation: `/station/184/datenspuren/parameter/1/tage/-1?key=...`
 - Format: JSON
 - Authentication: no per-user account or browser session; the documented public examples include a `key` query parameter.
 - Reuse notes: NLWKN says the webservice can be used free of charge, `www.pegelonline.nlwkn.niedersachsen.de` must be cited, raw values are unchecked, and no completeness/correctness/availability warranty is made.
+
+The metadata response inspection records these diagnostics on every NLWKN fetch attempt:
+
+- number of station objects returned
+- first 20 station IDs in response order
+- station metadata matches containing `Bensersiel`, `Norden`, `Norddeich`, `Aurich`, `Emden`, or `Wittmund`
+- exact pinned station object when present
+- parameter list for the pinned station
 
 | Field | Value |
 |---|---|
@@ -87,14 +95,7 @@ The live adapter uses only the documented official **NLWKN Pegelonline public RE
 
 ### NLWKN candidate investigation
 
-Official NLWKN research confirmed a documented JSON webservice for station metadata, current raw values, and recent raw time series up to 30 days back. Candidate East-Frisia/coastal stations found in the official NLWKN Pegelonline portal included:
-
-| Candidate | NLWKN ID | Type / water body | Operator / data source notes | Decision |
-|---|---:|---|---|---|
-| Gandersum | `273` | Binnenpegel / Ems | NLWKN Betriebsstelle Aurich | Relevant lower Ems candidate; observed public current value was stale during research, so not selected as the initial live fixed station. |
-| Leyhörn | `404` | Tideaußenpegel / Nordsee | NLWKN Betriebsstelle Aurich | Relevant coastal East Frisia candidate; observed public current value was stale during research. |
-| Bensersiel | `184` | Tideaußenpegel / Nordsee | NLWKN Betriebsstelle Aurich | **Selected** because it is East-Frisia coastal, NLWKN-operated, has documented warning-stage thresholds on the official station page, exposes water level in `cm`, and had a recent public measurement during research. |
-| Norderney-Riffgat | `452` | Tideaußenpegel / Nordsee | WSV-operated / ITZBund data source shown in NLWKN portal | Rejected for NLWKN adapter pinning because the observer already has a separate WSV adapter and this task must not reuse WSV as NLWKN. |
+Previous research listed candidate East-Frisia/coastal stations from the public NLWKN Pegelonline portal, but the production adapter does not dynamically choose among them. It only requests recent measurements after the pinned Bensersiel station ID is present in the live station metadata and the station name, water body, operator, parameter ID, and unit still match the configured expectations.
 
 Groundwater was reviewed separately through the NLWKN groundwater portal. The portal documents current groundwater-level data and station pages, but no comparably stable, official, documented machine-readable public API was confirmed for this live adapter, so groundwater remains research-only.
 

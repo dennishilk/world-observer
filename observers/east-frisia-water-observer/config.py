@@ -46,6 +46,7 @@ NLWKN_CONFIG = {
     "public_key": "9dc05f4e3b4a43a9988d747825b39f43",
     "station_id": "184",
     "station_name": "Bensersiel",
+    "station_search_terms": ["Bensersiel", "Norden", "Norddeich", "Aurich", "Emden", "Wittmund"],
     "station_type": "Tideaußenpegel",
     "water_body": "Nordsee",
     "operator": "NLWKN Betriebsstelle Aurich",
