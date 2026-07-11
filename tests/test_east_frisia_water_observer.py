@@ -193,6 +193,27 @@ def test_dwd_parses_official_spaced_header_names(monkeypatch):
     assert result.observations["rainfall_7d_total_mm"] == 3.5
 
 
+def test_dwd_detects_source_delimiter(monkeypatch):
+    lines = dwd_lines(["0.5"] * 30)
+    lines = [line.replace(";", ",") for line in lines]
+    patch_dwd_fetch(monkeypatch, dwd_zip(lines))
+    result = dwd.fetch()
+    assert result.status == "live"
+    assert result.observations["latest_rainfall_mm"] == 0.5
+    assert result.observations["rainfall_7d_total_mm"] == 3.5
+
+
+def test_dwd_missing_columns_reports_raw_parser_context(monkeypatch):
+    patch_dwd_fetch(monkeypatch, dwd_zip(["not,the,right,columns", "x,y,z,w", "a,b,c,d"]))
+    result = dwd.fetch()
+    assert result.status == "unavailable"
+    error = result.diagnostics["adapter_errors"][0]
+    assert "missing required columns" in error
+    assert "delimiter=','" in error
+    assert "fieldnames=['not', 'the', 'right', 'columns']" in error
+    assert "header='not,the,right,columns'" in error
+
+
 def test_dwd_valid_latest_rainfall(monkeypatch):
     patch_dwd_fetch(monkeypatch, dwd_zip(dwd_lines(["1.0"] * 29 + ["4.2"])))
     result = dwd.fetch()
