@@ -1,26 +1,70 @@
 # East Frisia Water Observer
 
-Environment-category observer scaffold for water-related signals in East Frisia, Lower Saxony, Germany.
+Environment-category observer for water-related public-data signals in East Frisia, Lower Saxony, Germany.
 
-This first version is intentionally research and architecture only. It performs no live downloads, uses no third-party wrappers, and does not scrape websites. Each adapter returns `adapter_pending` with structured diagnostics so later integrations can be enabled conservatively.
+**Regional public-data observation — not an in-situ sensor network and not a flood-warning service.** Current WSV values are unchecked/raw official measurements and must not be interpreted as universal normal, low, high, dangerous, or as a public warning.
 
-## Engineering principles
+## Current implementation
 
-- Modular adapter architecture with one module per source agency.
-- Conservative handling of unavailable data: missing live data is represented as `adapter_pending`, not as zero or normal conditions.
-- Official, stable public data sources only.
-- Detailed diagnostics: `data_status`, `live_adapters_enabled`, `adapter_errors`, `api_attempts`, and `retries` are emitted at both adapter and observer levels.
-- Long-term maintainability: source research is centralized in `config.py`, while adapters own their fetch/parse logic.
+WSV / PEGELONLINE is the first live water-level source. The remaining DWD, NLWKN, and BSH adapters intentionally remain `adapter_pending` until separately integrated.
 
-## Official source research
+The live adapter uses only the documented official **WSV PEGELONLINE REST API v2** JSON service:
 
-| Source | Official URL | Available datasets | Update frequency | Access method | Expected usefulness | Licensing | Long-term stability |
-|---|---|---|---|---|---|---|---|
-| Deutscher Wetterdienst (DWD) | <https://opendata.dwd.de/climate_environment/CDC/observations_germany/> | CDC station observations for precipitation, temperature, wind, humidity, pressure, sunshine, recent/historical daily/hourly/sub-hourly station files, station metadata, and relevant gridded climate products. | Dataset-specific; recent observations are operational while historical CDC archives are maintained for climate records. | Official DWD CDC Open Data HTTPS file tree and metadata. | First meteorological context source for rainfall, drought, evapotranspiration proxies, storm events, and regional hydrological interpretation. | DWD Open Data under GeoNutzV / Datenlizenz Deutschland attribution terms as documented by DWD open-data notices. | High: national meteorological service and official CDC archive already used by Wiesmoor Peatland Observer. |
-| NLWKN | <https://www.pegelonline.nlwkn.niedersachsen.de/> | Lower Saxony inland/coastal gauge station master data, current water levels and hydrological measurements via NLWKN Pegelonline REST webservice, and warning-level context where published. | Operational gauge data; station cadence varies from minutes to longer intervals. | Official NLWKN Pegelonline REST webservice and published user manual. | Most directly useful source for East Frisia inland waters, coastal gauges, local flood context, and station-level status. | Public, cost-free webservice use according to NLWKN documentation; exact attribution/licence text must be captured before live downloads. | High: state water-management authority service for Niedersachsen hydrological data. |
-| WSV | <https://pegelonline.wsv.de/webservice/dokuRestapi> | PEGELONLINE federal waterway station metadata, current water levels, time series, and related parameters such as discharge or water temperature where station time series provide them. | Near real-time; public descriptions indicate minute-current data with station/time-series-specific cadence. | Official PEGELONLINE REST API and government Open Data metadata. | Useful for Ems and federal-waterway context, navigation-relevant water levels, and cross-checking nearby federal gauges. | Official Open Data records identify PEGELONLINE data as free public data; confirm current DL-DE terms in source metadata before live integration. | High: federal waterway administration service with official REST API documentation. |
-| BSH | <https://www.bsh.de/EN/TOPICS/Geoinformation_and_Open_Data/geoinformation_and_open_data_node.html> | BSH geoinformation and marine Open Data services via GeoSeaPortal/GDI-BSH; oceanographic sea-level, tide, hydrographic, coastal, and marine datasets where published. | Dataset-specific; operational marine products and archived oceanographic datasets are published through BSH data/geodata portals. | Official BSH Open Data, GeoSeaPortal, and OGC/geodata services. | Important second-phase source for North Sea coastal, tidal, storm-surge, and marine context affecting East Frisia. | BSH states many data are public, free of charge, and licensed for subsequent use; capture per-dataset licence before downloads. | High: federal maritime and hydrographic agency with established GeoSeaPortal and oceanographic data responsibilities. |
+- Base: `https://www.pegelonline.wsv.de/webservices/rest-api/v2`
+- Station metadata: `/stations/{uuid}.json?includeTimeseries=true&includeCurrentMeasurement=true`
+- Recent measurements: `/stations/{uuid}/W/measurements.json?start={utc}&end={utc}`
 
-## Implementation recommendation
+It does not use SOAP, MQTT, third-party wrappers, HTML scraping, visualisation endpoints, or unofficial mirrors.
 
-Integrate **NLWKN Pegelonline first** because it is the most local official hydrological source for Lower Saxony and directly covers inland and coastal gauges relevant to East Frisia. Integrate DWD second for meteorological context, then add WSV for federal-waterway gauge cross-checks and BSH for North Sea/tide/storm-surge context after station selection is documented.
+## Selected PEGELONLINE station
+
+Production is pinned to immutable PEGELONLINE UUID `abb23dad-0880-41ab-8d2d-dd33e11f148f` for station **LEERORT**.
+
+| Field | Value |
+|---|---|
+| UUID | `abb23dad-0880-41ab-8d2d-dd33e11f148f` |
+| Station number | `3910010` |
+| Short / long name | `LEERORT` / `LEERORT` |
+| Water body | `EMS` |
+| Agency | `STANDORT EMDEN` |
+| Coordinates | 53.215335, 7.426191 |
+| Timeseries | `W` — `WASSERSTAND ROHDATEN` |
+| Unit | `cm` |
+| Equidistance observed in metadata | 1 minute |
+
+### Candidate investigation
+
+The official station resource was queried with timeseries and current measurements. East-Frisia-relevant lower-Ems candidates included:
+
+| Candidate | UUID | Water body | Agency | Coordinates | W timeseries / unit | Reason considered |
+|---|---|---|---|---|---|---|
+| PAPENBURG | `ec4a598d-773d-44c1-935e-2053b54e45a3` | EMS | STANDORT EMDEN | 53.108191, 7.365595 | `W`, `cm` | Lower Ems station with recent 1-minute water-level measurements; slightly farther inland/south of the East Frisia core. |
+| WEENER | `aa6af4e6-a44f-46c4-abf6-449f8a68bab1` | EMS | STANDORT EMDEN | 53.161188, 7.371913 | `W`, `cm` | Lower Ems station with recent 1-minute water-level measurements; relevant, but upstream of Leerort. |
+| LEERORT | `abb23dad-0880-41ab-8d2d-dd33e11f148f` | EMS | STANDORT EMDEN | 53.215335, 7.426191 | `W`, `cm` | Selected: geographically meaningful at Leer / lower Ems, inside East Frisia context, active water-level series, recent values, documented unit, and enough recent values for trend calculation. |
+
+LEERORT was selected because it is on the Ems at Leerort in the East Frisia / lower-Ems context, is operated under WSV PEGELONLINE station metadata by `STANDORT EMDEN`, exposes active water-level raw data (`W`) in `cm`, and has recent 1-minute measurements suitable for a conservative short-term trend.
+
+## Freshness and trend policy
+
+- Freshness threshold: 90 minutes.
+- Trend window: 180 minutes ending at observer execution time.
+- Minimum valid measurements for trend: 4.
+- Stability threshold for `cm`: absolute change of 2.0 cm or less is `stable`.
+
+Trend is descriptive only:
+
+- `rising`
+- `falling`
+- `stable`
+- `unavailable`
+
+A single current value is not a trend. Missing or malformed measurements are never converted to zero; an official `0` water-level value remains valid.
+
+## Adapter separation
+
+- **WSV / PEGELONLINE**: federal WSV service, first live REST API v2 water-level adapter.
+- **NLWKN**: separate Lower Saxony water-management source, still `adapter_pending`.
+- **DWD**: meteorological context source, still `adapter_pending`.
+- **BSH**: coastal/marine context source, still `adapter_pending`.
+
+PEGELONLINE must not be described as an NLWKN service in this observer.
