@@ -7,8 +7,23 @@ OBSERVER = "east-frisia-water-observer"
 OBSERVER_NAME = "East Frisia Water Observer"
 CATEGORY = "Environment"
 REGION = "East Frisia, Lower Saxony, Germany"
-LIVE_ADAPTERS_ENABLED = False
-MAX_RETRIES = 0
+LIVE_ADAPTERS_ENABLED = True
+MAX_RETRIES = 1
+
+WSV_CONFIG = {
+    "base_url": "https://www.pegelonline.wsv.de/webservices/rest-api/v2",
+    "station_uuid": "abb23dad-0880-41ab-8d2d-dd33e11f148f",
+    "station_number": "3910010",
+    "station_short_name": "LEERORT",
+    "timeseries_shortname": "W",
+    "expected_units": {"cm"},
+    "timeout_seconds": 10,
+    "max_retries": 1,
+    "freshness_threshold_minutes": 90,
+    "trend_window_minutes": 180,
+    "trend_minimum_values": 4,
+    "stable_threshold_by_unit": {"cm": 2.0},
+}
 
 SOURCES: dict[str, SourceResearch] = {
     "dwd": SourceResearch(
@@ -30,25 +45,25 @@ SOURCES: dict[str, SourceResearch] = {
         official_url="https://www.pegelonline.nlwkn.niedersachsen.de/",
         available_datasets=[
             "Lower Saxony inland and coastal gauge station master data",
-            "Current water levels and hydrological measurements exposed by NLWKN Pegelonline REST webservice",
+            "Current water levels and hydrological measurements exposed by NLWKN public services",
             "Warning-level context for Niedersachsen gauges where published",
         ],
         update_frequency="Operational gauge data; station-specific cadence may vary from minutes to longer intervals, with public service documentation maintained by NLWKN.",
-        access_method="Official NLWKN Pegelonline REST webservice and published user manual; no HTML scraping.",
+        access_method="Official NLWKN public water-data service and published documentation; no HTML scraping.",
         expected_usefulness="Most directly useful Lower Saxony source for East Frisia inland waters, coastal gauges, local flood context, and station-level status.",
-        licensing="Public, cost-free webservice use according to NLWKN Pegelonline documentation; exact attribution/licence text must be captured before enabling live downloads.",
+        licensing="Public, cost-free service use according to NLWKN documentation; exact attribution/licence text must be captured before enabling live downloads.",
         long_term_stability="High: state water-management authority service for official Niedersachsen hydrological data.",
     ),
     "wsv": SourceResearch(
         agency="Wasserstraßen- und Schifffahrtsverwaltung des Bundes (WSV)",
-        official_url="https://pegelonline.wsv.de/webservice/dokuRestapi",
+        official_url="https://www.pegelonline.wsv.de/webservices/rest-api/v2",
         available_datasets=[
             "PEGELONLINE federal waterway station metadata",
             "Current water levels and time series for federal waterways",
             "Related hydrological parameters such as discharge or water temperature where station time series provide them",
         ],
         update_frequency="Near real-time; WSV PEGELONLINE public descriptions indicate minute-current data with station/time-series-specific cadences.",
-        access_method="Official PEGELONLINE REST API and official Open Data metadata; no unofficial APIs, scraping, or wrappers.",
+        access_method="Official WSV PEGELONLINE REST API v2 JSON resources; no SOAP, MQTT, unofficial APIs, scraping, wrappers, visualisation endpoints, or mirrors.",
         expected_usefulness="Useful for Ems and federal-waterway context around East Frisia, navigation-relevant water levels, and cross-checking nearby federal gauges.",
         licensing="Official Open Data records identify PEGELONLINE data as free public data; confirm current DL-DE terms in source metadata before live integration.",
         long_term_stability="High: federal waterway administration service, official REST API documentation, broad reuse through government Open Data catalogues.",
