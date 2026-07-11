@@ -394,13 +394,14 @@ def test_nlwkn_regression_uses_confirmed_official_fields(monkeypatch):
     assert result.status == "live"
     assert result.observations["station_id"] == "184"
     assert result.diagnostics["confirmed_station"]["station_id"] == "184"
+    assert result.diagnostics["confirmed_station"]["station_name"] == "Bensersiel"
     assert result.diagnostics["confirmed_parameters"][0]["parameter_id"] == "1"
     assert result.observations["station_name"] == "Bensersiel"
     assert result.observations["water_body"] == "Nordsee"
     assert result.observations["operator"] == "NLWKN Betriebsstelle Aurich"
     assert result.observations["unit"] == "cm"
-    assert "STA_ID" in result.diagnostics["confirmed_station_key_names"]
-    assert "PAT_ID" in result.diagnostics["confirmed_parameter_key_names"][0]
+    assert "confirmed_station_key_names" not in result.diagnostics
+    assert "confirmed_parameter_key_names" not in result.diagnostics
 
 def test_nlwkn_valid_zero_measurement(monkeypatch):
     result = fetch_nlwkn(monkeypatch, [(nlwkn_ts("2026-07-11T16:00:00Z"), 0), (nlwkn_ts("2026-07-11T16:10:00Z"), 0), (nlwkn_ts("2026-07-11T16:15:00Z"), 0), (nlwkn_ts("2026-07-11T16:20:00Z"), 0)])
@@ -410,6 +411,34 @@ def test_nlwkn_valid_zero_measurement(monkeypatch):
 def test_nlwkn_stale_measurement(monkeypatch):
     result = fetch_nlwkn(monkeypatch, [(nlwkn_ts("2026-07-11T10:00:00Z"), 1), (nlwkn_ts("2026-07-11T10:10:00Z"), 1), (nlwkn_ts("2026-07-11T10:15:00Z"), 1), (nlwkn_ts("2026-07-11T10:20:00Z"), 1)], nlwkn_station(current_timestamp=nlwkn_ts("2026-07-11T10:20:00Z"), current_value="1"))
     assert result.observations["freshness_status"] == "stale_measurement"
+
+
+def test_nlwkn_summer_cest_local_timestamp(monkeypatch):
+    result = fetch_nlwkn(
+        monkeypatch,
+        [("11.07.2026 19:00", 399), ("11.07.2026 19:10", 400), ("11.07.2026 19:15", 401), ("11.07.2026 19:20", 401.3)],
+        nlwkn_station(current_timestamp="11.07.2026 19:20"),
+    )
+    assert result.status == "live"
+    assert result.observations["latest_measurement_timestamp_utc"] == "2026-07-11T17:20:00Z"
+    assert result.diagnostics["raw_measurement_timestamp"] == "11.07.2026 19:20"
+
+
+def test_nlwkn_winter_cet_local_timestamp(monkeypatch):
+    result = fetch_nlwkn(
+        monkeypatch,
+        [("11.01.2026 19:00", 399), ("11.01.2026 19:10", 400), ("11.01.2026 19:15", 401), ("11.01.2026 19:20", 401.3)],
+        nlwkn_station(current_timestamp="11.01.2026 19:20"),
+    )
+    assert result.status == "live"
+    assert result.observations["latest_measurement_timestamp_utc"] == "2026-01-11T18:20:00Z"
+    assert result.diagnostics["raw_measurement_timestamp"] == "11.01.2026 19:20"
+
+
+def test_nlwkn_json_date_timestamp_still_supported(monkeypatch):
+    result = fetch_nlwkn(monkeypatch, [(nlwkn_ts("2026-07-11T16:20:00Z"), 401.3)])
+    assert result.status == "live"
+    assert result.observations["latest_measurement_timestamp_utc"] == "2026-07-11T16:20:00Z"
 
 
 def test_nlwkn_malformed_timestamp(monkeypatch):
@@ -447,9 +476,9 @@ def test_nlwkn_missing_pinned_station_prints_live_metadata_diagnostics(monkeypat
     result = nlwkn.fetch(now=NOW)
     assert result.status == "unavailable"
     assert result.diagnostics["station_count"] == 3
-    assert result.diagnostics["first_20_station_ids"] == ["101", "102", "103"]
-    assert result.diagnostics["station_name_matches"]["Bensersiel"] == []
-    assert result.diagnostics["station_name_matches"]["Norden"] == [{"station_id": "102", "station_name": "Norden Binnen", "key_names": ["STA_ID", "Name", "Parameter"]}]
+    assert "first_20_station_ids" not in result.diagnostics
+    assert "Bensersiel" not in result.diagnostics["station_name_matches"]
+    assert result.diagnostics["station_name_matches"]["Norden"] == [{"station_id": "102", "station_name": "Norden Binnen"}]
     assert "pinned NLWKN station ID '184' missing" in result.diagnostics["adapter_errors"][0]
 
 
@@ -459,7 +488,7 @@ def test_nlwkn_does_not_select_another_matching_station(monkeypatch):
     patch_nlwkn_json(monkeypatch, payload, nlwkn_measurements([(nlwkn_ts("2026-07-11T16:00:00Z"), 1)]))
     result = nlwkn.fetch(now=NOW)
     assert result.status == "unavailable"
-    assert result.diagnostics["station_name_matches"]["Bensersiel"] == [{"station_id": "9303", "station_name": "Bensersiel", "key_names": ["STA_ID", "Name", "GewaesserName", "Betreiber", "Code", "Parameter"]}]
+    assert result.diagnostics["station_name_matches"]["Bensersiel"] == [{"station_id": "9303", "station_name": "Bensersiel"}]
     assert "pinned NLWKN station ID '184' missing" in result.diagnostics["adapter_errors"][0]
 
 
