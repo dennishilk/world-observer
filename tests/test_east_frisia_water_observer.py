@@ -332,7 +332,7 @@ def nlwkn_station(unit="cm", current_timestamp="11.07.2026 18:20", current_value
             {
                 "STA_ID": NLWKN_ID,
                 "Name": "Bensersiel",
-                "Gewaesser": "Nordsee",
+                "GewaesserName": "Nordsee",
                 "Betreiber": "NLWKN Betriebsstelle Aurich",
                 "Code": "9303",
                 "Parameter": [
@@ -377,7 +377,7 @@ def test_nlwkn_valid_current_measurement(monkeypatch):
 
 
 
-def test_nlwkn_regression_uses_official_sta_id_and_pat_id_fields(monkeypatch):
+def test_nlwkn_regression_uses_confirmed_official_fields(monkeypatch):
     payload = nlwkn_station()
     station_obj = payload["getStammdatenResult"][0]
     station_obj["legacy_ID_should_not_be_used"] = "not-a-station-id"
@@ -385,9 +385,13 @@ def test_nlwkn_regression_uses_official_sta_id_and_pat_id_fields(monkeypatch):
     result = fetch_nlwkn(monkeypatch, [("11.07.2026 18:00", 399), ("11.07.2026 18:10", 400), ("11.07.2026 18:15", 401), ("11.07.2026 18:20", 401.3)], payload)
     assert result.status == "live"
     assert result.observations["station_id"] == "184"
-    assert result.diagnostics["confirmed_station_object"]["STA_ID"] == "184"
-    assert result.diagnostics["confirmed_parameter_list"][0]["PAT_ID"] == "1"
-    assert "STA_ID" in result.diagnostics["confirmed_station_raw_keys"]
+    assert result.diagnostics["confirmed_station"]["station_id"] == "184"
+    assert result.diagnostics["confirmed_parameters"][0]["parameter_id"] == "1"
+    assert result.observations["station_name"] == "Bensersiel"
+    assert result.observations["water_body"] == "Nordsee"
+    assert result.observations["operator"] == "NLWKN Betriebsstelle Aurich"
+    assert result.observations["unit"] == "cm"
+    assert "STA_ID" in result.diagnostics["confirmed_station_key_names"]
     assert "PAT_ID" in result.diagnostics["confirmed_parameter_key_names"][0]
 
 def test_nlwkn_valid_zero_measurement(monkeypatch):
@@ -430,7 +434,7 @@ def test_nlwkn_missing_pinned_station_prints_live_metadata_diagnostics(monkeypat
     assert result.diagnostics["station_count"] == 3
     assert result.diagnostics["first_20_station_ids"] == ["101", "102", "103"]
     assert result.diagnostics["station_name_matches"]["Bensersiel"] == []
-    assert result.diagnostics["station_name_matches"]["Norden"] == [{"station_id": "102", "station_name": "Norden Binnen", "raw_keys": ["STA_ID", "Name", "Parameter"]}]
+    assert result.diagnostics["station_name_matches"]["Norden"] == [{"station_id": "102", "station_name": "Norden Binnen", "key_names": ["STA_ID", "Name", "Parameter"]}]
     assert "pinned NLWKN station ID '184' missing" in result.diagnostics["adapter_errors"][0]
 
 
@@ -440,7 +444,7 @@ def test_nlwkn_does_not_select_another_matching_station(monkeypatch):
     patch_nlwkn_json(monkeypatch, payload, nlwkn_measurements([("11.07.2026 18:00", 1)]))
     result = nlwkn.fetch(now=NOW)
     assert result.status == "unavailable"
-    assert result.diagnostics["station_name_matches"]["Bensersiel"] == [{"station_id": "9303", "station_name": "Bensersiel", "raw_keys": ["STA_ID", "Name", "Gewaesser", "Betreiber", "Code", "Parameter"]}]
+    assert result.diagnostics["station_name_matches"]["Bensersiel"] == [{"station_id": "9303", "station_name": "Bensersiel", "key_names": ["STA_ID", "Name", "GewaesserName", "Betreiber", "Code", "Parameter"]}]
     assert "pinned NLWKN station ID '184' missing" in result.diagnostics["adapter_errors"][0]
 
 

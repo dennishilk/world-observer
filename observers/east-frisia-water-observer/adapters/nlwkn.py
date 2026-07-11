@@ -117,6 +117,10 @@ def _raw_key_values(item: dict[str, Any]) -> dict[str, str]:
     return {str(key): type(value).__name__ for key, value in item.items()}
 
 
+def _debug_raw_enabled() -> bool:
+    return bool(NLWKN_CONFIG.get("debug_raw_diagnostics", False))
+
+
 def _metadata_diagnostics(stations: list[dict[str, Any]]) -> dict[str, Any]:
     terms = NLWKN_CONFIG.get("station_search_terms", [])
     matches: dict[str, list[dict[str, Any]]] = {term: [] for term in terms}
@@ -124,15 +128,17 @@ def _metadata_diagnostics(stations: list[dict[str, Any]]) -> dict[str, Any]:
         haystack = json.dumps(station, ensure_ascii=False).lower()
         for term in terms:
             if term.lower() in haystack:
-                matches[term].append({"station_id": _station_id(station), "station_name": _station_name(station), "raw_keys": list(station.keys())})
-    return {
+                matches[term].append({"station_id": _station_id(station), "station_name": _station_name(station), "key_names": list(station.keys())})
+    details = {
         "station_count": len(stations),
         "first_20_station_ids": [_station_id(station) for station in stations[:20]],
         "first_20_station_key_names": [list(station.keys()) for station in stations[:20]],
-        "first_station_raw_key_types": _raw_key_values(stations[0]) if stations else {},
-        "first_station_raw_object": stations[0] if stations else None,
+        "first_station_key_types": _raw_key_values(stations[0]) if stations else {},
         "station_name_matches": matches,
     }
+    if _debug_raw_enabled():
+        details["debug_first_station_raw_object"] = stations[0] if stations else None
+    return details
 
 
 def _find_station(payload: Any, diagnostics: dict[str, Any]) -> dict[str, Any]:
@@ -141,10 +147,14 @@ def _find_station(payload: Any, diagnostics: dict[str, Any]) -> dict[str, Any]:
     configured_id = str(NLWKN_CONFIG["station_id"])
     for item in stations:
         if _station_id(item) == configured_id:
-            diagnostics["confirmed_station_object"] = item
-            diagnostics["confirmed_station_raw_keys"] = list(item.keys())
-            diagnostics["confirmed_parameter_list"] = _parameter_items(item)
-            diagnostics["confirmed_parameter_key_names"] = [list(param.keys()) for param in _parameter_items(item)]
+            parameters = _parameter_items(item)
+            diagnostics["confirmed_station"] = {"station_id": _station_id(item), "station_name": _station_name(item), "key_names": list(item.keys()), "parameter_count": len(parameters)}
+            diagnostics["confirmed_station_key_names"] = list(item.keys())
+            diagnostics["confirmed_parameter_key_names"] = [list(param.keys()) for param in parameters]
+            diagnostics["confirmed_parameters"] = [{"parameter_id": _first(param.get("PAT_ID"), param.get("ID"), param.get("Id"), param.get("id"), param.get("ParameterID")), "parameter_name": _first(param.get("Name"), param.get("ParameterName"), param.get("Bezeichnung")), "unit": _first(param.get("Einheit"), param.get("Unit"), param.get("unit")), "datenspuren_count": len(_first(param.get("Datenspuren"), param.get("datenspuren"), []) or []) if isinstance(_first(param.get("Datenspuren"), param.get("datenspuren"), []), list) else 0} for param in parameters]
+            if _debug_raw_enabled():
+                diagnostics["debug_confirmed_station_object"] = item
+                diagnostics["debug_confirmed_parameter_list"] = parameters
             return item
     raise ValueError(f"pinned NLWKN station ID {configured_id!r} missing from live metadata")
 
@@ -160,7 +170,7 @@ def _expect_equal(label: str, actual: Any, expected: Any) -> None:
 
 def _validate_pinned_station(station: dict[str, Any], parameter: dict[str, Any], unit: str) -> None:
     _expect_equal("name", _station_name(station), NLWKN_CONFIG["station_name"])
-    _expect_equal("water body", _first(station.get("Gewaesser"), station.get("Gewässer"), station.get("gewaesser")), NLWKN_CONFIG["water_body"])
+    _expect_equal("water body", station.get("GewaesserName"), NLWKN_CONFIG["water_body"])
     _expect_equal("operator", _first(station.get("Betreiber"), station.get("betreiber")), NLWKN_CONFIG["operator"])
     parameter_id = _first(parameter.get("PAT_ID"), parameter.get("ID"), parameter.get("Id"), parameter.get("id"), parameter.get("ParameterID"))
     _expect_equal("water-level parameter ID", parameter_id, NLWKN_CONFIG["parameter_id"])
@@ -274,7 +284,7 @@ def fetch(now: datetime | None = None) -> AdapterResult:
         "station_id": station_id,
         "station_name": _first(station.get("Name"), station.get("Pegelname"), station.get("Stationsname"), NLWKN_CONFIG["station_name"]),
         "station_type": NLWKN_CONFIG["station_type"],
-        "water_body": _first(station.get("Gewaesser"), station.get("Gewässer"), station.get("gewaesser"), NLWKN_CONFIG["water_body"]),
+        "water_body": _first(station.get("GewaesserName"), NLWKN_CONFIG["water_body"]),
         "operator": _first(station.get("Betreiber"), station.get("betreiber"), NLWKN_CONFIG["operator"]),
         "station_code": _first(station.get("Code"), station.get("code"), NLWKN_CONFIG["station_code"]),
         "unit": unit,
