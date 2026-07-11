@@ -316,7 +316,114 @@ def test_both_live_adapters_succeed_together(monkeypatch):
     statuses = {item["adapter"]: item["status"] for item in payload["adapters"]}
     assert statuses["dwd"] == "live"
     assert statuses["wsv"] == "live"
-    assert statuses["nlwkn"] == "adapter_pending"
+    assert statuses["nlwkn"] in {"live", "unavailable"}
     assert statuses["bsh"] == "adapter_pending"
     assert payload["data_status"] == "partial"
-    assert payload["recommendation"]["next_recommended_adapter"] == "nlwkn"
+    assert payload["recommendation"]["next_recommended_adapter"] == "bsh"
+
+# NLWKN Pegelonline adapter tests
+nlwkn = observer.nlwkn
+NLWKN_ID = "184"
+
+
+def nlwkn_station(unit="cm", current_timestamp="11.07.2026 18:20", current_value="401,3"):
+    return {
+        "getStammdatenResult": [
+            {
+                "ID": NLWKN_ID,
+                "Name": "Bensersiel",
+                "Gewaesser": "Nordsee",
+                "Betreiber": "NLWKN Betriebsstelle Aurich",
+                "Code": "9303",
+                "Parameter": [
+                    {
+                        "ID": "1",
+                        "Name": "Wasserstand",
+                        "Einheit": unit,
+                        "Datenspuren": [
+                            {"AktuellerMesswert": current_value, "AktuellerMesswert_Zeitpunkt": current_timestamp}
+                        ],
+                    }
+                ],
+            }
+        ]
+    }
+
+
+def nlwkn_measurements(vals):
+    return {"getZeitreiheResult": [{"Zeitpunkt": ts, "Messwert": value} for ts, value in vals]}
+
+
+def patch_nlwkn_json(monkeypatch, station_payload=None, measurement_payload=None, exc=None):
+    def fake(url, diagnostics):
+        diagnostics["api_attempts"] += 1
+        if exc:
+            raise exc
+        return station_payload if "stammdaten" in url else measurement_payload
+    monkeypatch.setattr(nlwkn, "_get_json", fake)
+
+
+def fetch_nlwkn(monkeypatch, vals, station_payload=None):
+    patch_nlwkn_json(monkeypatch, station_payload or nlwkn_station(), nlwkn_measurements(vals))
+    return nlwkn.fetch(now=NOW)
+
+
+def test_nlwkn_valid_current_measurement(monkeypatch):
+    result = fetch_nlwkn(monkeypatch, [("11.07.2026 18:00", 399), ("11.07.2026 18:10", 400), ("11.07.2026 18:15", 401), ("11.07.2026 18:20", 401.3)])
+    assert result.status == "live"
+    assert result.observations["station_id"] == NLWKN_ID
+    assert result.observations["unit"] == "cm"
+    assert result.observations["source_organization"].startswith("Niedersächsischer Landesbetrieb")
+
+
+def test_nlwkn_valid_zero_measurement(monkeypatch):
+    result = fetch_nlwkn(monkeypatch, [("11.07.2026 18:00", 0), ("11.07.2026 18:10", 0), ("11.07.2026 18:15", 0), ("11.07.2026 18:20", 0)])
+    assert result.observations["latest_measurement_value"] == 0.0
+
+
+def test_nlwkn_stale_measurement(monkeypatch):
+    result = fetch_nlwkn(monkeypatch, [("11.07.2026 12:00", 1), ("11.07.2026 12:10", 1), ("11.07.2026 12:15", 1), ("11.07.2026 12:20", 1)], nlwkn_station(current_timestamp="11.07.2026 12:20", current_value="1"))
+    assert result.observations["freshness_status"] == "stale_measurement"
+
+
+def test_nlwkn_malformed_timestamp(monkeypatch):
+    result = fetch_nlwkn(monkeypatch, [("not-a-date", 1)])
+    assert result.status == "unavailable"
+    assert "malformed_timestamp" in result.diagnostics["adapter_errors"][0]
+
+
+def test_nlwkn_unexpected_unit(monkeypatch):
+    result = fetch_nlwkn(monkeypatch, [("11.07.2026 18:00", 1)], nlwkn_station(unit="m"))
+    assert result.status == "unavailable"
+
+
+def test_nlwkn_malformed_payload(monkeypatch):
+    patch_nlwkn_json(monkeypatch, [], [])
+    assert nlwkn.fetch(now=NOW).status == "unavailable"
+
+
+def test_nlwkn_http_failure_or_timeout(monkeypatch):
+    patch_nlwkn_json(monkeypatch, exc=URLError("timeout"))
+    assert nlwkn.fetch(now=NOW).status == "unavailable"
+
+
+def test_nlwkn_duplicate_timestamps(monkeypatch):
+    result = fetch_nlwkn(monkeypatch, [("11.07.2026 18:00", 1), ("11.07.2026 18:00", 2)])
+    assert result.status == "unavailable"
+
+
+def test_nlwkn_insufficient_values_produces_unavailable_trend(monkeypatch):
+    result = fetch_nlwkn(monkeypatch, [("11.07.2026 18:00", 1)])
+    assert result.observations["trend_direction"] == "unavailable"
+
+
+def test_nlwkn_failure_isolated_from_wsv_and_dwd(monkeypatch):
+    monkeypatch.setattr(observer.nlwkn, "fetch", lambda: (_ for _ in ()).throw(RuntimeError("nlwkn boom")))
+    patch_dwd_fetch(monkeypatch, dwd_zip(dwd_lines(["1.0"] * 30)))
+    monkeypatch.setattr(observer.wsv, "_get_json", lambda url, diagnostics: (diagnostics.__setitem__("api_attempts", diagnostics["api_attempts"] + 1) or (station() if "measurements" not in url else measurements([("2026-07-11T18:00:00+02:00", 1), ("2026-07-11T18:10:00+02:00", 2), ("2026-07-11T18:20:00+02:00", 3), ("2026-07-11T18:25:00+02:00", 5)]))))
+    payload = observer.build_payload()
+    statuses = {item["adapter"]: item["status"] for item in payload["adapters"]}
+    assert statuses["nlwkn"] == "adapter_error"
+    assert statuses["dwd"] == "live"
+    assert statuses["wsv"] == "live"
+    assert statuses["bsh"] == "adapter_pending"

@@ -1,6 +1,8 @@
 """Configuration and official source research for East Frisia Water Observer."""
 from __future__ import annotations
 
+from zoneinfo import ZoneInfo
+
 from models import SourceResearch
 
 OBSERVER = "east-frisia-water-observer"
@@ -39,6 +41,28 @@ WSV_CONFIG = {
     "stable_threshold_by_unit": {"cm": 2.0},
 }
 
+NLWKN_CONFIG = {
+    "base_url": "https://bis.azure-api.net/PegelonlinePublic/REST",
+    "public_key": "9dc05f4e3b4a43a9988d747825b39f43",
+    "station_id": "184",
+    "station_name": "Bensersiel",
+    "station_type": "Tideaußenpegel",
+    "water_body": "Nordsee",
+    "operator": "NLWKN Betriebsstelle Aurich",
+    "station_code": "9303",
+    "parameter_id": "1",
+    "unit": "cm",
+    "expected_units": {"cm"},
+    "recent_days": "-1",
+    "source_timezone": ZoneInfo("Europe/Berlin"),
+    "timeout_seconds": 10,
+    "max_retries": 1,
+    "freshness_threshold_minutes": 90,
+    "trend_window_minutes": 180,
+    "trend_minimum_values": 4,
+    "stable_threshold_by_unit": {"cm": 2.0},
+}
+
 SOURCES: dict[str, SourceResearch] = {
     "dwd": SourceResearch(
         agency="Deutscher Wetterdienst (DWD)",
@@ -56,17 +80,19 @@ SOURCES: dict[str, SourceResearch] = {
     ),
     "nlwkn": SourceResearch(
         agency="Niedersächsischer Landesbetrieb für Wasserwirtschaft, Küsten- und Naturschutz (NLWKN)",
-        official_url="https://www.pegelonline.nlwkn.niedersachsen.de/",
+        official_url="https://www.pegelonline.nlwkn.niedersachsen.de/pdf/BenutzerhandbuchWebservicePegelonline.pdf",
         available_datasets=[
-            "Lower Saxony inland and coastal gauge station master data",
-            "Current water levels and hydrological measurements exposed by NLWKN public services",
-            "Warning-level context for Niedersachsen gauges where published",
+            "Official NLWKN station master data via JSON endpoint /stammdaten/stationen/All",
+            "Current unchecked/raw water-level values embedded in station metadata for NLWKN-operated inland and tidal gauges",
+            "Recent unchecked/raw water-level time series up to 30 days back via /station/{id}/datenspuren/parameter/{parameter}/tage/{days}",
+            "Published warning-stage thresholds on station pages where explicitly defined; not converted into observer classifications",
+            "Groundwater portal exists separately, but no equally stable documented machine-readable groundwater API was confirmed for this adapter",
         ],
-        update_frequency="Operational gauge data; station-specific cadence may vary from minutes to longer intervals, with public service documentation maintained by NLWKN.",
-        access_method="Official NLWKN public water-data service and published documentation; no HTML scraping.",
-        expected_usefulness="Most directly useful Lower Saxony source for East Frisia inland waters, coastal gauges, local flood context, and station-level status.",
-        licensing="Public, cost-free service use according to NLWKN documentation; exact attribution/licence text must be captured before enabling live downloads.",
-        long_term_stability="High: state water-management authority service for official Niedersachsen hydrological data.",
+        update_frequency="Operational raw gauge data; the selected tide gauge is published with minute-level public timestamps, while the documented service allows recent data up to 30 days back.",
+        access_method="Official NLWKN Pegelonline public REST JSON service on bis.azure-api.net with the public key documented in NLWKN examples; no HTML scraping, browser automation, wrappers, or WSV endpoints.",
+        expected_usefulness="Direct Lower Saxony source for East Frisia NLWKN-operated gauges, especially coastal and local state gauges not covered by the existing WSV adapter.",
+        licensing="NLWKN documentation says the webservice can be used free of charge, but www.pegelonline.nlwkn.niedersachsen.de must always be cited; raw values are unchecked and no warranty/availability claim is made.",
+        long_term_stability="Medium-high: official state water-management service with PDF documentation dated 2023-10-26, but it uses an Azure API gateway and public key parameter, so failures must remain isolated.",
     ),
     "wsv": SourceResearch(
         agency="Wasserstraßen- und Schifffahrtsverwaltung des Bundes (WSV)",

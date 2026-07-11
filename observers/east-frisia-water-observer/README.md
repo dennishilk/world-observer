@@ -6,7 +6,7 @@ Environment-category observer for water-related public-data signals in East Fris
 
 ## Current implementation
 
-WSV / PEGELONLINE is the first live water-level source. DWD CDC recent daily KL precipitation is the second live source and is clearly emitted as an inland/central East Frisia rainfall proxy. The remaining NLWKN and BSH adapters intentionally remain `adapter_pending` until separately integrated.
+WSV / PEGELONLINE and NLWKN Pegelonline are separate live water-level sources. DWD CDC recent daily KL precipitation is live and clearly emitted as an inland/central East Frisia rainfall proxy. BSH intentionally remains `adapter_pending` until separately integrated.
 
 The live adapter uses only the documented official **WSV PEGELONLINE REST API v2** JSON service:
 
@@ -60,10 +60,48 @@ Trend is descriptive only:
 
 A single current value is not a trend. Missing or malformed measurements are never converted to zero; an official `0` water-level value remains valid.
 
+## Selected NLWKN Pegelonline station
+
+Production is pinned to official NLWKN station ID `184` for **Bensersiel**, a `Tideaußenpegel` on the North Sea operated by `NLWKN Betriebsstelle Aurich`. This is intentionally separate from WSV / PEGELONLINE.
+
+The live adapter uses only the documented official **NLWKN Pegelonline public REST** JSON service described in `Pegelonline Webservice - Benutzerhandbuch` dated 2023-10-26:
+
+- Base: `https://bis.azure-api.net/PegelonlinePublic/REST`
+- Station metadata/current values: `/stammdaten/stationen/All?key=...`
+- Recent measurements: `/station/184/datenspuren/parameter/1/tage/-1?key=...`
+- Format: JSON
+- Authentication: no per-user account or browser session; the documented public examples include a `key` query parameter.
+- Reuse notes: NLWKN says the webservice can be used free of charge, `www.pegelonline.nlwkn.niedersachsen.de` must be cited, raw values are unchecked, and no completeness/correctness/availability warranty is made.
+
+| Field | Value |
+|---|---|
+| Station ID | `184` |
+| Station name | `Bensersiel` |
+| Type | `Tideaußenpegel` |
+| Water body | `Nordsee` |
+| Operator | `NLWKN Betriebsstelle Aurich` |
+| Code | `9303` |
+| Parameter | `1` — Wasserstand |
+| Unit | `cm` |
+| Freshness threshold | 90 minutes |
+
+### NLWKN candidate investigation
+
+Official NLWKN research confirmed a documented JSON webservice for station metadata, current raw values, and recent raw time series up to 30 days back. Candidate East-Frisia/coastal stations found in the official NLWKN Pegelonline portal included:
+
+| Candidate | NLWKN ID | Type / water body | Operator / data source notes | Decision |
+|---|---:|---|---|---|
+| Gandersum | `273` | Binnenpegel / Ems | NLWKN Betriebsstelle Aurich | Relevant lower Ems candidate; observed public current value was stale during research, so not selected as the initial live fixed station. |
+| Leyhörn | `404` | Tideaußenpegel / Nordsee | NLWKN Betriebsstelle Aurich | Relevant coastal East Frisia candidate; observed public current value was stale during research. |
+| Bensersiel | `184` | Tideaußenpegel / Nordsee | NLWKN Betriebsstelle Aurich | **Selected** because it is East-Frisia coastal, NLWKN-operated, has documented warning-stage thresholds on the official station page, exposes water level in `cm`, and had a recent public measurement during research. |
+| Norderney-Riffgat | `452` | Tideaußenpegel / Nordsee | WSV-operated / ITZBund data source shown in NLWKN portal | Rejected for NLWKN adapter pinning because the observer already has a separate WSV adapter and this task must not reuse WSV as NLWKN. |
+
+Groundwater was reviewed separately through the NLWKN groundwater portal. The portal documents current groundwater-level data and station pages, but no comparably stable, official, documented machine-readable public API was confirmed for this live adapter, so groundwater remains research-only.
+
 ## Adapter separation
 
 - **WSV / PEGELONLINE**: federal WSV service, first live REST API v2 water-level adapter.
-- **NLWKN**: separate Lower Saxony water-management source, still `adapter_pending`.
+- **NLWKN**: separate Lower Saxony water-management source, live through the official NLWKN Pegelonline public REST JSON service; not described with WSV terminology and not queried through WSV endpoints.
 - **DWD**: live official DWD CDC recent daily KL precipitation adapter for fixed station `05640` (**Wittmundhafen**) as an inland/central East Frisia rainfall proxy; no scraping and no API key.
 - **BSH**: coastal/marine context source, still `adapter_pending`.
 
