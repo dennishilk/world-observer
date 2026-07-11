@@ -104,13 +104,17 @@ def _first(*values: Any) -> Any:
 
 
 def _station_id(station: dict[str, Any]) -> str | None:
-    value = _first(station.get("ID"), station.get("Id"), station.get("id"), station.get("StationsID"), station.get("StationsId"))
+    value = _first(station.get("STA_ID"), station.get("ID"), station.get("Id"), station.get("id"), station.get("StationsID"), station.get("StationsId"))
     return str(value) if value is not None else None
 
 
 def _station_name(station: dict[str, Any]) -> str | None:
     value = _first(station.get("Name"), station.get("Pegelname"), station.get("Stationsname"), station.get("StationName"))
     return str(value) if value is not None else None
+
+
+def _raw_key_values(item: dict[str, Any]) -> dict[str, str]:
+    return {str(key): type(value).__name__ for key, value in item.items()}
 
 
 def _metadata_diagnostics(stations: list[dict[str, Any]]) -> dict[str, Any]:
@@ -120,10 +124,13 @@ def _metadata_diagnostics(stations: list[dict[str, Any]]) -> dict[str, Any]:
         haystack = json.dumps(station, ensure_ascii=False).lower()
         for term in terms:
             if term.lower() in haystack:
-                matches[term].append({"station_id": _station_id(station), "station_name": _station_name(station)})
+                matches[term].append({"station_id": _station_id(station), "station_name": _station_name(station), "raw_keys": list(station.keys())})
     return {
         "station_count": len(stations),
         "first_20_station_ids": [_station_id(station) for station in stations[:20]],
+        "first_20_station_key_names": [list(station.keys()) for station in stations[:20]],
+        "first_station_raw_key_types": _raw_key_values(stations[0]) if stations else {},
+        "first_station_raw_object": stations[0] if stations else None,
         "station_name_matches": matches,
     }
 
@@ -135,7 +142,9 @@ def _find_station(payload: Any, diagnostics: dict[str, Any]) -> dict[str, Any]:
     for item in stations:
         if _station_id(item) == configured_id:
             diagnostics["confirmed_station_object"] = item
+            diagnostics["confirmed_station_raw_keys"] = list(item.keys())
             diagnostics["confirmed_parameter_list"] = _parameter_items(item)
+            diagnostics["confirmed_parameter_key_names"] = [list(param.keys()) for param in _parameter_items(item)]
             return item
     raise ValueError(f"pinned NLWKN station ID {configured_id!r} missing from live metadata")
 
@@ -153,8 +162,9 @@ def _validate_pinned_station(station: dict[str, Any], parameter: dict[str, Any],
     _expect_equal("name", _station_name(station), NLWKN_CONFIG["station_name"])
     _expect_equal("water body", _first(station.get("Gewaesser"), station.get("Gewässer"), station.get("gewaesser")), NLWKN_CONFIG["water_body"])
     _expect_equal("operator", _first(station.get("Betreiber"), station.get("betreiber")), NLWKN_CONFIG["operator"])
-    parameter_id = _first(parameter.get("ID"), parameter.get("Id"), parameter.get("id"), parameter.get("ParameterID"))
+    parameter_id = _first(parameter.get("PAT_ID"), parameter.get("ID"), parameter.get("Id"), parameter.get("id"), parameter.get("ParameterID"))
     _expect_equal("water-level parameter ID", parameter_id, NLWKN_CONFIG["parameter_id"])
+    _expect_equal("water-level parameter name", _first(parameter.get("Name"), parameter.get("ParameterName"), parameter.get("Bezeichnung")), NLWKN_CONFIG["parameter_name"])
     _expect_equal("unit", unit, NLWKN_CONFIG["unit"])
 
 
@@ -166,7 +176,7 @@ def _parameter_items(station: dict[str, Any]) -> list[dict[str, Any]]:
 def _water_parameter(station: dict[str, Any]) -> dict[str, Any]:
     for param in _parameter_items(station):
         name = str(_first(param.get("Name"), param.get("ParameterName"), param.get("Bezeichnung"), "")).lower()
-        ident = str(_first(param.get("ID"), param.get("Id"), param.get("id"), param.get("ParameterID"), ""))
+        ident = str(_first(param.get("PAT_ID"), param.get("ID"), param.get("Id"), param.get("id"), param.get("ParameterID"), ""))
         if ident == NLWKN_CONFIG["parameter_id"] or "wasserstand" in name:
             unit = _first(param.get("Einheit"), param.get("Unit"), param.get("unit"), NLWKN_CONFIG["unit"])
             if unit not in NLWKN_CONFIG["expected_units"]:

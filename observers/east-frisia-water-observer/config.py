@@ -52,6 +52,7 @@ NLWKN_CONFIG = {
     "operator": "NLWKN Betriebsstelle Aurich",
     "station_code": "9303",
     "parameter_id": "1",
+    "parameter_name": "Wasserstand",
     "unit": "cm",
     "expected_units": {"cm"},
     "recent_days": "-1",
