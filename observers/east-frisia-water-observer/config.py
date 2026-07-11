@@ -63,6 +63,7 @@ NLWKN_CONFIG = {
     "trend_window_minutes": 180,
     "trend_minimum_values": 4,
     "stable_threshold_by_unit": {"cm": 2.0},
+    "debug_raw_diagnostics": False,
 }
 
 SOURCES: dict[str, SourceResearch] = {
