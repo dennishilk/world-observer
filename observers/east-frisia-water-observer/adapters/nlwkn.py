@@ -253,19 +253,34 @@ def _walk_dicts(value: Any):
 
 
 def _valid_measurements(payload: Any, diagnostics: dict[str, Any] | None = None) -> list[tuple[datetime, float]]:
-    values: list[tuple[datetime, float]] = []
-    seen: set[datetime] = set()
+    grouped: dict[datetime, float] = {}
+    duplicate_timestamp_count = 0
+    conflicting_duplicate_timestamp_count = 0
     for item in _walk_dicts(payload):
         value = _first(item.get("Messwert"), item.get("Wert"), item.get("value"), item.get("AktuellerMesswert"))
         ts = _first(item.get("Zeitpunkt"), item.get("timestamp"), item.get("Datum"), item.get("AktuellerMesswert_Zeitpunkt"))
         if value is None or ts is None:
             continue
         parsed_ts = _parse_timestamp(ts, diagnostics)
-        if parsed_ts in seen:
-            raise ValueError("duplicate measurement timestamp")
-        seen.add(parsed_ts)
-        values.append((parsed_ts, _finite_number(value)))
-    values.sort(key=lambda item: item[0])
+        number = _finite_number(value)
+        existing = grouped.get(parsed_ts)
+        if existing is None and parsed_ts not in grouped:
+            grouped[parsed_ts] = number
+            continue
+        if existing == number:
+            duplicate_timestamp_count += 1
+            continue
+        conflicting_duplicate_timestamp_count += 1
+        if diagnostics is not None:
+            diagnostics["duplicate_timestamp_count"] = duplicate_timestamp_count
+            diagnostics["conflicting_duplicate_timestamp_count"] = conflicting_duplicate_timestamp_count
+            diagnostics["conflicting_duplicate_timestamp_utc"] = _iso_z(parsed_ts)
+        raise ValueError(f"conflicting_duplicate_timestamp: {_iso_z(parsed_ts)} has values {existing!r} and {number!r}")
+
+    values = sorted(grouped.items(), key=lambda item: item[0])
+    if diagnostics is not None:
+        diagnostics["duplicate_timestamp_count"] = duplicate_timestamp_count
+        diagnostics["conflicting_duplicate_timestamp_count"] = conflicting_duplicate_timestamp_count
     if not values:
         raise ValueError("no valid measurement exists")
     return values
@@ -289,7 +304,7 @@ def fetch(now: datetime | None = None) -> AdapterResult:
     key = NLWKN_CONFIG["public_key"]
     station_url = f"{base}/stammdaten/stationen/All?key={key}"
     measurements_url = None
-    diagnostics: dict[str, Any] = {"live_adapter_enabled": True, "api_attempts": 0, "retries": 0, "adapter_errors": [], "endpoint_types": ["station_metadata", "recent_measurements"], "source_endpoint_type": "official_nlwkn_pegelonline_public_rest_json", "timeout_seconds": NLWKN_CONFIG["timeout_seconds"], "max_retries": NLWKN_CONFIG["max_retries"], "live_adapters_enabled": [ADAPTER_ID]}
+    diagnostics: dict[str, Any] = {"live_adapter_enabled": True, "api_attempts": 0, "retries": 0, "adapter_errors": [], "duplicate_timestamp_count": 0, "conflicting_duplicate_timestamp_count": 0, "endpoint_types": ["station_metadata", "recent_measurements"], "source_endpoint_type": "official_nlwkn_pegelonline_public_rest_json", "timeout_seconds": NLWKN_CONFIG["timeout_seconds"], "max_retries": NLWKN_CONFIG["max_retries"], "live_adapters_enabled": [ADAPTER_ID]}
     try:
         station = _find_station(_get_json(station_url, diagnostics), diagnostics)
         station_id = _station_id(station)
@@ -307,7 +322,13 @@ def fetch(now: datetime | None = None) -> AdapterResult:
         freshness = "fresh_measurement" if age_minutes <= NLWKN_CONFIG["freshness_threshold_minutes"] else "stale_measurement"
         trend = _trend(measurements, unit)
     except ValueError as exc:
-        kind = "malformed_timestamp" if "timestamp" in str(exc) else "missing_measurement"
+        message = str(exc)
+        if "conflicting_duplicate_timestamp" in message:
+            kind = "conflicting_duplicate_timestamp"
+        elif "timestamp" in message:
+            kind = "malformed_timestamp"
+        else:
+            kind = "missing_measurement"
         return _unavailable(diagnostics, f"{kind}: {exc}")
     except Exception as exc:
         return _unavailable(diagnostics, f"nlwkn_fetch_failed: {exc}")
