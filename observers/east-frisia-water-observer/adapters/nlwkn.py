@@ -223,7 +223,7 @@ def _validate_pinned_station(station: dict[str, Any], parameter: dict[str, Any],
 
 
 def _trace_id(trace: dict[str, Any]) -> str | None:
-    value = _first(trace.get("DAS_ID"), trace.get("DasId"), trace.get("DatenspurID"), trace.get("datenspur_id"), trace.get("ID"), trace.get("Id"), trace.get("id"))
+    value = _first(trace.get("DAS_ID"), trace.get("DASID"), trace.get("DasId"), trace.get("dasId"), trace.get("das_id"), trace.get("DatenspurID"), trace.get("DatenspurId"), trace.get("datenspur_id"), trace.get("ID"), trace.get("Id"), trace.get("id"))
     return str(value) if value is not None else None
 
 
@@ -306,6 +306,71 @@ def _walk_measurement_dicts(value: Any, pinned_datenspur_id: str, active_trace_i
             yield from _walk_measurement_dicts(child, pinned_datenspur_id, active_trace_id)
 
 
+
+def _measurement_fields(item: dict[str, Any]) -> tuple[Any, Any]:
+    value = _first(item.get("Messwert"), item.get("Wert"), item.get("value"), item.get("AktuellerMesswert"))
+    ts = _first(item.get("Zeitpunkt"), item.get("timestamp"), item.get("Datum"), item.get("AktuellerMesswert_Zeitpunkt"))
+    return value, ts
+
+
+def _contains_measurement(value: Any) -> bool:
+    if isinstance(value, dict):
+        measurement_value, ts = _measurement_fields(value)
+        if measurement_value is not None and ts is not None:
+            return True
+        return any(_contains_measurement(child) for child in value.values())
+    if isinstance(value, list):
+        return any(_contains_measurement(child) for child in value)
+    return False
+
+
+def _count_measurements(value: Any) -> int:
+    if isinstance(value, dict):
+        measurement_value, ts = _measurement_fields(value)
+        count = 1 if measurement_value is not None and ts is not None else 0
+        return count + sum(_count_measurements(child) for child in value.values())
+    if isinstance(value, list):
+        return sum(_count_measurements(child) for child in value)
+    return 0
+
+
+def _datenspur_measurement_containers(value: Any) -> list[dict[str, Any]]:
+    containers: list[dict[str, Any]] = []
+    if isinstance(value, dict):
+        if _trace_id(value) is not None and _contains_measurement(value):
+            containers.append(value)
+        for child in value.values():
+            containers.extend(_datenspur_measurement_containers(child))
+    elif isinstance(value, list):
+        for child in value:
+            containers.extend(_datenspur_measurement_containers(child))
+    return containers
+
+
+def _select_measurement_datenspur_payload(payload: Any, pinned_datenspur_id: str, diagnostics: dict[str, Any]) -> Any:
+    containers = _datenspur_measurement_containers(payload)
+    available_ids = [_trace_id(item) for item in containers if _trace_id(item) is not None]
+    diagnostics["available_datenspur_ids"] = available_ids
+    selected = [item for item in containers if _trace_id(item) == pinned_datenspur_id]
+    rejected_ids = [ident for ident in available_ids if ident != pinned_datenspur_id]
+    diagnostics["rejected_datenspur_ids"] = rejected_ids
+    if len(selected) == 1:
+        selected_payload = _first(selected[0].get("Pegelstaende"), selected[0].get("pegelstaende"), selected[0].get("Messwerte"), selected[0].get("messwerte"), selected[0].get("Werte"), selected[0].get("werte"), selected[0])
+        diagnostics["selected_datenspur_id"] = pinned_datenspur_id
+        diagnostics["selected_datenspur_measurement_count"] = _count_measurements(selected_payload)
+        return selected_payload
+    if len(selected) > 1:
+        diagnostics["selected_datenspur_id"] = None
+        diagnostics["selected_datenspur_measurement_count"] = 0
+        raise ValueError(f"expected exactly one NLWKN Datenspur DAS_ID {pinned_datenspur_id!r} in measurements, got {len(selected)}")
+    if containers:
+        diagnostics["selected_datenspur_id"] = None
+        diagnostics["selected_datenspur_measurement_count"] = 0
+        raise ValueError(f"pinned NLWKN Datenspur DAS_ID {pinned_datenspur_id!r} missing from measurements")
+    diagnostics["selected_datenspur_id"] = pinned_datenspur_id
+    diagnostics["selected_datenspur_measurement_count"] = _count_measurements(payload)
+    return payload
+
 def _valid_measurements(payload: Any, pinned_datenspur_id: str, diagnostics: dict[str, Any] | None = None) -> list[tuple[datetime, float]]:
     grouped: dict[datetime, float] = {}
     duplicate_timestamp_count = 0
@@ -371,7 +436,11 @@ def fetch(now: datetime | None = None) -> AdapterResult:
         pinned_datenspur_id = str(NLWKN_CONFIG["pinned_datenspur_id"])
         current_ts, current_value = _extract_current(station, parameter, trace, diagnostics)
         measurements_url = f"{base}/station/{station_id}/datenspuren/parameter/{NLWKN_CONFIG['parameter_id']}/tage/{NLWKN_CONFIG['recent_days']}?key={key}"
-        measurements = _valid_measurements(_get_json(measurements_url, diagnostics), pinned_datenspur_id, diagnostics)
+        measurements_payload = _get_json(measurements_url, diagnostics)
+        selected_measurements_payload = _select_measurement_datenspur_payload(measurements_payload, pinned_datenspur_id, diagnostics)
+        if diagnostics.get("selected_datenspur_id") is None:
+            raise ValueError("selected NLWKN Datenspur remained None before parsing")
+        measurements = _valid_measurements(selected_measurements_payload, pinned_datenspur_id, diagnostics)
         if measurements[-1][0] >= current_ts:
             current_ts, current_value = measurements[-1]
         age_minutes = (now_utc - current_ts).total_seconds() / 60
