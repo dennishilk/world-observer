@@ -511,12 +511,12 @@ def test_nlwkn_stale_measurement(monkeypatch):
 def test_nlwkn_summer_cest_local_timestamp(monkeypatch):
     result = fetch_nlwkn(
         monkeypatch,
-        [("11.07.2026 19:00", 399), ("11.07.2026 19:10", 400), ("11.07.2026 19:15", 401), ("11.07.2026 19:20", 401.3)],
-        nlwkn_station(current_timestamp="11.07.2026 19:20"),
+        [("11.07.2026 18:00", 399), ("11.07.2026 18:10", 400), ("11.07.2026 18:15", 401), ("11.07.2026 18:20", 401.3)],
+        nlwkn_station(current_timestamp="11.07.2026 18:20"),
     )
     assert result.status == "live"
-    assert result.observations["latest_measurement_timestamp_utc"] == "2026-07-11T17:20:00Z"
-    assert result.diagnostics["raw_measurement_timestamp"] == "11.07.2026 19:20"
+    assert result.observations["latest_measurement_timestamp_utc"] == "2026-07-11T16:20:00Z"
+    assert result.diagnostics["raw_measurement_timestamp"] == "11.07.2026 18:20"
 
 
 def test_nlwkn_winter_cet_local_timestamp(monkeypatch):
@@ -534,6 +534,50 @@ def test_nlwkn_json_date_timestamp_still_supported(monkeypatch):
     result = fetch_nlwkn(monkeypatch, [(nlwkn_ts("2026-07-11T16:20:00Z"), 401.3)])
     assert result.status == "live"
     assert result.observations["latest_measurement_timestamp_utc"] == "2026-07-11T16:20:00Z"
+
+
+def test_nlwkn_prefers_explicit_datum_utc_epoch(monkeypatch):
+    station_payload = nlwkn_station(current_timestamp="11.07.2026 18:20", current_value="401,3")
+    station_payload["getStammdatenResult"][0]["Parameter"][0]["Datenspuren"][0]["DatumUTC"] = int(datetime(2026, 7, 11, 16, 20, tzinfo=timezone.utc).timestamp() * 1000)
+    measurement_payload = {
+        "getZeitreiheResult": [
+            {"Zeitpunkt": "11.07.2026 19:00", "DatumUTC": int(datetime(2026, 7, 11, 16, 0, tzinfo=timezone.utc).timestamp() * 1000), "Messwert": 399},
+            {"Zeitpunkt": "11.07.2026 19:10", "DatumUTC": int(datetime(2026, 7, 11, 16, 10, tzinfo=timezone.utc).timestamp() * 1000), "Messwert": 400},
+            {"Zeitpunkt": "11.07.2026 19:15", "DatumUTC": int(datetime(2026, 7, 11, 16, 15, tzinfo=timezone.utc).timestamp() * 1000), "Messwert": 401},
+            {"Zeitpunkt": "11.07.2026 19:20", "DatumUTC": int(datetime(2026, 7, 11, 16, 20, tzinfo=timezone.utc).timestamp() * 1000), "Messwert": 401.3},
+        ]
+    }
+    patch_nlwkn_json(monkeypatch, station_payload, measurement_payload)
+    result = nlwkn.fetch(now=NOW)
+    assert result.status == "live"
+    assert result.observations["latest_measurement_timestamp_utc"] == "2026-07-11T16:20:00Z"
+    assert result.diagnostics["timestamp_source"] == "DatumUTC"
+    assert result.diagnostics["raw_local_timestamp_utc"] == "2026-07-11T17:20:00Z"
+    assert result.diagnostics["datum_utc_timestamp_utc"] == "2026-07-11T16:20:00Z"
+
+
+def test_nlwkn_small_future_clock_skew_is_accepted_but_not_fresh(monkeypatch):
+    result = fetch_nlwkn(
+        monkeypatch,
+        [(nlwkn_ts("2026-07-11T16:00:00Z"), 1), (nlwkn_ts("2026-07-11T16:10:00Z"), 1), (nlwkn_ts("2026-07-11T16:20:00Z"), 1), (nlwkn_ts("2026-07-11T16:33:00Z"), 1)],
+        nlwkn_station(current_timestamp=nlwkn_ts("2026-07-11T16:33:00Z"), current_value="1"),
+    )
+    assert result.status == "live"
+    assert result.observations["measurement_age_minutes"] == 0.0
+    assert result.diagnostics["raw_measurement_age_minutes"] == -3.0
+    assert result.diagnostics["accepted_future_clock_skew_minutes"] == 3.0
+    assert result.observations["freshness_status"] == "stale_measurement"
+
+
+def test_nlwkn_excessive_future_timestamp_fails_closed(monkeypatch):
+    result = fetch_nlwkn(
+        monkeypatch,
+        [(nlwkn_ts("2026-07-11T16:00:00Z"), 1), (nlwkn_ts("2026-07-11T16:10:00Z"), 1), (nlwkn_ts("2026-07-11T16:20:00Z"), 1), (nlwkn_ts("2026-07-11T17:20:00Z"), 1)],
+        nlwkn_station(current_timestamp=nlwkn_ts("2026-07-11T17:20:00Z"), current_value="1"),
+    )
+    assert result.status == "unavailable"
+    assert "future timestamp" in result.diagnostics["adapter_errors"][0]
+    assert result.diagnostics["future_measurement_ahead_minutes"] == 50.0
 
 
 def test_nlwkn_malformed_timestamp(monkeypatch):
@@ -645,6 +689,28 @@ def test_nlwkn_trend_calculation_after_deduplication(monkeypatch):
     assert result.observations["trend"]["window_end_utc"] == "2026-07-11T16:20:00Z"
     assert result.observations["trend"]["signed_change"] == 5.0
     assert result.observations["valid_values_used"] == 4
+
+
+def test_nlwkn_filters_one_day_response_to_configured_trend_window(monkeypatch):
+    old = [(nlwkn_ts(f"2026-07-10T{hour:02d}:30:00Z"), 300 + hour) for hour in range(20)]
+    recent = [
+        (nlwkn_ts("2026-07-11T13:30:00Z"), 400),
+        (nlwkn_ts("2026-07-11T14:30:00Z"), 401),
+        (nlwkn_ts("2026-07-11T15:30:00Z"), 402),
+        (nlwkn_ts("2026-07-11T16:20:00Z"), 405),
+    ]
+    result = fetch_nlwkn(
+        monkeypatch,
+        old + recent,
+        nlwkn_station(current_timestamp=nlwkn_ts("2026-07-11T16:20:00Z"), current_value="405"),
+    )
+    assert result.status == "live"
+    assert result.diagnostics["trend_candidate_measurement_count"] == 24
+    assert result.diagnostics["trend_valid_measurement_count"] == 4
+    assert result.observations["valid_values_used"] == 4
+    assert result.observations["trend"]["configured_window_minutes"] == 180
+    assert result.observations["trend"]["actual_window_minutes"] == 170.0
+    assert result.observations["trend"]["window_start_utc"] == "2026-07-11T13:30:00Z"
 
 
 def test_nlwkn_insufficient_values_produces_unavailable_trend(monkeypatch):
