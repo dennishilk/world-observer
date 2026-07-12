@@ -202,7 +202,7 @@ def _expect_equal(label: str, actual: Any, expected: Any) -> None:
         raise ValueError(f"pinned NLWKN station {label} changed: expected {expected!r}, got {actual!r}")
 
 
-def _validate_pinned_station(station: dict[str, Any], parameter: dict[str, Any], unit: str) -> None:
+def _validate_pinned_station(station: dict[str, Any], parameter: dict[str, Any], trace: dict[str, Any], unit: str) -> None:
     _expect_equal("name", _station_name(station), NLWKN_CONFIG["station_name"])
     _expect_equal("water body", station.get("GewaesserName"), NLWKN_CONFIG["water_body"])
     _expect_equal("operator", _first(station.get("Betreiber"), station.get("betreiber")), NLWKN_CONFIG["operator"])
@@ -210,7 +210,63 @@ def _validate_pinned_station(station: dict[str, Any], parameter: dict[str, Any],
     _expect_equal("water-level parameter ID", parameter_id, NLWKN_CONFIG["parameter_id"])
     _expect_equal("water-level parameter name", _first(parameter.get("Name"), parameter.get("ParameterName"), parameter.get("Bezeichnung")), NLWKN_CONFIG["parameter_name"])
     _expect_equal("unit", unit, NLWKN_CONFIG["unit"])
+    _expect_equal("Datenspur DAS_ID", _trace_id(trace), NLWKN_CONFIG["pinned_datenspur_id"])
+    for key, expected in NLWKN_CONFIG.get("pinned_datenspur_identity", {}).items():
+        actual = trace.get(key)
+        if isinstance(expected, bool):
+            normalized_actual = actual if isinstance(actual, bool) else _normalized_text(actual) == "true"
+            if normalized_actual is not expected:
+                raise ValueError(f"pinned NLWKN Datenspur {key} changed: expected {expected!r}, got {actual!r}")
+            continue
+        _expect_equal(f"Datenspur {key}", actual, expected)
 
+
+
+def _trace_id(trace: dict[str, Any]) -> str | None:
+    value = _first(trace.get("DAS_ID"), trace.get("DasId"), trace.get("DatenspurID"), trace.get("datenspur_id"), trace.get("ID"), trace.get("Id"), trace.get("id"))
+    return str(value) if value is not None else None
+
+
+def _trace_summary(trace: dict[str, Any], diagnostics: dict[str, Any] | None = None) -> dict[str, Any]:
+    summary = {
+        "DAS_ID": _trace_id(trace),
+        "Gebernummer": _first(trace.get("Gebernummer"), trace.get("gebernummer")),
+        "WebDisplayName": _first(trace.get("WebDisplayName"), trace.get("webDisplayName"), trace.get("Name")),
+        "IstWasserstand": trace.get("IstWasserstand"),
+        "IstTide": trace.get("IstTide"),
+        "HatPegelstaende": trace.get("HatPegelstaende"),
+        "IntervallSek": _first(trace.get("IntervallSek"), trace.get("intervallSek")),
+    }
+    value = _first(trace.get("AktuellerMesswert"), trace.get("Messwert"), trace.get("value"), trace.get("Wert"))
+    ts = _first(trace.get("AktuellerMesswert_Zeitpunkt"), trace.get("Zeitpunkt"), trace.get("timestamp"), trace.get("Datum"))
+    if value is not None:
+        try:
+            summary["latest_value"] = _finite_number(value)
+        except ValueError:
+            summary["latest_value"] = value
+    if ts is not None:
+        summary["latest_timestamp"] = ts
+        try:
+            summary["latest_timestamp_utc"] = _iso_z(_parse_timestamp(ts, diagnostics))
+        except ValueError:
+            pass
+    return summary
+
+
+def _datenspur_items(parameter: dict[str, Any]) -> list[dict[str, Any]]:
+    traces = _first(parameter.get("Datenspuren"), parameter.get("datenspuren"), [])
+    return [item for item in traces if isinstance(item, dict)] if isinstance(traces, list) else []
+
+
+def _select_pinned_datenspur(parameter: dict[str, Any], diagnostics: dict[str, Any]) -> dict[str, Any]:
+    traces = _datenspur_items(parameter)
+    diagnostics["datenspur_candidates"] = [_trace_summary(trace, diagnostics) for trace in traces]
+    pinned = str(NLWKN_CONFIG["pinned_datenspur_id"])
+    for trace in traces:
+        if _trace_id(trace) == pinned:
+            diagnostics["selected_datenspur"] = _trace_summary(trace, diagnostics)
+            return trace
+    raise ValueError(f"pinned NLWKN Datenspur DAS_ID {pinned!r} missing from live metadata")
 
 def _parameter_items(station: dict[str, Any]) -> list[dict[str, Any]]:
     params = _first(station.get("Parameter"), station.get("parameter"), station.get("parameters"))
@@ -229,34 +285,32 @@ def _water_parameter(station: dict[str, Any]) -> dict[str, Any]:
     raise ValueError("configured NLWKN water-level parameter missing")
 
 
-def _extract_current(station: dict[str, Any], parameter: dict[str, Any], diagnostics: dict[str, Any] | None = None) -> tuple[datetime, float]:
-    traces = _first(parameter.get("Datenspuren"), parameter.get("datenspuren"), [])
-    containers = traces if isinstance(traces, list) else [parameter]
-    for item in containers:
-        if not isinstance(item, dict):
-            continue
-        value = _first(item.get("AktuellerMesswert"), item.get("Messwert"), item.get("value"), item.get("Wert"))
-        ts = _first(item.get("AktuellerMesswert_Zeitpunkt"), item.get("Zeitpunkt"), item.get("timestamp"), item.get("Datum"))
-        if value is not None and ts is not None:
-            return _parse_timestamp(ts, diagnostics), _finite_number(value)
-    raise ValueError("current water-level measurement missing")
+def _extract_current(station: dict[str, Any], parameter: dict[str, Any], trace: dict[str, Any], diagnostics: dict[str, Any] | None = None) -> tuple[datetime, float]:
+    value = _first(trace.get("AktuellerMesswert"), trace.get("Messwert"), trace.get("value"), trace.get("Wert"))
+    ts = _first(trace.get("AktuellerMesswert_Zeitpunkt"), trace.get("Zeitpunkt"), trace.get("timestamp"), trace.get("Datum"))
+    if value is not None and ts is not None:
+        return _parse_timestamp(ts, diagnostics), _finite_number(value)
+    raise ValueError("current water-level measurement missing for pinned Datenspur")
 
 
-def _walk_dicts(value: Any):
+def _walk_measurement_dicts(value: Any, pinned_datenspur_id: str, active_trace_id: str | None = None):
     if isinstance(value, dict):
+        item_trace_id = _trace_id(value) or active_trace_id
+        if item_trace_id is not None and item_trace_id != pinned_datenspur_id:
+            return
         yield value
         for child in value.values():
-            yield from _walk_dicts(child)
+            yield from _walk_measurement_dicts(child, pinned_datenspur_id, item_trace_id)
     elif isinstance(value, list):
         for child in value:
-            yield from _walk_dicts(child)
+            yield from _walk_measurement_dicts(child, pinned_datenspur_id, active_trace_id)
 
 
-def _valid_measurements(payload: Any, diagnostics: dict[str, Any] | None = None) -> list[tuple[datetime, float]]:
+def _valid_measurements(payload: Any, pinned_datenspur_id: str, diagnostics: dict[str, Any] | None = None) -> list[tuple[datetime, float]]:
     grouped: dict[datetime, float] = {}
     duplicate_timestamp_count = 0
     conflicting_duplicate_timestamp_count = 0
-    for item in _walk_dicts(payload):
+    for item in _walk_measurement_dicts(payload, pinned_datenspur_id):
         value = _first(item.get("Messwert"), item.get("Wert"), item.get("value"), item.get("AktuellerMesswert"))
         ts = _first(item.get("Zeitpunkt"), item.get("timestamp"), item.get("Datum"), item.get("AktuellerMesswert_Zeitpunkt"))
         if value is None or ts is None:
@@ -312,10 +366,12 @@ def fetch(now: datetime | None = None) -> AdapterResult:
             raise ValueError("confirmed NLWKN station has no station ID")
         parameter = _water_parameter(station)
         unit = _first(parameter.get("Einheit"), parameter.get("Unit"), parameter.get("unit"), NLWKN_CONFIG["unit"])
-        _validate_pinned_station(station, parameter, unit)
-        current_ts, current_value = _extract_current(station, parameter, diagnostics)
+        trace = _select_pinned_datenspur(parameter, diagnostics)
+        _validate_pinned_station(station, parameter, trace, unit)
+        pinned_datenspur_id = str(NLWKN_CONFIG["pinned_datenspur_id"])
+        current_ts, current_value = _extract_current(station, parameter, trace, diagnostics)
         measurements_url = f"{base}/station/{station_id}/datenspuren/parameter/{NLWKN_CONFIG['parameter_id']}/tage/{NLWKN_CONFIG['recent_days']}?key={key}"
-        measurements = _valid_measurements(_get_json(measurements_url, diagnostics), diagnostics)
+        measurements = _valid_measurements(_get_json(measurements_url, diagnostics), pinned_datenspur_id, diagnostics)
         if measurements[-1][0] >= current_ts:
             current_ts, current_value = measurements[-1]
         age_minutes = (now_utc - current_ts).total_seconds() / 60
@@ -343,6 +399,7 @@ def fetch(now: datetime | None = None) -> AdapterResult:
         "operator": _first(station.get("Betreiber"), station.get("betreiber"), NLWKN_CONFIG["operator"]),
         "station_code": _first(station.get("Code"), station.get("code"), NLWKN_CONFIG["station_code"]),
         "unit": unit,
+        "pinned_datenspur_id": pinned_datenspur_id,
         "latest_measurement_value": current_value,
         "latest_measurement_timestamp_utc": _iso_z(current_ts),
         "measurement_age_minutes": round(age_minutes, 2),
