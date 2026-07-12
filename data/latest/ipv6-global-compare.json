@@ -1,6 +1,6 @@
 {
   "observer": "ipv6-global-compare",
-  "date_utc": "2026-07-11",
+  "date_utc": "2026-07-12",
   "status": "unavailable",
   "data_status": "unavailable",
   "degraded_reason": "No usable country IPv6 rates were found in the input observer payload.",
