@@ -76,24 +76,23 @@ def _parse_timestamp(value: Any, diagnostics: dict[str, Any] | None = None) -> d
 
 
 def _parse_datum_utc(value: Any, diagnostics: dict[str, Any] | None = None) -> datetime:
-    """Parse NLWKN's explicit UTC epoch field when it is present."""
+    """Parse NLWKN's confirmed DatumUTC Microsoft JSON date representation."""
     if diagnostics is not None:
         diagnostics["raw_measurement_datum_utc"] = value
-    if isinstance(value, bool) or value in (None, ""):
+        diagnostics["raw_measurement_datum_utc_type"] = type(value).__name__
+    if not isinstance(value, str) or not value.strip():
         raise ValueError("malformed DatumUTC")
-    try:
-        epoch = float(str(value).strip())
-    except (TypeError, ValueError) as exc:
-        raise ValueError("malformed DatumUTC") from exc
-    if not math.isfinite(epoch):
+    match = _MS_JSON_DATE_RE.fullmatch(value.strip())
+    if not match:
         raise ValueError("malformed DatumUTC")
-    # The live service exposes DatumUTC as an epoch value. Treat large values as
-    # milliseconds and small values as seconds so tests and diagnostics remain
-    # robust if the JSON decoder returns either precision.
-    if abs(epoch) > 10_000_000_000:
-        epoch /= 1000
+    offset_text = match.group("offset")
+    if offset_text is not None:
+        offset_hours = int(offset_text[1:3])
+        offset_minutes = int(offset_text[3:5])
+        if offset_hours > 23 or offset_minutes > 59:
+            raise ValueError("malformed DatumUTC")
     try:
-        return datetime.fromtimestamp(epoch, timezone.utc)
+        return datetime.fromtimestamp(int(match.group("milliseconds")) / 1000, timezone.utc)
     except (OverflowError, OSError, ValueError) as exc:
         raise ValueError("malformed DatumUTC") from exc
 
