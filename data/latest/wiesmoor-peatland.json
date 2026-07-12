@@ -1,6 +1,6 @@
 {
   "category": "environment",
-  "collected_at_utc": "2026-07-12T06:07:51Z",
+  "collected_at_utc": "2026-07-12T10:55:16Z",
   "copernicus_soil_water": {
     "data_status": "unavailable",
     "file_naming_convention": "c_gls_SWI1km_YYYYMMDD1200_CEURO_SCATSAR_VX.Y.X.nc",
@@ -247,10 +247,10 @@
       "weather_pressure": {
         "class": "normal",
         "direction": "normal",
-        "dry_days_30d": 17,
-        "dry_days_7d": 4,
-        "rainfall_30d_mm": 44.4,
-        "rainfall_7d_mm": 9.7,
+        "dry_days_30d": 18,
+        "dry_days_7d": 5,
+        "rainfall_30d_mm": 39.2,
+        "rainfall_7d_mm": 3.5,
         "strength": "moderate",
         "valid": true
       }
@@ -381,7 +381,7 @@
     {
       "dataset": "Recent daily climate observations Germany (KL), daily precipitation RSK and daily mean temperature TMK",
       "name": "Deutscher Wetterdienst (DWD) Climate Data Center",
-      "observation_date": "2026-07-10",
+      "observation_date": "2026-07-11",
       "selected_station_zip_url": "https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/daily/kl/recent/tageswerte_KL_05640_akt.zip",
       "station_description_url": "https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/daily/kl/recent/KL_Tageswerte_Beschreibung_Stationen.txt",
       "status": "live_adapter",
@@ -391,7 +391,7 @@
   "status": "ok",
   "summary": "Wiesmoor peatland hydrological pressure remains unavailable as an in-situ conclusion; DWD daily rainfall is emitted when available as a regional weather proxy component only.",
   "weather_pressure": {
-    "consecutive_dry_days": 3,
+    "consecutive_dry_days": 4,
     "coverage": {
       "dry_day_rule": "A dry day is a valid DWD daily precipitation (RSK) observation below 1.0 mm/day; exactly 1.0 mm/day is not dry. Missing markers and absent dates are unavailable, never dry.",
       "dry_day_threshold_mm": 1.0,
@@ -404,17 +404,17 @@
       "valid_temperature_days_7d": 7
     },
     "data_status": "ok",
-    "dry_days_30d": 17,
-    "dry_days_7d": 4,
+    "dry_days_30d": 18,
+    "dry_days_7d": 5,
     "label": "weather pressure",
-    "latest_date": "2026-07-10",
+    "latest_date": "2026-07-11",
     "latest_precipitation_mm": 0.0,
-    "rainfall_30d_mm": 44.4,
-    "rainfall_7d_mm": 9.7,
+    "rainfall_30d_mm": 39.2,
+    "rainfall_7d_mm": 3.5,
     "source": {
       "dataset": "Recent daily climate observations Germany (KL), daily precipitation RSK and daily mean temperature TMK",
       "name": "Deutscher Wetterdienst (DWD) Climate Data Center",
-      "observation_date": "2026-07-10",
+      "observation_date": "2026-07-11",
       "selected_station_zip_url": "https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/daily/kl/recent/tageswerte_KL_05640_akt.zip",
       "station_description_url": "https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/daily/kl/recent/KL_Tageswerte_Beschreibung_Stationen.txt",
       "status": "live_adapter",
@@ -428,9 +428,9 @@
       "station_id": "05640",
       "station_name": "Wittmundhafen"
     },
-    "temperature_c": 18.2,
+    "temperature_c": 18.7,
     "temperature_label": "latest valid daily mean temperature (TMK), not an instantaneous/current temperature",
-    "temperature_mean_30d_c": 17.9,
-    "temperature_mean_7d_c": 17.1
+    "temperature_mean_30d_c": 18.1,
+    "temperature_mean_7d_c": 17.4
   }
 }
