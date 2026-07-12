@@ -348,7 +348,7 @@ def nlwkn_station(unit="cm", current_timestamp=None, current_value="401,3"):
                         "Name": "Wasserstand",
                         "Einheit": unit,
                         "Datenspuren": [
-                            {"AktuellerMesswert": current_value, "AktuellerMesswert_Zeitpunkt": current_timestamp}
+                            {"DAS_ID": "144222103", "Gebernummer": "1", "WebDisplayName": "Wasserstand", "IstWasserstand": True, "IstTide": False, "HatPegelstaende": True, "IntervallSek": 300, "AktuellerMesswert": current_value, "AktuellerMesswert_Zeitpunkt": current_timestamp}
                         ],
                     }
                 ],
@@ -402,6 +402,57 @@ def test_nlwkn_regression_uses_confirmed_official_fields(monkeypatch):
     assert result.observations["unit"] == "cm"
     assert "confirmed_station_key_names" not in result.diagnostics
     assert "confirmed_parameter_key_names" not in result.diagnostics
+
+
+def test_nlwkn_multiple_datenspuren_present_exposes_concise_diagnostics(monkeypatch):
+    payload = nlwkn_station()
+    payload["getStammdatenResult"][0]["Parameter"][0]["Datenspuren"].append(
+        {"DAS_ID": "144316942", "Gebernummer": "2", "WebDisplayName": "mittlere Tidekurve", "IstWasserstand": False, "IstTide": True, "HatPegelstaende": False, "IntervallSek": 300, "AktuellerMesswert": "524,1", "AktuellerMesswert_Zeitpunkt": nlwkn_ts("2026-07-11T16:20:00Z")}
+    )
+    result = fetch_nlwkn(monkeypatch, [(nlwkn_ts("2026-07-11T16:00:00Z"), 399), (nlwkn_ts("2026-07-11T16:10:00Z"), 400), (nlwkn_ts("2026-07-11T16:15:00Z"), 401), (nlwkn_ts("2026-07-11T16:20:00Z"), 401.3)], payload)
+    assert result.status == "live"
+    assert result.observations["pinned_datenspur_id"] == "144222103"
+    assert [item["DAS_ID"] for item in result.diagnostics["datenspur_candidates"]] == ["144222103", "144316942"]
+    assert set(result.diagnostics["datenspur_candidates"][0]) == {"DAS_ID", "Gebernummer", "WebDisplayName", "IstWasserstand", "IstTide", "HatPegelstaende", "IntervallSek", "latest_value", "latest_timestamp", "latest_timestamp_utc"}
+
+
+def test_nlwkn_only_pinned_datenspur_is_used(monkeypatch):
+    payload = nlwkn_station(current_value="572,9")
+    payload["getStammdatenResult"][0]["Parameter"][0]["Datenspuren"].append(
+        {"DAS_ID": "144316942", "AktuellerMesswert": "524,1", "AktuellerMesswert_Zeitpunkt": nlwkn_ts("2026-07-11T16:20:00Z")}
+    )
+    measurements_payload = {"getZeitreiheResult": [
+        {"DAS_ID": "144222103", "Messwerte": [{"Zeitpunkt": nlwkn_ts("2026-07-11T16:00:00Z"), "Messwert": 568}, {"Zeitpunkt": nlwkn_ts("2026-07-11T16:10:00Z"), "Messwert": 570}, {"Zeitpunkt": nlwkn_ts("2026-07-11T16:15:00Z"), "Messwert": 571}, {"Zeitpunkt": nlwkn_ts("2026-07-11T16:20:00Z"), "Messwert": 572.9}]},
+        {"DAS_ID": "144316942", "Messwerte": [{"Zeitpunkt": nlwkn_ts("2026-07-11T16:20:00Z"), "Messwert": 524.1}]},
+    ]}
+    patch_nlwkn_json(monkeypatch, payload, measurements_payload)
+    result = nlwkn.fetch(now=NOW)
+    assert result.status == "live"
+    assert result.observations["latest_measurement_value"] == 572.9
+    assert result.observations["valid_values_used"] == 4
+
+
+def test_nlwkn_other_datenspur_same_timestamp_does_not_conflict(monkeypatch):
+    payload = nlwkn_station(current_timestamp=nlwkn_ts("2026-07-11T16:00:00Z"), current_value="572,9")
+    payload["getStammdatenResult"][0]["Parameter"][0]["Datenspuren"].append({"DAS_ID": "144316942", "AktuellerMesswert": "524,1", "AktuellerMesswert_Zeitpunkt": nlwkn_ts("2026-07-11T16:00:00Z")})
+    measurement_payload = {"getZeitreiheResult": [
+        {"DAS_ID": "144222103", "Zeitpunkt": nlwkn_ts("2026-07-11T16:00:00Z"), "Messwert": 572.9},
+        {"DAS_ID": "144316942", "Zeitpunkt": nlwkn_ts("2026-07-11T16:00:00Z"), "Messwert": 524.1},
+    ]}
+    patch_nlwkn_json(monkeypatch, payload, measurement_payload)
+    result = nlwkn.fetch(now=NOW)
+    assert result.status == "live"
+    assert result.diagnostics["conflicting_duplicate_timestamp_count"] == 0
+    assert result.observations["latest_measurement_value"] == 572.9
+
+
+def test_nlwkn_missing_pinned_datenspur_fails_closed(monkeypatch):
+    payload = nlwkn_station()
+    payload["getStammdatenResult"][0]["Parameter"][0]["Datenspuren"][0]["DAS_ID"] = "144316942"
+    patch_nlwkn_json(monkeypatch, payload, nlwkn_measurements([(nlwkn_ts("2026-07-11T16:00:00Z"), 1)]))
+    result = nlwkn.fetch(now=NOW)
+    assert result.status == "unavailable"
+    assert "pinned NLWKN Datenspur DAS_ID '144222103' missing" in result.diagnostics["adapter_errors"][0]
 
 def test_nlwkn_valid_zero_measurement(monkeypatch):
     result = fetch_nlwkn(monkeypatch, [(nlwkn_ts("2026-07-11T16:00:00Z"), 0), (nlwkn_ts("2026-07-11T16:10:00Z"), 0), (nlwkn_ts("2026-07-11T16:15:00Z"), 0), (nlwkn_ts("2026-07-11T16:20:00Z"), 0)])

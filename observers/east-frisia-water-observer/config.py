@@ -51,6 +51,13 @@ NLWKN_CONFIG = {
     "station_code": "9303",
     "parameter_id": "1",
     "parameter_name": "Wasserstand",
+    "pinned_datenspur_id": "144222103",
+    "pinned_datenspur_identity": {
+        "WebDisplayName": "Wasserstand",
+        "IstWasserstand": True,
+        "IstTide": False,
+        "HatPegelstaende": True,
+    },
     "unit": "cm",
     "expected_units": {"cm"},
     "recent_days": "-1",
