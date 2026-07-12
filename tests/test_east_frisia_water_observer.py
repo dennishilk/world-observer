@@ -331,6 +331,11 @@ def nlwkn_ts(value: str) -> str:
     return f"/Date({int(stamp.timestamp() * 1000)}+0200)/"
 
 
+def nlwkn_datum_utc(value: str, offset: str = "") -> str:
+    stamp = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    return f"/Date({int(stamp.timestamp() * 1000)}{offset})/"
+
+
 def nlwkn_station(unit="cm", current_timestamp=None, current_value="401,3"):
     if current_timestamp is None:
         current_timestamp = nlwkn_ts("2026-07-11T16:20:00Z")
@@ -536,15 +541,15 @@ def test_nlwkn_json_date_timestamp_still_supported(monkeypatch):
     assert result.observations["latest_measurement_timestamp_utc"] == "2026-07-11T16:20:00Z"
 
 
-def test_nlwkn_prefers_explicit_datum_utc_epoch(monkeypatch):
+def test_nlwkn_prefers_explicit_datum_utc_json_date_without_offset(monkeypatch):
     station_payload = nlwkn_station(current_timestamp="11.07.2026 18:20", current_value="401,3")
-    station_payload["getStammdatenResult"][0]["Parameter"][0]["Datenspuren"][0]["DatumUTC"] = int(datetime(2026, 7, 11, 16, 20, tzinfo=timezone.utc).timestamp() * 1000)
+    station_payload["getStammdatenResult"][0]["Parameter"][0]["Datenspuren"][0]["DatumUTC"] = nlwkn_datum_utc("2026-07-11T16:20:00Z")
     measurement_payload = {
         "getZeitreiheResult": [
-            {"Zeitpunkt": "11.07.2026 19:00", "DatumUTC": int(datetime(2026, 7, 11, 16, 0, tzinfo=timezone.utc).timestamp() * 1000), "Messwert": 399},
-            {"Zeitpunkt": "11.07.2026 19:10", "DatumUTC": int(datetime(2026, 7, 11, 16, 10, tzinfo=timezone.utc).timestamp() * 1000), "Messwert": 400},
-            {"Zeitpunkt": "11.07.2026 19:15", "DatumUTC": int(datetime(2026, 7, 11, 16, 15, tzinfo=timezone.utc).timestamp() * 1000), "Messwert": 401},
-            {"Zeitpunkt": "11.07.2026 19:20", "DatumUTC": int(datetime(2026, 7, 11, 16, 20, tzinfo=timezone.utc).timestamp() * 1000), "Messwert": 401.3},
+            {"Zeitpunkt": "11.07.2026 19:00", "DatumUTC": nlwkn_datum_utc("2026-07-11T16:00:00Z"), "Messwert": 399},
+            {"Zeitpunkt": "11.07.2026 19:10", "DatumUTC": nlwkn_datum_utc("2026-07-11T16:10:00Z"), "Messwert": 400},
+            {"Zeitpunkt": "11.07.2026 19:15", "DatumUTC": nlwkn_datum_utc("2026-07-11T16:15:00Z"), "Messwert": 401},
+            {"Zeitpunkt": "11.07.2026 19:20", "DatumUTC": nlwkn_datum_utc("2026-07-11T16:20:00Z"), "Messwert": 401.3},
         ]
     }
     patch_nlwkn_json(monkeypatch, station_payload, measurement_payload)
@@ -552,8 +557,27 @@ def test_nlwkn_prefers_explicit_datum_utc_epoch(monkeypatch):
     assert result.status == "live"
     assert result.observations["latest_measurement_timestamp_utc"] == "2026-07-11T16:20:00Z"
     assert result.diagnostics["timestamp_source"] == "DatumUTC"
+    assert result.diagnostics["raw_measurement_datum_utc"] == nlwkn_datum_utc("2026-07-11T16:20:00Z")
+    assert result.diagnostics["raw_measurement_datum_utc_type"] == "str"
     assert result.diagnostics["raw_local_timestamp_utc"] == "2026-07-11T17:20:00Z"
     assert result.diagnostics["datum_utc_timestamp_utc"] == "2026-07-11T16:20:00Z"
+
+
+def test_nlwkn_accepts_explicit_datum_utc_json_date_with_offset(monkeypatch):
+    station_payload = nlwkn_station(current_timestamp="11.07.2026 18:20", current_value="401,3")
+    station_payload["getStammdatenResult"][0]["Parameter"][0]["Datenspuren"][0]["DatumUTC"] = nlwkn_datum_utc("2026-07-11T16:20:00Z", "+0200")
+    measurement_payload = {"getZeitreiheResult": [
+        {"Zeitpunkt": "11.07.2026 18:00", "DatumUTC": nlwkn_datum_utc("2026-07-11T16:00:00Z", "+0200"), "Messwert": 399},
+        {"Zeitpunkt": "11.07.2026 18:10", "DatumUTC": nlwkn_datum_utc("2026-07-11T16:10:00Z", "+0200"), "Messwert": 400},
+        {"Zeitpunkt": "11.07.2026 18:15", "DatumUTC": nlwkn_datum_utc("2026-07-11T16:15:00Z", "+0200"), "Messwert": 401},
+        {"Zeitpunkt": "11.07.2026 18:20", "DatumUTC": nlwkn_datum_utc("2026-07-11T16:20:00Z", "+0200"), "Messwert": 401.3},
+    ]}
+    patch_nlwkn_json(monkeypatch, station_payload, measurement_payload)
+    result = nlwkn.fetch(now=NOW)
+    assert result.status == "live"
+    assert result.observations["latest_measurement_timestamp_utc"] == "2026-07-11T16:20:00Z"
+    assert result.diagnostics["raw_measurement_datum_utc"] == nlwkn_datum_utc("2026-07-11T16:20:00Z", "+0200")
+    assert result.diagnostics["raw_measurement_datum_utc_type"] == "str"
 
 
 def test_nlwkn_small_future_clock_skew_is_accepted_but_not_fresh(monkeypatch):
@@ -591,6 +615,17 @@ def test_nlwkn_json_timestamp_without_offset_fails_closed(monkeypatch):
     result = fetch_nlwkn(monkeypatch, [("/Date(1783785600000)/", 1)])
     assert result.status == "unavailable"
     assert "malformed_timestamp" in result.diagnostics["adapter_errors"][0]
+
+
+def test_nlwkn_malformed_datum_utc_fails_closed_with_raw_diagnostics(monkeypatch):
+    station_payload = nlwkn_station(current_timestamp="11.07.2026 18:20", current_value="401,3")
+    station_payload["getStammdatenResult"][0]["Parameter"][0]["Datenspuren"][0]["DatumUTC"] = 1783789500000
+    patch_nlwkn_json(monkeypatch, station_payload, nlwkn_measurements([(nlwkn_ts("2026-07-11T16:20:00Z"), 401.3)]))
+    result = nlwkn.fetch(now=NOW)
+    assert result.status == "unavailable"
+    assert "malformed DatumUTC" in result.diagnostics["adapter_errors"][0]
+    assert result.diagnostics["raw_measurement_datum_utc"] == 1783789500000
+    assert result.diagnostics["raw_measurement_datum_utc_type"] == "int"
 
 
 def test_nlwkn_unexpected_unit(monkeypatch):
