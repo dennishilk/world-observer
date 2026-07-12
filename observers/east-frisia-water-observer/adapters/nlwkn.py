@@ -75,6 +75,61 @@ def _parse_timestamp(value: Any, diagnostics: dict[str, Any] | None = None) -> d
     raise ValueError("malformed timestamp")
 
 
+def _parse_datum_utc(value: Any, diagnostics: dict[str, Any] | None = None) -> datetime:
+    """Parse NLWKN's explicit UTC epoch field when it is present."""
+    if diagnostics is not None:
+        diagnostics["raw_measurement_datum_utc"] = value
+    if isinstance(value, bool) or value in (None, ""):
+        raise ValueError("malformed DatumUTC")
+    try:
+        epoch = float(str(value).strip())
+    except (TypeError, ValueError) as exc:
+        raise ValueError("malformed DatumUTC") from exc
+    if not math.isfinite(epoch):
+        raise ValueError("malformed DatumUTC")
+    # The live service exposes DatumUTC as an epoch value. Treat large values as
+    # milliseconds and small values as seconds so tests and diagnostics remain
+    # robust if the JSON decoder returns either precision.
+    if abs(epoch) > 10_000_000_000:
+        epoch /= 1000
+    try:
+        return datetime.fromtimestamp(epoch, timezone.utc)
+    except (OverflowError, OSError, ValueError) as exc:
+        raise ValueError("malformed DatumUTC") from exc
+
+
+def _parse_measurement_timestamp(item: dict[str, Any], diagnostics: dict[str, Any] | None = None) -> datetime:
+    local_ts = _first(item.get("Zeitpunkt"), item.get("timestamp"), item.get("Datum"), item.get("AktuellerMesswert_Zeitpunkt"))
+    datum_utc = _first(item.get("DatumUTC"), item.get("datumUTC"), item.get("DatumUtc"), item.get("datum_utc"))
+    local_parsed = None
+    if local_ts is not None:
+        local_parsed = _parse_timestamp(local_ts, diagnostics)
+    if datum_utc is not None:
+        parsed_utc = _parse_datum_utc(datum_utc, diagnostics)
+        if diagnostics is not None:
+            diagnostics["timestamp_source"] = "DatumUTC"
+            if local_parsed is not None:
+                diagnostics["raw_local_timestamp_utc"] = _iso_z(local_parsed)
+                diagnostics["datum_utc_timestamp_utc"] = _iso_z(parsed_utc)
+                diagnostics["datum_utc_local_timestamp_delta_seconds"] = round((parsed_utc - local_parsed).total_seconds(), 3)
+        return parsed_utc
+    if local_parsed is not None:
+        if diagnostics is not None:
+            diagnostics["timestamp_source"] = "local_timestamp"
+        return local_parsed
+    raise ValueError("malformed timestamp")
+
+
+def _validate_not_future(ts: datetime, now_utc: datetime, diagnostics: dict[str, Any]) -> None:
+    tolerance = timedelta(minutes=NLWKN_CONFIG["future_clock_skew_tolerance_minutes"])
+    future_by = ts - now_utc
+    diagnostics["future_clock_skew_tolerance_minutes"] = NLWKN_CONFIG["future_clock_skew_tolerance_minutes"]
+    if future_by > tolerance:
+        diagnostics["future_measurement_timestamp_utc"] = _iso_z(ts)
+        diagnostics["future_measurement_ahead_minutes"] = round(future_by.total_seconds() / 60, 2)
+        raise ValueError("future timestamp beyond configured clock-skew tolerance")
+
+
 def _finite_number(value: Any) -> float:
     if isinstance(value, bool):
         raise ValueError("measurement value is not numeric")
@@ -239,6 +294,7 @@ def _trace_summary(trace: dict[str, Any], diagnostics: dict[str, Any] | None = N
     }
     value = _first(trace.get("AktuellerMesswert"), trace.get("Messwert"), trace.get("value"), trace.get("Wert"))
     ts = _first(trace.get("AktuellerMesswert_Zeitpunkt"), trace.get("Zeitpunkt"), trace.get("timestamp"), trace.get("Datum"))
+    datum_utc = _first(trace.get("DatumUTC"), trace.get("datumUTC"), trace.get("DatumUtc"), trace.get("datum_utc"))
     if value is not None:
         try:
             summary["latest_value"] = _finite_number(value)
@@ -247,9 +303,11 @@ def _trace_summary(trace: dict[str, Any], diagnostics: dict[str, Any] | None = N
     if ts is not None:
         summary["latest_timestamp"] = ts
         try:
-            summary["latest_timestamp_utc"] = _iso_z(_parse_timestamp(ts, diagnostics))
+            summary["latest_timestamp_utc"] = _iso_z(_parse_measurement_timestamp(trace, diagnostics))
         except ValueError:
             pass
+    if datum_utc is not None:
+        summary["latest_datum_utc"] = datum_utc
     return summary
 
 
@@ -287,9 +345,9 @@ def _water_parameter(station: dict[str, Any]) -> dict[str, Any]:
 
 def _extract_current(station: dict[str, Any], parameter: dict[str, Any], trace: dict[str, Any], diagnostics: dict[str, Any] | None = None) -> tuple[datetime, float]:
     value = _first(trace.get("AktuellerMesswert"), trace.get("Messwert"), trace.get("value"), trace.get("Wert"))
-    ts = _first(trace.get("AktuellerMesswert_Zeitpunkt"), trace.get("Zeitpunkt"), trace.get("timestamp"), trace.get("Datum"))
+    ts = _first(trace.get("AktuellerMesswert_Zeitpunkt"), trace.get("Zeitpunkt"), trace.get("timestamp"), trace.get("Datum"), trace.get("DatumUTC"))
     if value is not None and ts is not None:
-        return _parse_timestamp(ts, diagnostics), _finite_number(value)
+        return _parse_measurement_timestamp(trace, diagnostics), _finite_number(value)
     raise ValueError("current water-level measurement missing for pinned Datenspur")
 
 
@@ -309,7 +367,7 @@ def _walk_measurement_dicts(value: Any, pinned_datenspur_id: str, active_trace_i
 
 def _measurement_fields(item: dict[str, Any]) -> tuple[Any, Any]:
     value = _first(item.get("Messwert"), item.get("Wert"), item.get("value"), item.get("AktuellerMesswert"))
-    ts = _first(item.get("Zeitpunkt"), item.get("timestamp"), item.get("Datum"), item.get("AktuellerMesswert_Zeitpunkt"))
+    ts = _first(item.get("Zeitpunkt"), item.get("timestamp"), item.get("Datum"), item.get("AktuellerMesswert_Zeitpunkt"), item.get("DatumUTC"))
     return value, ts
 
 
@@ -377,10 +435,10 @@ def _valid_measurements(payload: Any, pinned_datenspur_id: str, diagnostics: dic
     conflicting_duplicate_timestamp_count = 0
     for item in _walk_measurement_dicts(payload, pinned_datenspur_id):
         value = _first(item.get("Messwert"), item.get("Wert"), item.get("value"), item.get("AktuellerMesswert"))
-        ts = _first(item.get("Zeitpunkt"), item.get("timestamp"), item.get("Datum"), item.get("AktuellerMesswert_Zeitpunkt"))
+        ts = _first(item.get("Zeitpunkt"), item.get("timestamp"), item.get("Datum"), item.get("AktuellerMesswert_Zeitpunkt"), item.get("DatumUTC"))
         if value is None or ts is None:
             continue
-        parsed_ts = _parse_timestamp(ts, diagnostics)
+        parsed_ts = _parse_measurement_timestamp(item, diagnostics)
         number = _finite_number(value)
         existing = grouped.get(parsed_ts)
         if existing is None and parsed_ts not in grouped:
@@ -408,13 +466,26 @@ def _valid_measurements(payload: Any, pinned_datenspur_id: str, diagnostics: dic
 def _trend(values: list[tuple[datetime, float]], unit: str) -> dict[str, Any]:
     minimum = NLWKN_CONFIG["trend_minimum_values"]
     if len(values) < minimum:
-        return {"direction": "unavailable", "valid_measurement_count": len(values), "minimum_valid_measurements": minimum}
+        return {"direction": "unavailable", "valid_measurement_count": len(values), "minimum_valid_measurements": minimum, "configured_window_minutes": NLWKN_CONFIG["trend_window_minutes"]}
     first_ts, first_value = values[0]
     latest_ts, latest_value = values[-1]
     change = latest_value - first_value
     threshold = NLWKN_CONFIG["stable_threshold_by_unit"][unit]
     direction = "stable" if abs(change) <= threshold else ("rising" if change > 0 else "falling")
-    return {"direction": direction, "first_valid_value": first_value, "latest_valid_value": latest_value, "signed_change": change, "window_start_utc": _iso_z(first_ts), "window_end_utc": _iso_z(latest_ts), "valid_measurement_count": len(values), "minimum_valid_measurements": minimum, "stable_threshold": threshold, "unit": unit}
+    actual_window_minutes = (latest_ts - first_ts).total_seconds() / 60
+    return {"direction": direction, "first_valid_value": first_value, "latest_valid_value": latest_value, "signed_change": change, "window_start_utc": _iso_z(first_ts), "window_end_utc": _iso_z(latest_ts), "configured_window_minutes": NLWKN_CONFIG["trend_window_minutes"], "actual_window_minutes": round(actual_window_minutes, 2), "valid_measurement_count": len(values), "minimum_valid_measurements": minimum, "stable_threshold": threshold, "unit": unit}
+
+
+def _measurements_in_trend_window(values: list[tuple[datetime, float]], latest_ts: datetime, diagnostics: dict[str, Any]) -> list[tuple[datetime, float]]:
+    window_minutes = NLWKN_CONFIG["trend_window_minutes"]
+    start = latest_ts - timedelta(minutes=window_minutes)
+    filtered = [(ts, value) for ts, value in values if start <= ts <= latest_ts]
+    diagnostics["trend_configured_window_minutes"] = window_minutes
+    diagnostics["trend_window_start_utc"] = _iso_z(start)
+    diagnostics["trend_window_end_utc"] = _iso_z(latest_ts)
+    diagnostics["trend_candidate_measurement_count"] = len(values)
+    diagnostics["trend_valid_measurement_count"] = len(filtered)
+    return filtered
 
 
 def fetch(now: datetime | None = None) -> AdapterResult:
@@ -443,9 +514,16 @@ def fetch(now: datetime | None = None) -> AdapterResult:
         measurements = _valid_measurements(selected_measurements_payload, pinned_datenspur_id, diagnostics)
         if measurements[-1][0] >= current_ts:
             current_ts, current_value = measurements[-1]
-        age_minutes = (now_utc - current_ts).total_seconds() / 60
-        freshness = "fresh_measurement" if age_minutes <= NLWKN_CONFIG["freshness_threshold_minutes"] else "stale_measurement"
-        trend = _trend(measurements, unit)
+        _validate_not_future(current_ts, now_utc, diagnostics)
+        raw_age_minutes = (now_utc - current_ts).total_seconds() / 60
+        diagnostics["raw_measurement_age_minutes"] = round(raw_age_minutes, 2)
+        age_minutes = max(0.0, raw_age_minutes)
+        within_accepted_future_skew = raw_age_minutes < 0
+        if within_accepted_future_skew:
+            diagnostics["accepted_future_clock_skew_minutes"] = round(abs(raw_age_minutes), 2)
+        freshness = "fresh_measurement" if not within_accepted_future_skew and age_minutes <= NLWKN_CONFIG["freshness_threshold_minutes"] else "stale_measurement"
+        trend_measurements = _measurements_in_trend_window(measurements, current_ts, diagnostics)
+        trend = _trend(trend_measurements, unit)
     except ValueError as exc:
         message = str(exc)
         if "conflicting_duplicate_timestamp" in message:

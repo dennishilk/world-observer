@@ -64,6 +64,7 @@ NLWKN_CONFIG = {
     "timeout_seconds": 10,
     "max_retries": 1,
     "freshness_threshold_minutes": 90,
+    "future_clock_skew_tolerance_minutes": 5,
     "trend_window_minutes": 180,
     "trend_minimum_values": 4,
     "stable_threshold_by_unit": {"cm": 2.0},
