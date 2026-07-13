@@ -12,6 +12,41 @@
       "planned": false
     },
     {
+      "observer": "horizon-observer",
+      "display_name": "Horizon Observer",
+      "category": "earth-and-space",
+      "description": "Local API-free apparent horizon astronomy for Wiesmoor.",
+      "tags": [
+        "earth-and-space",
+        "astronomy",
+        "wiesmoor",
+        "local-calculation"
+      ],
+      "dashboard_priority": 10,
+      "planned": false,
+      "primary_metric": "summary.objects_above_horizon_count",
+      "primary_metric_label": "Objects above horizon",
+      "primary_metric_unit": "count",
+      "secondary_metrics": [
+        [
+          "summary.bright_planets_above_horizon_count",
+          "Bright planets above horizon",
+          "count"
+        ],
+        [
+          "summary.moon_illumination_percent",
+          "Moon illumination",
+          "%"
+        ],
+        [
+          "summary.sun_altitude_deg",
+          "Sun altitude",
+          "degrees"
+        ]
+      ],
+      "trend_metric": "summary.objects_above_horizon_count"
+    },
+    {
       "observer": "http-reachability-index",
       "display_name": "HTTP Reachability Index",
       "category": "internet",
