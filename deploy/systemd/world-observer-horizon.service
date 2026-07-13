@@ -1,0 +1,12 @@
+[Unit]
+Description=World Observer Horizon Observer 10-minute production refresh
+Documentation=https://github.com/dennishilk/world-observer
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=nebu
+WorkingDirectory=/opt/world-observer/world-observer
+Environment=WORLD_OBSERVER_HORIZON_WEBSITE_OUTPUT=/srv/www/dennishilk.github.io/world-observer/dashboard/latest/horizon-observer.json
+ExecStart=/opt/world-observer/world-observer/scripts/run_horizon_observer_production.sh

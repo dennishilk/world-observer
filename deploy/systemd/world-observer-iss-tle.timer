@@ -1,0 +1,10 @@
+[Unit]
+Description=Refresh World Observer ISS TLE cache every 6 hours
+
+[Timer]
+OnCalendar=*-*-* 00/6:00:00
+Persistent=true
+Unit=world-observer-iss-tle.service
+
+[Install]
+WantedBy=timers.target
