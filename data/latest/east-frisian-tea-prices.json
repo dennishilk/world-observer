@@ -17,7 +17,7 @@
     "currency": "EUR",
     "ean": "4008837201054",
     "fetch_url": "https://www.combi.de/buenting_tee_gruenpack_1101010007.html",
-    "fetched_at_utc": "2026-07-13T06:06:12.540980+00:00",
+    "fetched_at_utc": "2026-07-13T09:22:45.590553+00:00",
     "http_status": 200,
     "meta_fields_present": [
       "product:availability",

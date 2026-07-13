@@ -85,6 +85,11 @@
     {
       "date": "2026-07-13",
       "value": 0.2963,
+      "source": "daily"
+    },
+    {
+      "date": "2026-07-13",
+      "value": 0.2963,
       "source": "static_tariff_observation"
     }
   ],
@@ -97,7 +102,7 @@
     "http_status": null,
     "source_status": "static_tariff_loaded",
     "validation_note": "Static tariff values are manually configured; validated local CSV/JSON imports remain supported.",
-    "daily_state_history_count": 11
+    "daily_state_history_count": 12
   },
   "last_seen_date": "2026-07-13"
 }
