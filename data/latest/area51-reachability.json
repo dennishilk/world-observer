@@ -1,6 +1,6 @@
 {
   "observer": "area51-reachability",
-  "date_utc": "2026-07-12",
+  "date_utc": "2026-07-13",
   "data_status": "partial",
   "bucket_minutes": 15,
   "bbox": {
@@ -9,42 +9,42 @@
     "min_lon": -118.5,
     "max_lon": -112.5
   },
-  "bucket_count": 2,
+  "bucket_count": 1,
   "au": {
-    "janet_like": 36,
-    "other": 13,
-    "total": 49
+    "janet_like": 55,
+    "other": 17,
+    "total": 72
   },
   "baseline_30d": {
     "janet_like": {
-      "mean": 109.5,
-      "std": 136.0592,
-      "effective_std": 136.0592
+      "mean": 104.6,
+      "std": 132.7181,
+      "effective_std": 132.7181
     },
     "other": {
-      "mean": 45.4286,
-      "std": 61.2054,
-      "effective_std": 61.2054
+      "mean": 43.2667,
+      "std": 59.6808,
+      "effective_std": 59.6808
     },
     "total": {
-      "mean": 154.9286,
-      "std": 196.9929,
-      "effective_std": 196.9929
+      "mean": 147.8667,
+      "std": 192.1388,
+      "effective_std": 192.1388
     }
   },
   "significance": {
     "sigma_mult": 2.0,
     "janet_like": {
       "is_significant": false,
-      "z": -0.5402
+      "z": -0.3737
     },
     "other": {
       "is_significant": false,
-      "z": -0.5298
+      "z": -0.4401
     },
     "total": {
       "is_significant": false,
-      "z": -0.5377
+      "z": -0.3949
     },
     "any_significant": false
   },
