@@ -89,3 +89,39 @@ def test_no_network_request(monkeypatch):
     monkeypatch.setattr(socket, "create_connection", fail)
     o=load(); p=o.build_payload(datetime(2026,3,1,0,0,tzinfo=timezone.utc))
     assert p["diagnostics"]["external_api_requests"] == 0
+
+def test_iss_valid_tle_current_and_next_pass(monkeypatch, tmp_path):
+    o=load(); tle=tmp_path/'iss.tle'; tle.write_text((REPO_ROOT/'tests/fixtures/iss_fixed.tle').read_text())
+    monkeypatch.setattr(o, 'TLE_CACHE_PATH', tle); monkeypatch.setattr(o, 'TLE_META_PATH', tmp_path/'iss.tle.meta.json')
+    p=o.iss_status(datetime(2026,1,15,13,0,tzinfo=timezone.utc))
+    assert p['status']=='available'; assert p['freshness']=='fresh'
+    assert -90 <= p['current']['altitude_deg'] <= 90
+    assert 0 <= p['current']['azimuth_deg'] < 360
+    assert p['next_pass']['rise_time_utc'].endswith('Z') and '+' in p['next_pass']['rise_time_local']
+    assert p['next_pass']['duration_seconds'] >= 0
+    assert ' → ' in p['next_pass']['movement_direction']
+
+def test_iss_invalid_and_stale_are_non_fatal(monkeypatch, tmp_path):
+    o=load(); bad=tmp_path/'bad.tle'; bad.write_text('bad\n')
+    monkeypatch.setattr(o, 'TLE_CACHE_PATH', bad)
+    assert o.iss_status(datetime(2026,1,1,tzinfo=timezone.utc))['freshness']=='invalid'
+    stale=tmp_path/'stale.tle'; stale.write_text((REPO_ROOT/'tests/fixtures/iss_fixed.tle').read_text())
+    monkeypatch.setattr(o, 'TLE_CACHE_PATH', stale)
+    p=o.iss_status(datetime(2026,1,25,tzinfo=timezone.utc))
+    assert p['freshness']=='stale' and 'current' not in p
+    assert o.build_payload(datetime(2026,1,25,tzinfo=timezone.utc))['status']=='ok'
+
+def test_tle_epoch_and_freshness_boundaries():
+    o=load(); line=(REPO_ROOT/'tests/fixtures/iss_fixed.tle').read_text().splitlines()[1]
+    epoch=o.parse_tle_epoch(line); assert epoch.tzinfo is not None and epoch.year==2026
+    assert o.tle_freshness(epoch, epoch+__import__('datetime').timedelta(days=3))[0]=='fresh'
+    assert o.tle_freshness(epoch, epoch+__import__('datetime').timedelta(days=3, seconds=1))[0]=='aging'
+    assert o.tle_freshness(epoch, epoch+__import__('datetime').timedelta(days=7, seconds=1))[0]=='stale'
+
+def test_observer_no_network_with_tle(monkeypatch, tmp_path):
+    def fail(*a, **k): raise AssertionError('network attempted')
+    monkeypatch.setattr(socket, 'create_connection', fail)
+    o=load(); tle=tmp_path/'iss.tle'; tle.write_text((REPO_ROOT/'tests/fixtures/iss_fixed.tle').read_text())
+    monkeypatch.setattr(o, 'TLE_CACHE_PATH', tle); monkeypatch.setattr(o, 'TLE_META_PATH', tmp_path/'missing')
+    p=o.build_payload(datetime(2026,1,15,13,0,tzinfo=timezone.utc))
+    assert p['diagnostics']['external_api_requests']==0 and p['diagnostics']['iss_current_position_calculated'] is True

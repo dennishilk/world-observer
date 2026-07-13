@@ -1,0 +1,10 @@
+[Unit]
+Description=Run World Observer Horizon Observer every 10 minutes
+
+[Timer]
+OnCalendar=*-*-* *:00/10:00
+Persistent=true
+Unit=world-observer-horizon.service
+
+[Install]
+WantedBy=timers.target

@@ -2,10 +2,10 @@
 """Horizon Observer: local apparent Solar System geometry for Wiesmoor."""
 from __future__ import annotations
 
-import json, math, os, sys, time
+import json, math, os, sys, time, re
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, NamedTuple
 from zoneinfo import ZoneInfo
 
 try:
@@ -194,10 +194,79 @@ def milky_way(dt: datetime) -> dict[str, Any]:
         prev_az=az; prev_vis=vis
     return {"description":"Approximate geometrical Galactic equator path; actual visibility depends on darkness, weather, moonlight and light pollution.","sample_count":len(points),"points":points,"segments_available":len({p['segment_id'] for p in points if p['above_horizon']})}
 
+
+TLE_CACHE_PATH = Path(os.environ.get("WORLD_OBSERVER_ISS_TLE_PATH", "data/reference/iss.tle"))
+TLE_META_PATH = Path(os.environ.get("WORLD_OBSERVER_ISS_TLE_META_PATH", str(TLE_CACHE_PATH) + ".meta.json"))
+
+class TLEData(NamedTuple):
+    name: str
+    line1: str
+    line2: str
+
+def load_tle(path: Path = TLE_CACHE_PATH) -> TLEData:
+    lines=[ln.strip() for ln in path.read_text(encoding="utf-8").splitlines() if ln.strip()]
+    if len(lines) == 2:
+        name="ISS (ZARYA)"; line1,line2=lines
+    elif len(lines) >= 3:
+        name,line1,line2=lines[:3]
+    else:
+        raise ValueError("tle_requires_two_or_three_lines")
+    validate_tle_lines(line1,line2)
+    return TLEData(name,line1,line2)
+
+def validate_tle_lines(line1: str, line2: str) -> None:
+    if not line1.startswith("1 "): raise ValueError("tle_line1_prefix_invalid")
+    if not line2.startswith("2 "): raise ValueError("tle_line2_prefix_invalid")
+    sat1=line1[2:7].strip(); sat2=line2[2:7].strip()
+    if not sat1 or sat1 != sat2: raise ValueError("tle_catalog_id_mismatch")
+
+def parse_tle_epoch(line1: str) -> datetime:
+    m=re.match(r"^1\s+\d{5}\S?\s+\S+\s+(\d{2})(\d{3}\.\d+)", line1)
+    if not m: raise ValueError("tle_epoch_missing")
+    yy=int(m.group(1)); year=2000+yy if yy < 57 else 1900+yy
+    day=float(m.group(2)); start=datetime(year,1,1,tzinfo=timezone.utc)
+    return start + timedelta(days=day-1)
+
+def tle_freshness(epoch: datetime|None, now: datetime) -> tuple[str, float|None]:
+    if epoch is None: return "invalid", None
+    age=(now.astimezone(timezone.utc)-epoch.astimezone(timezone.utc)).total_seconds()/3600
+    if age <= 72: return "fresh", round(age,2)
+    if age <= 168: return "aging", round(age,2)
+    return "stale", round(age,2)
+
+def duration_human(seconds: int) -> str:
+    m,s=divmod(max(0,int(seconds)),60); return f"{m}m {s}s"
+
 def iss_status(dt: datetime) -> dict[str, Any]:
-    path=Path("data/reference/iss.tle")
-    if not path.exists(): return {"status":"unavailable","reason":"local_tle_missing","tle_path":str(path),"network_dependency":False}
-    return {"status":"unavailable","reason":"tle_calculation_not_enabled","tle_path":str(path),"network_dependency":False}
+    path=TLE_CACHE_PATH
+    base={"status":"unavailable","reason":None,"tle_epoch_utc":None,"tle_age_hours":None,"freshness":"missing","source_updated_at":None,"local_cache_path":str(path),"tle_path":str(path),"network_dependency":False,"current_position_status":"unavailable","next_pass_status":"unavailable"}
+    if not path.exists():
+        base["reason"]="local_tle_missing"; return base
+    try:
+        tle=load_tle(path); epoch=parse_tle_epoch(tle.line1); freshness,age=tle_freshness(epoch,dt)
+        base.update({"tle_epoch_utc":iso(epoch),"tle_age_hours":age,"freshness":freshness})
+        if TLE_META_PATH.exists():
+            try: base["source_updated_at"]=json.loads(TLE_META_PATH.read_text()).get("source_updated_at")
+            except Exception: pass
+    except Exception as exc:
+        base.update({"reason":"local_tle_invalid","freshness":"invalid","validation_error":str(exc)}) ; return base
+    if freshness == "stale":
+        base.update({"reason":"local_tle_stale","current_position_status":"stale_tle_not_exposed","next_pass_status":"stale_tle_not_exposed"}); return base
+    if not EPHEM_AVAILABLE:
+        base.update({"reason":"pyephem_unavailable"}); return base
+    try:
+        obs=observer_at(dt); iss=ephem.readtle(tle.name, tle.line1, tle.line2); iss.compute(obs)
+        alt=math.degrees(float(iss.alt)); az=normalize_azimuth(math.degrees(float(iss.az)))
+        base.update({"status":"available","reason":None,"current_position_status":"available","current":{"calculated_at_utc":iso(dt),"calculated_at_local":iso_local(dt),"altitude_deg":round(alt,2),"azimuth_deg":round(az,2),"compass_direction":compass_direction(az),"above_horizon":alt>0}})
+        iss_pass=ephem.readtle(tle.name, tle.line1, tle.line2)
+        rt, raz, mt, malt, st, saz = obs.next_pass(iss_pass)
+        rdt,mdt,sdt=to_dt(rt),to_dt(mt),to_dt(st); dur=max(0,int((sdt-rdt).total_seconds()))
+        razd=normalize_azimuth(math.degrees(float(raz))); sazd=normalize_azimuth(math.degrees(float(saz))); maxalt=math.degrees(float(malt))
+        rd,sd=compass_direction(razd),compass_direction(sazd)
+        base.update({"next_pass_status":"available","next_pass":{"status":"available","rise_time_utc":iso(rdt),"rise_time_local":iso_local(rdt),"rise_azimuth_deg":round(razd,2),"rise_direction":rd,"maximum_time_utc":iso(mdt),"maximum_time_local":iso_local(mdt),"maximum_altitude_deg":round(maxalt,2),"set_time_utc":iso(sdt),"set_time_local":iso_local(sdt),"set_azimuth_deg":round(sazd,2),"set_direction":sd,"duration_seconds":dur,"duration_human":duration_human(dur),"movement_direction":f"{rd} → {sd}","geometrically_visible":maxalt>0}})
+    except Exception as exc:
+        base.update({"status":"unavailable","reason":"iss_calculation_error","calculation_error":str(exc)})
+    return base
 
 def build_payload(calculation_time: datetime|None=None) -> dict[str, Any]:
     started=datetime.now(timezone.utc); t=(calculation_time or now_utc()).astimezone(timezone.utc).replace(microsecond=0); errors=[]; warnings=[]
@@ -213,7 +282,7 @@ def build_payload(calculation_time: datetime|None=None) -> dict[str, Any]:
     moon=next((o for o in objects if o["id"]=="moon"),{})
     sent=f"{', '.join(o['display_name'] for o in above[:3]) or 'No primary objects'}{' and more' if len(above)>3 else ''} {'are' if len(above)!=1 else 'is'} currently above the Wiesmoor geometric horizon during {sky['label'].lower()}."
     finished=datetime.now(timezone.utc)
-    return {"observer":{"id":OBSERVER_ID,"name":"Horizon Observer","category":"earth-and-space","version":1},"observer_id":OBSERVER_ID,"observer_name":"Horizon Observer","date_utc":t.date().isoformat(),"generated_at":iso(t),"collected_at_utc":iso(t),"location":LOCATION,"status":"ok" if not errors else "partial","data_status":"ok" if not errors else "partial","summary":{"objects_above_horizon_count":len(above),"bright_planets_above_horizon_count":sum(1 for o in above if o['object_type']=='planet' and o['id'] not in {'uranus','neptune'}),"sun_altitude_deg":round(sun_alt,2),"moon_altitude_deg":moon.get("altitude_deg"),"moon_illumination_percent":moon.get("display_metadata",{}).get("illumination_percent"),"ambient_light_state":sky["state"],"highest_object_id":highest["id"],"highest_object_altitude_deg":highest["altitude_deg"],"iss_status":iss["status"],"constellation_labels_available":len(const),"milky_way_segments_available":mw["segments_available"],"status_sentence":sent},"sky_state":sky,"orientation":{"zenith_altitude_deg":90,"north_azimuth_deg":0,"east_azimuth_deg":90,"south_azimuth_deg":180,"west_azimuth_deg":270,"compass_ticks":[{"direction":d,"azimuth_deg":i*22.5} for i,d in enumerate(COMPASS)]},"objects":objects,"horizon_scene":scene,"constellations":const,"milky_way":mw,"iss":iss,"diagnostics":{"calculation_started_at":iso(started),"calculation_finished_at":iso(finished),"duration_ms":round((finished-started).total_seconds()*1000,2),"astronomy_engine":"PyEphem" if EPHEM_AVAILABLE else "Built-in approximate local astronomy","astronomy_engine_version":getattr(ephem,"__version__",None) if EPHEM_AVAILABLE else None,"object_calculations_attempted":len(PRIMARY),"object_calculations_successful":len(objects),"constellation_anchor_count":len(CONSTELLATIONS),"milky_way_sample_count":mw["sample_count"],"local_network_requests":0,"external_api_requests":0,"iss_adapter_status":iss["status"],"warnings":warnings + ([iss["reason"]] if iss["status"]=="unavailable" else []),"errors":errors},"sources":[{"name":"Local PyEphem astronomical calculations","type":"local_calculation","external_runtime_api":False,"notes":["Wiesmoor canonical coordinates reused from Wiesmoor Sky Observer.","Geometric horizon without terrain obstruction modelling; atmospheric pressure is set to zero to avoid refraction correction.","Constellation labels are approximate anchor points, not official boundaries.","Milky Way path is a geometrical Galactic-equator approximation."]}]}
+    return {"observer":{"id":OBSERVER_ID,"name":"Horizon Observer","category":"earth-and-space","version":1},"observer_id":OBSERVER_ID,"observer_name":"Horizon Observer","date_utc":t.date().isoformat(),"generated_at":iso(t),"collected_at_utc":iso(t),"location":LOCATION,"status":"ok" if not errors else "partial","data_status":"ok" if not errors else "partial","summary":{"objects_above_horizon_count":len(above),"bright_planets_above_horizon_count":sum(1 for o in above if o['object_type']=='planet' and o['id'] not in {'uranus','neptune'}),"sun_altitude_deg":round(sun_alt,2),"moon_altitude_deg":moon.get("altitude_deg"),"moon_illumination_percent":moon.get("display_metadata",{}).get("illumination_percent"),"ambient_light_state":sky["state"],"highest_object_id":highest["id"],"highest_object_altitude_deg":highest["altitude_deg"],"iss_status":iss["status"],"constellation_labels_available":len(const),"milky_way_segments_available":mw["segments_available"],"status_sentence":sent},"sky_state":sky,"orientation":{"zenith_altitude_deg":90,"north_azimuth_deg":0,"east_azimuth_deg":90,"south_azimuth_deg":180,"west_azimuth_deg":270,"compass_ticks":[{"direction":d,"azimuth_deg":i*22.5} for i,d in enumerate(COMPASS)]},"objects":objects,"horizon_scene":scene,"constellations":const,"milky_way":mw,"iss":iss,"diagnostics":{"calculation_started_at":iso(started),"calculation_finished_at":iso(finished),"duration_ms":round((finished-started).total_seconds()*1000,2),"astronomy_engine":"PyEphem" if EPHEM_AVAILABLE else "Built-in approximate local astronomy","astronomy_engine_version":getattr(ephem,"__version__",None) if EPHEM_AVAILABLE else None,"object_calculations_attempted":len(PRIMARY),"object_calculations_successful":len(objects),"constellation_anchor_count":len(CONSTELLATIONS),"milky_way_sample_count":mw["sample_count"],"local_network_requests":0,"external_api_requests":0,"horizon_refresh_mode":"dedicated_10_minute","iss_adapter_status":iss["status"],"iss_tle_freshness":iss.get("freshness"),"iss_tle_age_hours":iss.get("tle_age_hours"),"iss_calculation_engine":"PyEphem readtle" if EPHEM_AVAILABLE else "unavailable","iss_current_position_calculated":iss.get("current_position_status")=="available","iss_next_pass_calculated":iss.get("next_pass_status")=="available","warnings":warnings + ([iss["reason"]] if iss["status"]=="unavailable" else []),"errors":errors},"sources":[{"name":"Local PyEphem astronomical calculations","type":"local_calculation","external_runtime_api":False,"notes":["Wiesmoor canonical coordinates reused from Wiesmoor Sky Observer.","Geometric horizon without terrain obstruction modelling; atmospheric pressure is set to zero to avoid refraction correction.","Constellation labels are approximate anchor points, not official boundaries.","Milky Way path is a geometrical Galactic-equator approximation."]}]}
 
 def main() -> None:
     json.dump(build_payload(), sys.stdout, ensure_ascii=False, sort_keys=True); sys.stdout.write("\n")
