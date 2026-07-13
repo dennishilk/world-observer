@@ -37,6 +37,29 @@ def test_payload_schema_moon_samples_negative_and_iss(monkeypatch, tmp_path):
     assert any(sample["altitude_deg"] < 0 for obj in payload["objects"] for sample in obj["altitude_series_24h"])
     assert payload["iss"]["status"]=="unavailable" and payload["iss"]["reason"]=="local_tle_missing"
 
+def test_resolve_body_preserves_fallback_identifiers_and_maps_pyephem(monkeypatch):
+    o=load()
+    class FakeEphem:
+        class Sun: pass
+        class Moon: pass
+        class Mercury: pass
+        class Venus: pass
+        class Mars: pass
+        class Jupiter: pass
+        class Saturn: pass
+    monkeypatch.setattr(o, "EPHEM_AVAILABLE", False)
+    assert o.resolve_body("jupiter") == "jupiter"
+    monkeypatch.setattr(o, "EPHEM_AVAILABLE", True)
+    monkeypatch.setattr(o, "ephem", FakeEphem)
+    assert o.resolve_body("sun") is FakeEphem.Sun
+    assert o.resolve_body("moon") is FakeEphem.Moon
+    assert o.resolve_body("mercury") is FakeEphem.Mercury
+    assert o.resolve_body("venus") is FakeEphem.Venus
+    assert o.resolve_body("mars") is FakeEphem.Mars
+    assert o.resolve_body("jupiter") is FakeEphem.Jupiter
+    assert o.resolve_body("saturn") is FakeEphem.Saturn
+    assert o.resolve_body(FakeEphem.Mars) is FakeEphem.Mars
+
 def test_rise_set_unavailable_edge_case(monkeypatch):
     o=load()
     class FakeAlwaysUp(Exception): pass

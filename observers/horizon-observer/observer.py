@@ -97,6 +97,22 @@ def observer_at(dt: datetime) -> Any:
 
 def to_dt(d: Any) -> datetime: return ephem.Date(d).datetime().replace(tzinfo=timezone.utc)
 
+def resolve_body(body_identifier: Any) -> Any:
+    if not EPHEM_AVAILABLE:
+        return str(body_identifier)
+    if callable(body_identifier):
+        return body_identifier
+    constructors = {
+        "sun": ephem.Sun,
+        "moon": ephem.Moon,
+        "mercury": ephem.Mercury,
+        "venus": ephem.Venus,
+        "mars": ephem.Mars,
+        "jupiter": ephem.Jupiter,
+        "saturn": ephem.Saturn,
+    }
+    return constructors[str(body_identifier).lower()]
+
 def calc_body(body_cls: Any, dt: datetime) -> tuple[Any,float,float]:
     if EPHEM_AVAILABLE:
         obs=observer_at(dt); b=body_cls(); b.compute(obs); return b, math.degrees(float(b.alt)), normalize_azimuth(math.degrees(float(b.az)))
@@ -185,12 +201,12 @@ def iss_status(dt: datetime) -> dict[str, Any]:
 
 def build_payload(calculation_time: datetime|None=None) -> dict[str, Any]:
     started=datetime.now(timezone.utc); t=(calculation_time or now_utc()).astimezone(timezone.utc).replace(microsecond=0); errors=[]; warnings=[]
-    sun_obj,sun_alt,_=calc_body("sun" if not EPHEM_AVAILABLE else ephem.Sun,t); sky=sky_light_state(sun_alt); objects=[]
+    sun_obj,sun_alt,_=calc_body(resolve_body("sun"),t); sky=sky_light_state(sun_alt); objects=[]
     for ident,name,typ,cls in PRIMARY:
         try:
-            b,alt,az=calc_body(cls,t); geom=geometric_visibility(alt, typ if ident=="sun" else typ); ev=rise_set(cls,t); meta={"colour_token": ident if ident in {"sun","moon","mercury","venus","mars","jupiter","saturn"} else "default_planet","symbol_type":typ}
+            body_cls=resolve_body(cls); b,alt,az=calc_body(body_cls,t); geom=geometric_visibility(alt, typ if ident=="sun" else typ); ev=rise_set(body_cls,t); meta={"colour_token": ident if ident in {"sun","moon","mercury","venus","mars","jupiter","saturn"} else "default_planet","symbol_type":typ}
             if ident=="moon": meta.update(moon_phase(t))
-            objects.append({"id":ident,"display_name":name,"object_type":typ,"calculated_at_utc":iso(t),"altitude_deg":round(alt,2),"azimuth_deg":round(az,2),"compass_direction":compass_direction(az),"above_horizon":alt>0,"geometric_visibility":geom,"ambient_light_state":sky["state"],"display_visibility":display_visibility(geom, sky["state"], typ if ident=="sun" else typ),**ev,"display_metadata":meta,"altitude_series_24h":samples(cls,t)})
+            objects.append({"id":ident,"display_name":name,"object_type":typ,"calculated_at_utc":iso(t),"altitude_deg":round(alt,2),"azimuth_deg":round(az,2),"compass_direction":compass_direction(az),"above_horizon":alt>0,"geometric_visibility":geom,"ambient_light_state":sky["state"],"display_visibility":display_visibility(geom, sky["state"], typ if ident=="sun" else typ),**ev,"display_metadata":meta,"altitude_series_24h":samples(body_cls,t)})
         except Exception as exc: errors.append(f"{ident}: {exc}")
     const=build_constellations(t); mw=milky_way(t); iss=iss_status(t); above=[o for o in objects if o["above_horizon"]]; highest=max(objects,key=lambda o:o["altitude_deg"],default={"id":None,"altitude_deg":None})
     scene={"objects":sorted([{ "object_id":o["id"],"label":o["display_name"],"altitude_deg":o["altitude_deg"],"azimuth_deg":o["azimuth_deg"],"compass_direction":o["compass_direction"],"above_horizon":o["above_horizon"],"display_priority":10-i,"symbol_type":o["display_metadata"]["symbol_type"],"suggested_label_placement":"above" if o["altitude_deg"]<60 else "side","colour_token":o["display_metadata"]["colour_token"],"apparent_size_token":"large" if o["id"] in {"sun","moon"} else "medium" if o["id"] in {"venus","jupiter"} else "small"} for i,o in enumerate(objects)], key=lambda r:(not r["above_horizon"],-r["display_priority"]))}
