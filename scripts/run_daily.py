@@ -33,6 +33,7 @@ OBSERVERS: List[str] = [
     "germany-fuel-prices",
     "global-reachability-long-horizon",
     "global-reachability-score",
+    "horizon-observer",
     "http-reachability-index",
     "internet-shrinkage-index",
     "ipv6-adoption-locked-states",
