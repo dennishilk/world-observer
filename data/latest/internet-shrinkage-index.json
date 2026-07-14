@@ -1,24 +1,8 @@
 {
   "observer": "internet-shrinkage-index",
-  "date_utc": "2026-07-13",
+  "date_utc": "2026-07-14",
   "data_status": "partial",
   "countries": [
-    {
-      "country": "CU",
-      "shrinkage_score": 0.0,
-      "components": {
-        "trend": 0.0,
-        "distance_to_peak": 0.0,
-        "persistence": 0.0,
-        "silence_modifier": null
-      },
-      "baseline_30d": {
-        "mean": 0.0,
-        "std": 0.0
-      },
-      "delta": 0.0,
-      "is_new_max": false
-    },
     {
       "country": "DE",
       "shrinkage_score": 0.0,
@@ -33,38 +17,6 @@
         "std": 0.053676
       },
       "delta": -0.035127,
-      "is_new_max": false
-    },
-    {
-      "country": "IR",
-      "shrinkage_score": 0.0,
-      "components": {
-        "trend": 0.0,
-        "distance_to_peak": 0.0,
-        "persistence": 0.0,
-        "silence_modifier": null
-      },
-      "baseline_30d": {
-        "mean": 0.0,
-        "std": 0.0
-      },
-      "delta": 0.0,
-      "is_new_max": false
-    },
-    {
-      "country": "KP",
-      "shrinkage_score": 0.0,
-      "components": {
-        "trend": 0.0,
-        "distance_to_peak": 0.0,
-        "persistence": 0.0,
-        "silence_modifier": null
-      },
-      "baseline_30d": {
-        "mean": 0.0,
-        "std": 0.0
-      },
-      "delta": 0.0,
       "is_new_max": false
     },
     {
@@ -93,7 +45,7 @@
     "is_new_max": false
   },
   "summary_stats": {
-    "countries_evaluated": 5,
+    "countries_evaluated": 2,
     "new_max_count": 0,
     "mass_event": false
   },
