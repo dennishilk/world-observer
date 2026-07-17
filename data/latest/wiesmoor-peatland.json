@@ -1,6 +1,6 @@
 {
   "category": "environment",
-  "collected_at_utc": "2026-07-16T06:07:48Z",
+  "collected_at_utc": "2026-07-17T06:07:51Z",
   "copernicus_soil_water": {
     "data_status": "unavailable",
     "file_naming_convention": "c_gls_SWI1km_YYYYMMDD1200_CEURO_SCATSAR_VX.Y.X.nc",
@@ -58,8 +58,8 @@
     "variable_meaning": "SWI_002 means T=2"
   },
   "data_status": "partial",
-  "date": "2026-07-16",
-  "date_utc": "2026-07-16",
+  "date": "2026-07-17",
+  "date_utc": "2026-07-17",
   "diagnostics": {
     "adapter_errors": [
       "Live Copernicus SWI discovery/download is not enabled: anonymous CDSE product discovery was not verified in this environment, and the adapter must not guess OData collection identifiers or file paths."
@@ -89,8 +89,8 @@
     "nearest_station": {
       "data_status": "ok",
       "distance_km": 12.01,
-      "latest_date": "16.07.2026",
-      "latest_value": 4.01,
+      "latest_date": "17.07.2026",
+      "latest_value": 4.02,
       "latest_value_unit": "m",
       "latitude": 53.308712851665724,
       "longitude": 7.739583352396522,
@@ -112,8 +112,8 @@
       {
         "data_status": "ok",
         "distance_km": 12.01,
-        "latest_date": "16.07.2026",
-        "latest_value": 4.01,
+        "latest_date": "17.07.2026",
+        "latest_value": 4.02,
         "latest_value_unit": "m",
         "latitude": 53.308712851665724,
         "longitude": 7.739583352396522,
@@ -125,7 +125,7 @@
       {
         "data_status": "ok",
         "distance_km": 12.3,
-        "latest_date": "16.07.2026",
+        "latest_date": "17.07.2026",
         "latest_value": 1.99,
         "latest_value_unit": "m",
         "latitude": 53.50290852872384,
@@ -138,7 +138,7 @@
       {
         "data_status": "ok",
         "distance_km": 17.68,
-        "latest_date": "16.07.2026",
+        "latest_date": "17.07.2026",
         "latest_value": 1.49,
         "latest_value_unit": "m",
         "latitude": 53.55419782828839,
@@ -239,7 +239,7 @@
       "regional_soil_water": {
         "class": "normal",
         "direction": "normal",
-        "latest_value": 84.30000000000001,
+        "latest_value": 83.30000000000001,
         "strength": "moderate",
         "unit": "‰ nFK",
         "valid": true
@@ -311,8 +311,8 @@
       "y": 5921001.0
     },
     "label": "regional DWD gridded soil-moisture condition",
-    "latest_date": "2026-07-14",
-    "latest_value": 84.30000000000001,
+    "latest_date": "2026-07-15",
+    "latest_value": 83.30000000000001,
     "limitations": [
       "Regional gridded model product, not an in-situ peat water-table sensor.",
       "DWD AMBAV soil moisture under grass preserves source-native ‰ nFK semantics and is not converted to water-table depth."
@@ -323,7 +323,7 @@
       "dataset_id": "urn:wmo:md:de-dwd-cdc:25285481-9c88-4304-a90a-26fff84a9a84",
       "description_url": "https://opendata.dwd.de/climate_environment/CDC/grids_germany/daily/soil_moisture/grass/DESCRIPTION_grids_germany_daily_soil_moisture_grass_en.pdf",
       "name": "Deutscher Wetterdienst (DWD) Climate Data Center",
-      "observation_date": "2026-07-14",
+      "observation_date": "2026-07-15",
       "selected_file_url": "https://opendata.dwd.de/climate_environment/CDC/grids_germany/daily/soil_moisture/grass/2026/grids_germany_daily_soil_moisture_grass_2026_0-60_v1.nc",
       "source_url": "https://opendata.dwd.de/climate_environment/CDC/grids_germany/daily/soil_moisture/grass/2026/grids_germany_daily_soil_moisture_grass_2026_0-60_v1.nc",
       "status": "live_adapter",
@@ -363,7 +363,7 @@
       "dataset_id": "urn:wmo:md:de-dwd-cdc:25285481-9c88-4304-a90a-26fff84a9a84",
       "description_url": "https://opendata.dwd.de/climate_environment/CDC/grids_germany/daily/soil_moisture/grass/DESCRIPTION_grids_germany_daily_soil_moisture_grass_en.pdf",
       "name": "Deutscher Wetterdienst (DWD) Climate Data Center",
-      "observation_date": "2026-07-14",
+      "observation_date": "2026-07-15",
       "selected_file_url": "https://opendata.dwd.de/climate_environment/CDC/grids_germany/daily/soil_moisture/grass/2026/grids_germany_daily_soil_moisture_grass_2026_0-60_v1.nc",
       "source_url": "https://opendata.dwd.de/climate_environment/CDC/grids_germany/daily/soil_moisture/grass/2026/grids_germany_daily_soil_moisture_grass_2026_0-60_v1.nc",
       "status": "live_adapter",
@@ -382,7 +382,7 @@
     {
       "dataset": "Recent daily climate observations Germany (KL), daily precipitation RSK and daily mean temperature TMK",
       "name": "Deutscher Wetterdienst (DWD) Climate Data Center",
-      "observation_date": "2026-07-14",
+      "observation_date": "2026-07-15",
       "selected_station_zip_url": "https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/daily/kl/recent/tageswerte_KL_05640_akt.zip",
       "station_description_url": "https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/daily/kl/recent/KL_Tageswerte_Beschreibung_Stationen.txt",
       "status": "live_adapter",
@@ -392,7 +392,7 @@
   "status": "ok",
   "summary": "Wiesmoor peatland hydrological pressure remains unavailable as an in-situ conclusion; DWD daily rainfall is emitted when available as a regional weather proxy component only.",
   "weather_pressure": {
-    "consecutive_dry_days": 7,
+    "consecutive_dry_days": 8,
     "coverage": {
       "dry_day_rule": "A dry day is a valid DWD daily precipitation (RSK) observation below 1.0 mm/day; exactly 1.0 mm/day is not dry. Missing markers and absent dates are unavailable, never dry.",
       "dry_day_threshold_mm": 1.0,
@@ -408,14 +408,14 @@
     "dry_days_30d": 21,
     "dry_days_7d": 7,
     "label": "weather pressure",
-    "latest_date": "2026-07-14",
+    "latest_date": "2026-07-15",
     "latest_precipitation_mm": 0.0,
     "rainfall_30d_mm": 20.7,
     "rainfall_7d_mm": 0.0,
     "source": {
       "dataset": "Recent daily climate observations Germany (KL), daily precipitation RSK and daily mean temperature TMK",
       "name": "Deutscher Wetterdienst (DWD) Climate Data Center",
-      "observation_date": "2026-07-14",
+      "observation_date": "2026-07-15",
       "selected_station_zip_url": "https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/daily/kl/recent/tageswerte_KL_05640_akt.zip",
       "station_description_url": "https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/daily/kl/recent/KL_Tageswerte_Beschreibung_Stationen.txt",
       "status": "live_adapter",
@@ -429,9 +429,9 @@
       "station_id": "05640",
       "station_name": "Wittmundhafen"
     },
-    "temperature_c": 20.8,
+    "temperature_c": 20.5,
     "temperature_label": "latest valid daily mean temperature (TMK), not an instantaneous/current temperature",
-    "temperature_mean_30d_c": 18.7,
-    "temperature_mean_7d_c": 18.6
+    "temperature_mean_30d_c": 19.0,
+    "temperature_mean_7d_c": 19.1
   }
 }
