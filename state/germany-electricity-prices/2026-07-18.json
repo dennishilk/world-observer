@@ -1,0 +1,128 @@
+{
+  "observer": "germany-electricity-prices",
+  "category": "society",
+  "date": "2026-07-18",
+  "date_utc": "2026-07-18",
+  "status": "ok",
+  "data_status": "ok",
+  "current_price_eur_per_kwh": 0.2963,
+  "unit": "EUR per kWh",
+  "annual_cost_eur": 1261.85,
+  "monthly_cost_eur": 105.15,
+  "representative_household": {
+    "country": "Germany",
+    "location": "Wiesmoor",
+    "postal_code": "26639",
+    "annual_consumption_kwh": 3500,
+    "households_represented": 1,
+    "observation_frequency": "daily",
+    "observation_type": "descriptive"
+  },
+  "source": "static_tariff_observation",
+  "source_url": null,
+  "source_type": "static_tariff_observation",
+  "supplier": "EWE",
+  "tariff": "Grundversorgung / EWE Strom comfort",
+  "source_note": "manually configured documented tariff values",
+  "work_price_ct_per_kwh": 29.63,
+  "base_price_eur_per_year": 224.8,
+  "history": [
+    {
+      "date": "2026-07-02",
+      "value": 0.2963,
+      "source": "daily"
+    },
+    {
+      "date": "2026-07-03",
+      "value": 0.2963,
+      "source": "daily"
+    },
+    {
+      "date": "2026-07-04",
+      "value": 0.2963,
+      "source": "daily"
+    },
+    {
+      "date": "2026-07-05",
+      "value": 0.2963,
+      "source": "daily"
+    },
+    {
+      "date": "2026-07-06",
+      "value": 0.2963,
+      "source": "daily"
+    },
+    {
+      "date": "2026-07-07",
+      "value": 0.2963,
+      "source": "daily"
+    },
+    {
+      "date": "2026-07-08",
+      "value": 0.2963,
+      "source": "daily"
+    },
+    {
+      "date": "2026-07-09",
+      "value": 0.2963,
+      "source": "daily"
+    },
+    {
+      "date": "2026-07-10",
+      "value": 0.2963,
+      "source": "daily"
+    },
+    {
+      "date": "2026-07-11",
+      "value": 0.2963,
+      "source": "daily"
+    },
+    {
+      "date": "2026-07-12",
+      "value": 0.2963,
+      "source": "daily"
+    },
+    {
+      "date": "2026-07-13",
+      "value": 0.2963,
+      "source": "daily"
+    },
+    {
+      "date": "2026-07-14",
+      "value": 0.2963,
+      "source": "daily"
+    },
+    {
+      "date": "2026-07-15",
+      "value": 0.2963,
+      "source": "daily"
+    },
+    {
+      "date": "2026-07-16",
+      "value": 0.2963,
+      "source": "daily"
+    },
+    {
+      "date": "2026-07-17",
+      "value": 0.2963,
+      "source": "daily"
+    },
+    {
+      "date": "2026-07-18",
+      "value": 0.2963,
+      "source": "static_tariff_observation"
+    }
+  ],
+  "average_30d": 0.2963,
+  "average_365d": 0.2963,
+  "import_diagnostics": [],
+  "diagnostics": {
+    "api_attempts": 0,
+    "retries": 0,
+    "http_status": null,
+    "source_status": "static_tariff_loaded",
+    "validation_note": "Static tariff values are manually configured; validated local CSV/JSON imports remain supported.",
+    "daily_state_history_count": 16
+  },
+  "last_seen_date": "2026-07-18"
+}
