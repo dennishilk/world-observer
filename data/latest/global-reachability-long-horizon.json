@@ -1,15 +1,15 @@
 {
   "observer": "global-reachability-long-horizon",
-  "date_utc": "2026-07-18",
+  "date_utc": "2026-07-19",
   "data_status": "partial",
   "countries": [
     {
       "country": "DE",
       "score_today": 100.0,
       "mean_90d": 99.2593,
-      "mean_180d": 99.3198,
-      "slope_90d": -0.016461,
-      "slope_180d": -0.01615,
+      "mean_180d": 99.3267,
+      "slope_90d": -0.015364,
+      "slope_180d": -0.015253,
       "drawdown_180d": 0.0,
       "is_new_180d_low": false,
       "is_new_180d_high": true
@@ -28,7 +28,7 @@
   ],
   "global": {
     "avg_score_today": 100.0,
-    "avg_mean_180d": 99.6599,
+    "avg_mean_180d": 99.6633,
     "is_new_180d_low": false,
     "is_new_180d_high": true
   },

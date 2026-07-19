@@ -1,6 +1,6 @@
 {
   "observer": "silent-countries-list",
-  "date_utc": "2026-07-18",
+  "date_utc": "2026-07-19",
   "data_status": "ok",
   "top_silent_countries": [
     {
@@ -45,8 +45,8 @@
       "std": 0.0
     },
     "IR": {
-      "mean": 0.0549,
-      "std": 0.0036
+      "mean": 0.055,
+      "std": 0.0035
     },
     "KP": {
       "mean": 0.05,

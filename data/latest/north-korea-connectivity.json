@@ -1,18 +1,18 @@
 {
   "status": "ok",
   "observer": "north-korea-connectivity",
-  "date_utc": "2026-07-18",
+  "date_utc": "2026-07-19",
   "data_status": "ok",
   "connectivity_state": "partial",
   "layers": {
     "dns": {
       "success_rate": 0.25,
-      "mean_latency_ms": 651.13,
+      "mean_latency_ms": 892.25,
       "probe_count": 8,
       "data_completeness": 1.0
     },
     "tcp": {
-      "success_rate": 0.1667,
+      "success_rate": 0.125,
       "probe_count": 24,
       "data_completeness": 1.0
     },
@@ -22,15 +22,15 @@
       "data_completeness": 1.0
     },
     "tls": {
-      "success_rate": 0.25,
+      "success_rate": 0.0,
       "probe_count": 8,
       "data_completeness": 1.0
     }
   },
   "time_to_silence": {
-    "mean_seconds": 25.358,
-    "p95_seconds": 25.358,
-    "worst_seconds": 25.358
+    "mean_seconds": 20.578,
+    "p95_seconds": 20.578,
+    "worst_seconds": 20.578
   },
   "baseline_30d": {
     "dns_success_rate": {
@@ -39,8 +39,8 @@
       "samples": 30
     },
     "tcp_success_rate": {
-      "mean": 0.101403,
-      "stddev": 0.075847,
+      "mean": 0.10696,
+      "stddev": 0.074306,
       "samples": 30
     },
     "icmp_success_rate": {
@@ -49,23 +49,23 @@
       "samples": 30
     },
     "tls_success_rate": {
-      "mean": 0.145833,
-      "stddev": 0.116741,
+      "mean": 0.154167,
+      "stddev": 0.114943,
       "samples": 30
     },
     "tts_mean_seconds": {
-      "mean": 37.7653,
-      "stddev": 17.030245,
+      "mean": 36.5381,
+      "stddev": 16.546755,
       "samples": 30
     },
     "tts_p95_seconds": {
-      "mean": 38.809867,
-      "stddev": 17.287288,
+      "mean": 37.5825,
+      "stddev": 16.88703,
       "samples": 30
     },
     "tts_worst_seconds": {
-      "mean": 38.809867,
-      "stddev": 17.287288,
+      "mean": 37.5825,
+      "stddev": 16.88703,
       "samples": 30
     }
   },
@@ -82,10 +82,10 @@
           "triggered": false
         },
         "tcp_success_rate": {
-          "value": 0.1667,
-          "mean_30d": 0.101403,
-          "stddev_30d": 0.075847,
-          "zscore": 0.8609,
+          "value": 0.125,
+          "mean_30d": 0.10696,
+          "stddev_30d": 0.074306,
+          "zscore": 0.2428,
           "triggered": false
         },
         "icmp_success_rate": {
@@ -96,31 +96,31 @@
           "triggered": false
         },
         "tls_success_rate": {
-          "value": 0.25,
-          "mean_30d": 0.145833,
-          "stddev_30d": 0.116741,
-          "zscore": 0.8923,
+          "value": 0.0,
+          "mean_30d": 0.154167,
+          "stddev_30d": 0.114943,
+          "zscore": -1.3412,
           "triggered": false
         },
         "tts_mean_seconds": {
-          "value": 25.358,
-          "mean_30d": 37.7653,
-          "stddev_30d": 17.030245,
-          "zscore": -0.7285,
+          "value": 20.578,
+          "mean_30d": 36.5381,
+          "stddev_30d": 16.546755,
+          "zscore": -0.9645,
           "triggered": false
         },
         "tts_p95_seconds": {
-          "value": 25.358,
-          "mean_30d": 38.809867,
-          "stddev_30d": 17.287288,
-          "zscore": -0.7781,
+          "value": 20.578,
+          "mean_30d": 37.5825,
+          "stddev_30d": 16.88703,
+          "zscore": -1.007,
           "triggered": false
         },
         "tts_worst_seconds": {
-          "value": 25.358,
-          "mean_30d": 38.809867,
-          "stddev_30d": 17.287288,
-          "zscore": -0.7781,
+          "value": 20.578,
+          "mean_30d": 37.5825,
+          "stddev_30d": 16.88703,
+          "zscore": -1.007,
           "triggered": false
         }
       },
@@ -139,11 +139,11 @@
     "api_attempts": 48,
     "retries": 0,
     "http_status": null,
-    "probes_attempted": 84,
-    "probes_succeeded": 16,
-    "probes_failed": 68,
-    "timeouts": 3,
-    "duration_s": 60.802,
+    "probes_attempted": 74,
+    "probes_succeeded": 8,
+    "probes_failed": 66,
+    "timeouts": 4,
+    "duration_s": 60.349,
     "budget_s": 60.0,
     "budget_exhausted": true
   }
