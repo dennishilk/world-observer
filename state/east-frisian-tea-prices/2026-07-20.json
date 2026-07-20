@@ -1,0 +1,154 @@
+{
+  "observer": "east-frisian-tea-prices",
+  "display_name": "East Frisian Tea Observer",
+  "description": "Tracks the retail price development of a representative 500 g loose East Frisian black tea product over time. The observer is descriptive only and does not rate brands or product quality.",
+  "category": "society",
+  "date": "2026-07-20",
+  "date_utc": "2026-07-20",
+  "status": "ok",
+  "data_status": "ok",
+  "source": "combi_product_meta",
+  "source_url": "https://www.combi.de/buenting_tee_gruenpack_1101010007.html",
+  "current_price": 9.99,
+  "currency": "EUR",
+  "unit": "EUR per 500 g loose tea",
+  "ean": "4008837201054",
+  "availability": "instock",
+  "history": [
+    {
+      "date": "2026-06-30",
+      "value": 9.98,
+      "source": "manual_seed"
+    },
+    {
+      "date": "2026-07-01",
+      "value": 9.99,
+      "source": "combi_product_meta"
+    },
+    {
+      "date": "2026-07-03",
+      "value": 9.99,
+      "source": "combi_product_meta"
+    },
+    {
+      "date": "2026-07-04",
+      "value": 9.99,
+      "source": "combi_product_meta"
+    },
+    {
+      "date": "2026-07-05",
+      "value": 9.99,
+      "source": "combi_product_meta"
+    },
+    {
+      "date": "2026-07-06",
+      "value": 9.99,
+      "source": "combi_product_meta"
+    },
+    {
+      "date": "2026-07-07",
+      "value": 9.99,
+      "source": "combi_product_meta"
+    },
+    {
+      "date": "2026-07-08",
+      "value": 9.99,
+      "source": "combi_product_meta"
+    },
+    {
+      "date": "2026-07-09",
+      "value": 9.99,
+      "source": "combi_product_meta"
+    },
+    {
+      "date": "2026-07-10",
+      "value": 9.99,
+      "source": "combi_product_meta"
+    },
+    {
+      "date": "2026-07-11",
+      "value": 9.99,
+      "source": "combi_product_meta"
+    },
+    {
+      "date": "2026-07-12",
+      "value": 9.99,
+      "source": "combi_product_meta"
+    },
+    {
+      "date": "2026-07-13",
+      "value": 9.99,
+      "source": "combi_product_meta"
+    },
+    {
+      "date": "2026-07-14",
+      "value": 9.99,
+      "source": "combi_product_meta"
+    },
+    {
+      "date": "2026-07-15",
+      "value": 9.99,
+      "source": "combi_product_meta"
+    },
+    {
+      "date": "2026-07-16",
+      "value": 9.99,
+      "source": "combi_product_meta"
+    },
+    {
+      "date": "2026-07-17",
+      "value": 9.99,
+      "source": "combi_product_meta"
+    },
+    {
+      "date": "2026-07-18",
+      "value": 9.99,
+      "source": "combi_product_meta"
+    },
+    {
+      "date": "2026-07-19",
+      "value": 9.99,
+      "source": "combi_product_meta"
+    },
+    {
+      "date": "2026-07-20",
+      "value": 9.99,
+      "source": "combi_product_meta"
+    }
+  ],
+  "average_30d": 9.99,
+  "average_365d": 9.99,
+  "record_low": 9.98,
+  "record_high": 9.99,
+  "historical_min": 9.98,
+  "historical_max": 9.99,
+  "observed_changes": [
+    "Price is unchanged compared with the previous observation."
+  ],
+  "diagnostics": {
+    "source": "combi_product_meta",
+    "fetch_url": "https://www.combi.de/buenting_tee_gruenpack_1101010007.html",
+    "fetched_at_utc": "2026-07-20T06:06:01.589736+00:00",
+    "http_status": 200,
+    "api_attempts": 1,
+    "retries": 0,
+    "parse_status": "parsed_meta_tags",
+    "meta_fields_present": [
+      "product:availability",
+      "product:brand",
+      "product:category",
+      "product:condition",
+      "product:ean",
+      "product:is_product_shareable",
+      "product:price:amount",
+      "product:price:currency"
+    ],
+    "availability": "instock",
+    "category": "Ostfriesentee",
+    "brand": "Bünting Tee",
+    "ean": "4008837201054",
+    "currency": "EUR"
+  },
+  "trend_delta": 0.0,
+  "trend_delta_percent": 0.0
+}

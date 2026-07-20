@@ -1,11 +1,7 @@
 {
-  "last_run_utc": "2026-07-19T06:07:44.415248+00:00",
-  "latest_date_utc": "2026-07-19",
+  "last_run_utc": "2026-07-20T06:07:42.958405+00:00",
+  "latest_date_utc": "2026-07-20",
   "last_7_days": [
-    {
-      "date_utc": "2026-07-13",
-      "any_significant": false
-    },
     {
       "date_utc": "2026-07-14",
       "any_significant": false
@@ -29,9 +25,13 @@
     {
       "date_utc": "2026-07-19",
       "any_significant": false
+    },
+    {
+      "date_utc": "2026-07-20",
+      "any_significant": false
     }
   ],
-  "last_daily_run_utc": "2026-07-19T06:07:48Z",
-  "run_date_utc": "2026-07-19",
+  "last_daily_run_utc": "2026-07-20T06:07:46Z",
+  "run_date_utc": "2026-07-20",
   "runner": "scripts/run_daily_cron.py"
 }
