@@ -1,6 +1,6 @@
 {
   "observer": "traceroute-to-nowhere",
-  "date_utc": "2026-07-21",
+  "date_utc": "2026-07-22",
   "data_status": "ok",
   "anchors": {
     "count": 8
@@ -14,12 +14,12 @@
   },
   "baseline_30d": {
     "fail_rate": {
-      "mean": 0.6875,
-      "std": 0.0625
+      "mean": 0.683333,
+      "std": 0.062361
     },
     "median_last_replied_hop": {
-      "mean": 7.316667,
-      "std": 1.417059
+      "mean": 7.216667,
+      "std": 1.400496
     }
   },
   "significance": {
