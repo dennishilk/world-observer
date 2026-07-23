@@ -1,6 +1,6 @@
 {
   "observer": "internet-shrinkage-index",
-  "date_utc": "2026-07-22",
+  "date_utc": "2026-07-23",
   "data_status": "partial",
   "countries": [
     {
@@ -13,10 +13,10 @@
         "silence_modifier": null
       },
       "baseline_30d": {
-        "mean": 0.012769,
-        "std": 0.026041
+        "mean": 0.010084,
+        "std": 0.022876
       },
-      "delta": -0.012769,
+      "delta": -0.010084,
       "is_new_max": false
     },
     {
@@ -39,8 +39,8 @@
   "global": {
     "global_shrinkage_index": 0.0,
     "baseline_30d": {
-      "mean": 0.006384,
-      "std": 0.013021
+      "mean": 0.005042,
+      "std": 0.011438
     },
     "is_new_max": false
   },

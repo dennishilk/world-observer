@@ -1,7 +1,7 @@
 {
   "observer": "area51-reachability",
-  "date_utc": "2026-07-22",
-  "data_status": "unavailable",
+  "date_utc": "2026-07-23",
+  "data_status": "partial",
   "bucket_minutes": 15,
   "bbox": {
     "min_lat": 35.0,
@@ -9,50 +9,50 @@
     "min_lon": -118.5,
     "max_lon": -112.5
   },
-  "bucket_count": 0,
+  "bucket_count": 1,
   "au": {
-    "janet_like": 0,
-    "other": 0,
-    "total": 0
+    "janet_like": 34,
+    "other": 17,
+    "total": 51
   },
   "baseline_30d": {
     "janet_like": {
-      "mean": 82.9167,
-      "std": 108.6631,
-      "effective_std": 108.6631
+      "mean": 79.6,
+      "std": 107.7003,
+      "effective_std": 107.7003
     },
     "other": {
-      "mean": 33.125,
-      "std": 49.0122,
-      "effective_std": 49.0122
+      "mean": 31.8,
+      "std": 48.4586,
+      "effective_std": 48.4586
     },
     "total": {
-      "mean": 116.0417,
-      "std": 157.4544,
-      "effective_std": 157.4544
+      "mean": 111.4,
+      "std": 155.94,
+      "effective_std": 155.94
     }
   },
   "significance": {
     "sigma_mult": 2.0,
     "janet_like": {
       "is_significant": false,
-      "z": -0.7631
+      "z": -0.4234
     },
     "other": {
       "is_significant": false,
-      "z": -0.6759
+      "z": -0.3054
     },
     "total": {
       "is_significant": false,
-      "z": -0.737
+      "z": -0.3873
     },
     "any_significant": false
   },
   "diagnostics": {
-    "api_attempts": 3,
-    "retries": 2,
-    "http_status": 503,
+    "api_attempts": 1,
+    "retries": 0,
+    "http_status": 200,
     "endpoint": "https://opensky-network.org/api/states/all?lamin=35.0&lamax=39.0&lomin=-118.5&lomax=-112.5",
-    "last_error": "http_error_503"
+    "last_error": null
   }
 }
