@@ -5,6 +5,7 @@ from datetime import date
 from pathlib import Path
 
 MODULE_PATH = Path(__file__).resolve().parents[1] / "observers" / "time-observer" / "observer.py"
+LEAP_SECONDS_FIXTURE = Path(__file__).resolve().parent / "fixtures" / "time-observer" / "Leap_Second.dat"
 spec = importlib.util.spec_from_file_location("time_observer", MODULE_PATH)
 observer = importlib.util.module_from_spec(spec)
 assert spec.loader is not None
@@ -19,14 +20,40 @@ def test_parse_finals_keeps_observed_and_predicted_classification() -> None:
     ]
 
 
-def test_parse_leap_second_history_and_current_offset() -> None:
-    source = """ 41317.0  1  1 1972       10s\n 57754.0  1  1 2017       37s\n"""
-    entries = observer.parse_leap_seconds(source)
-    assert entries == [
-        {"effective_date": "1972-01-01", "tai_minus_utc_seconds": 10, "mjd": 41317},
-        {"effective_date": "2017-01-01", "tai_minus_utc_seconds": 37, "mjd": 57754},
-    ]
+def test_parse_live_format_leap_second_history_and_current_offset() -> None:
+    entries = observer.parse_leap_seconds(LEAP_SECONDS_FIXTURE.read_text())
+    assert len(entries) == 28
+    assert entries[0] == {"effective_date": "1972-01-01", "tai_minus_utc_seconds": 10, "mjd": 41317}
+    assert entries[-1] == {"effective_date": "2017-01-01", "tai_minus_utc_seconds": 37, "mjd": 57754}
+    assert [entry["mjd"] for entry in entries] == sorted(entry["mjd"] for entry in entries)
     assert observer.tai_minus_utc(entries, date(2026, 7, 24)) == 37
+
+
+def test_future_leap_second_is_not_applied_early() -> None:
+    entries = observer.parse_leap_seconds(" 57754.0\t1\t1\t2017\t37\n 62502.0\t1\t1\t2030\t38\n")
+    assert observer.tai_minus_utc(entries, date(2029, 12, 31)) == 37
+    assert observer.tai_minus_utc(entries, date(2030, 1, 1)) == 38
+
+
+def test_malformed_leap_second_source_fails_safely() -> None:
+    assert observer.parse_leap_seconds(" 57754.0 1 1 2017 37\n 62502.0 1 1 2030 invalid\n") == []
+    assert observer.parse_leap_seconds(" 57754.0 1 1 2017 37\n 57754.0 1 1 2017 38\n") == []
+
+
+def test_malformed_leap_second_response_is_data_unavailable(monkeypatch) -> None:
+    finals = "26  7 24 61244.00 I  0.123456 0.000001  0.234567 0.000001  I -0.0456789 0.0000010\n"
+
+    def fetch(url: str):
+        text = finals if url == observer.SOURCES["earth_orientation"] else " 57754.0 1 1 2017 invalid\n"
+        return text, {"url": url, "ok": True, "http_status": 200, "error": None}
+
+    monkeypatch.setattr(observer, "_fetch_text", fetch)
+    built = observer.build_payload()
+    assert built["data_status"] == "partial"
+    assert built["time_scales"]["tai_minus_utc_seconds"] is None
+    assert built["time_scales"]["classification"] == "data_unavailable"
+    assert built["diagnostics"]["sources"]["leap_seconds"]["ok"] is False
+    assert built["diagnostics"]["sources"]["leap_seconds"]["error"] == "ParseError"
 
 
 def test_missing_sources_leave_values_unavailable(monkeypatch) -> None:
