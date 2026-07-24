@@ -93,20 +93,48 @@ def parse_finals2000a(text: str) -> list[dict[str, Any]]:
     return records
 
 
-LEAP_SECOND_RE = re.compile(r"^\s*(?P<mjd>\d+(?:\.\d+)?)\s+\d+\s+\d+\s+(?P<year>\d{4})\s+.*?(?P<offset>\d+)s\s*$")
+# Leap_Second.dat is a whitespace-delimited table despite its fixed-width
+# appearance.  Current IERS files use a bare integer in the final column
+# (rather than the ``37s`` form used by the old parser); accept an optional
+# unit for compatible historical renderings, but require every table field.
+LEAP_SECOND_RE = re.compile(
+    r"^\s*(?P<mjd>\d+(?:\.\d+)?)\s+"
+    r"(?P<day>\d{1,2})\s+(?P<month>\d{1,2})\s+(?P<year>\d{4})\s+"
+    r"(?P<offset>[+-]?\d+)\s*(?:s(?:ec(?:onds?)?)?\.?)?\s*$",
+    re.IGNORECASE,
+)
 
 
 def parse_leap_seconds(text: str) -> list[dict[str, Any]]:
-    """Parse IERS Bulletin C's compact TAI−UTC history without guessing dates."""
+    """Parse and validate IERS Bulletin C's TAI−UTC effective-date table.
+
+    A non-comment line beginning with a numeric MJD is a purported data row.
+    It must match the complete IERS record and its calendar date must agree
+    with its MJD; otherwise the source is rejected rather than partly used.
+    """
     entries: list[dict[str, Any]] = []
     for line in text.splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#"):
+            continue
         match = LEAP_SECOND_RE.match(line)
         if not match:
+            if re.match(r"^\d", stripped):
+                return []
             continue
-        mjd = int(float(match.group("mjd")))
-        effective_date = date_for_mjd(mjd)
+        try:
+            mjd_float = float(match.group("mjd"))
+            mjd = int(mjd_float)
+            effective_date = date(int(match.group("year")), int(match.group("month")), int(match.group("day")))
+        except ValueError:
+            return []
+        if mjd_float != mjd or mjd_for_date(effective_date) != mjd:
+            return []
         entries.append({"effective_date": effective_date.isoformat(), "tai_minus_utc_seconds": int(match.group("offset")), "mjd": mjd})
-    return sorted(entries, key=lambda item: item["mjd"])
+    entries.sort(key=lambda item: item["mjd"])
+    if not entries or any(previous["mjd"] == current["mjd"] for previous, current in zip(entries, entries[1:])):
+        return []
+    return entries
 
 
 def select_eop_record(records: list[dict[str, Any]], observation_date: date) -> dict[str, Any] | None:
@@ -130,6 +158,9 @@ def build_payload() -> dict[str, Any]:
     leaps_text, leaps_diagnostic = _fetch_text(SOURCES["leap_seconds"])
     eop = select_eop_record(parse_finals2000a(finals_text or ""), observation_date)
     leap_history = parse_leap_seconds(leaps_text or "")
+    if leaps_text is not None and not leap_history:
+        # A successful transfer is not a successful authoritative-data update.
+        leaps_diagnostic.update({"ok": False, "error": "ParseError"})
     tai_utc = tai_minus_utc(leap_history, observation_date)
     eop_date = date_for_mjd(eop["mjd"]).isoformat() if eop else None
     age_days = mjd_for_date(observation_date) - eop["mjd"] if eop else None
