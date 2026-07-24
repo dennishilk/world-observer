@@ -46,6 +46,7 @@ OBSERVERS: List[str] = [
     "mx-presence-per-country",
     "north-korea-connectivity",
     "silent-countries-list",
+    "time-observer",
     "tls-fingerprint-change",
     "traceroute-to-nowhere",
     "undersea-cable-dependency",
