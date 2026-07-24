@@ -1,6 +1,34 @@
 {
   "observers": [
     {
+      "observer": "time-observer",
+      "display_name": "Time Observer",
+      "category": "technology",
+      "description": "Publishes a compact, sourced snapshot of the relationship between TAI, UTC, and Earth-rotation time for the separate Time Observer website experience.",
+      "tags": [
+        "technology",
+        "time",
+        "utc",
+        "earth-rotation",
+        "ntp"
+      ],
+      "dashboard_priority": 7,
+      "planned": false,
+      "primary_metric": "time_scales.tai_minus_utc_seconds",
+      "primary_metric_label": "TAI − UTC",
+      "primary_metric_unit": "seconds",
+      "secondary_metrics": [
+        [
+          "earth_orientation.ut1_minus_utc_seconds",
+          "UT1 − UTC",
+          "seconds"
+        ]
+      ],
+      "trend_metric": "time_scales.tai_minus_utc_seconds",
+      "trend_metric_label": "TAI − UTC",
+      "trend_metric_unit": "seconds"
+    },
+    {
       "observer": "area51-reachability",
       "display_name": "Area51 Reachability",
       "category": "internet",
