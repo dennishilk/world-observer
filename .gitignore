@@ -28,6 +28,7 @@ observers/undersea-cable-dependency-map/.cache/
 # Generated runtime data from daily smoke/production runs
 /data/daily/
 /data/latest/
+/data/hourly/
 
 # Python bytecode/cache
 *.pyc
