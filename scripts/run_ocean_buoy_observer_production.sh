@@ -11,6 +11,7 @@ dashboard="${WORLD_OBSERVER_DASHBOARD_DIR:-dashboard}"
 snapshots="${WORLD_OBSERVER_OCEAN_BUOY_SNAPSHOT_DIR:-data/hourly/ocean-buoy-observer}"
 history="${WORLD_OBSERVER_OCEAN_BUOY_HISTORY_DIR:-state/ocean-buoy-observer-history}"
 state="${WORLD_OBSERVER_STATE_DIR:-state}"
+website_out="${WORLD_OBSERVER_OCEAN_BUOY_WEBSITE_OUTPUT:-/srv/www/dennishilk.github.io/world-observer/dashboard/latest/ocean-buoy-observer.json}"
 stamp="${WORLD_OBSERVER_TIMESTAMP_UTC:-$(date -u +%Y-%m-%dT%H-%M-%SZ)}"
 day="${WORLD_OBSERVER_DATE_UTC:-${stamp:0:10}}"
 mkdir -p "$latest" "$dashboard" "$snapshots" "$history" "$state"
@@ -37,6 +38,8 @@ PY
 atomic "$aggregate" "$history/$day.json"; rm -f "$aggregate"
 
 "$python" scripts/export_dashboard.py --latest-dir "$latest" --dashboard-dir "$dashboard"
+atomic "$dashboard/latest/ocean-buoy-observer.json" "$website_out"
+
 removed=0
 while IFS= read -r -d '' file; do rm -f -- "$file"; removed=$((removed+1)); done < <(find "$snapshots" -maxdepth 1 -type f -name '????-??-??T??-??-??Z.json' ! -newermt '7 days ago' -print0)
 log "updated latest, dashboard, snapshot, and compact daily history; pruned $removed snapshot(s)"
