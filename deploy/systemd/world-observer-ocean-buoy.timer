@@ -1,0 +1,11 @@
+[Unit]
+Description=Run World Observer Ocean Buoy Observer hourly
+
+[Timer]
+OnCalendar=*-*-* *:15:00
+Persistent=true
+RandomizedDelaySec=30
+Unit=world-observer-ocean-buoy.service
+
+[Install]
+WantedBy=timers.target

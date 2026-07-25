@@ -1,6 +1,18 @@
 {
   "observers": [
     {
+      "observer": "ocean-buoy-observer",
+      "display_name": "Ocean Buoy Observer",
+      "category": "environment",
+      "description": "Recent marine observations from the NOAA National Data Buoy Center network.",
+      "tags": ["environment", "ocean", "buoys", "noaa", "ndbc"],
+      "dashboard_priority": 9,
+      "planned": false,
+      "primary_metric": "statistics.total_stations",
+      "primary_metric_label": "Recent stations",
+      "primary_metric_unit": "count"
+    },
+    {
       "observer": "earthquake-observer",
       "display_name": "Earthquake Observer",
       "category": "environment",
