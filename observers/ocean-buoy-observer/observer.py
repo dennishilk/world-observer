@@ -96,11 +96,52 @@ def wind_state(speed: float | None) -> str | None:
 
 
 def region(lat: float, lon: float) -> str:
+    """Return a conservative display region, not a hydrographic classification."""
+    # Sixty degrees is an intentionally simple, deterministic polar threshold.
     if lat >= 60: return "Arctic"
     if lat <= -60: return "Southern Ocean"
-    if -70 <= lon <= 20: return "Atlantic"
-    if 20 < lon < 120: return "Indian Ocean"
-    return "Pacific"
+
+    # Use lake-sized boxes rather than one box that would cover most of the Midwest.
+    great_lakes = (
+        (46.2, 49.0, -92.3, -84.3),  # Superior
+        (41.5, 46.2, -88.5, -84.5),  # Michigan
+        (43.0, 46.5, -84.9, -79.5),  # Huron
+        (41.2, 43.0, -83.6, -78.7),  # Erie
+        (43.0, 44.6, -79.9, -75.8),  # Ontario
+    )
+    if any(south <= lat <= north and west <= lon <= east
+           for south, north, west, east in great_lakes):
+        return "Great Lakes"
+
+    # These coastal bands include the Gulf shelf without swallowing inland Texas
+    # or the inland southeastern United States.
+    gulf_bands = (
+        (18.0, 29.8, -97.8, -93.5),
+        (18.0, 30.7, -93.5, -87.0),
+        (18.0, 30.5, -87.0, -81.0),
+    )
+    if any(south <= lat <= north and west <= lon <= east
+           for south, north, west, east in gulf_bands):
+        return "Gulf of Mexico"
+
+    if 9.0 <= lat <= 23.5 and -89.0 <= lon <= -59.0:
+        return "Caribbean"
+
+    # Narrow extensions cover the US Atlantic and Pacific coasts; the broad
+    # boxes cover open water. Unmatched coordinates deliberately remain neutral.
+    if ((0 < lat < 60 and -70 <= lon <= 20)
+            or (24 <= lat <= 30 and -81.5 <= lon < -77)
+            or (30 < lat <= 46 and -76 <= lon < -65)):
+        return "North Atlantic"
+    if -60 < lat <= 0 and -70 <= lon <= 20:
+        return "South Atlantic"
+    if ((0 < lat < 60 and (-180 <= lon <= -122 or 120 <= lon <= 180))):
+        return "North Pacific"
+    if -60 < lat <= 0 and (-180 <= lon < -70 or 120 <= lon <= 180):
+        return "South Pacific"
+    if -60 < lat < 30 and 20 < lon < 120:
+        return "Indian Ocean"
+    return "Inland / Other"
 
 
 def parse_feed(text: str) -> list[dict[str, str]]:
