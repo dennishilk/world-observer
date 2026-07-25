@@ -35,6 +35,29 @@ def test_conversions_and_classifications():
     assert buoy.freshness(3) == "fresh" and buoy.freshness(4) == "aging" and buoy.freshness(7) == "stale"
 
 
+@pytest.mark.parametrize(("name", "lat", "lon", "expected"), (
+    ("offshore California", 34.0, -123.0, "North Pacific"),
+    ("Monterey Bay", 36.8, -122.1, "North Pacific"),
+    ("offshore Texas", 27.5, -96.5, "Gulf of Mexico"),
+    ("offshore Louisiana", 28.5, -90.0, "Gulf of Mexico"),
+    ("Lake Superior", 47.5, -87.5, "Great Lakes"),
+    ("Lake Michigan", 44.0, -87.0, "Great Lakes"),
+    ("Lake Erie", 42.2, -81.2, "Great Lakes"),
+    ("offshore New York", 40.5, -72.5, "North Atlantic"),
+    ("Florida Atlantic coast", 27.0, -79.8, "North Atlantic"),
+    ("Caribbean Sea", 15.0, -75.0, "Caribbean"),
+    ("Indian Ocean", -20.0, 80.0, "Indian Ocean"),
+    ("South Pacific", -30.0, -120.0, "South Pacific"),
+    ("South Atlantic", -30.0, -30.0, "South Atlantic"),
+    ("Arctic threshold", 60.0, -30.0, "Arctic"),
+    ("Southern Ocean threshold", -60.0, 80.0, "Southern Ocean"),
+    ("inland Nevada", 39.0, -117.0, "Inland / Other"),
+    ("inland Colorado", 39.0, -105.5, "Inland / Other"),
+))
+def test_region_classification(name, lat, lon, expected):
+    assert buoy.region(lat, lon) == expected, name
+
+
 @pytest.mark.parametrize("text", ["", "source error", "#STN LAT\n#unit deg\nBAD 91"])
 def test_malformed_and_all_invalid_feeds_rejected(text):
     with pytest.raises(buoy.FeedError): buoy.build_export(text, NOW)
