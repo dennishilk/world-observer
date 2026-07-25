@@ -26,6 +26,7 @@ OBSERVERS: List[str] = [
     "debian-package-count",
     "dns-time-to-answer-index",
     "dns-tta-stress-index",
+    "earthquake-observer",
     "east-frisia-water-observer",
     "east-frisian-tea-prices",
     "geomagnetic-storm-observer",
@@ -58,6 +59,7 @@ OBSERVERS: List[str] = [
 
 META_OBSERVER = "world-observer-meta"
 FUEL_OBSERVER = "germany-fuel-prices"
+LAST_KNOWN_GOOD_OBSERVERS = {"earthquake-observer"}
 
 
 def _repo_root() -> Path:
@@ -408,7 +410,19 @@ def _update_latest(daily_dir: Path) -> None:
             if fuel_payload is not None:
                 _write_json(latest_dir / path.name, fuel_payload)
                 continue
+        if path.stem in LAST_KNOWN_GOOD_OBSERVERS:
+            payload, _error = _read_json_for_latest(path)
+            if payload is None or payload.get("status") == "error" or payload.get("data_status") == "error":
+                continue
         shutil.copy2(path, latest_dir / path.name)
+
+
+def _read_json_for_latest(path: Path) -> tuple[Dict[str, Any] | None, str | None]:
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        return None, str(exc)
+    return (payload, None) if isinstance(payload, dict) else (None, "non-object JSON")
 
 
 def _has_complete_daily_outputs(daily_dir: Path) -> bool:

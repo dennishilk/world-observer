@@ -1,0 +1,18 @@
+{
+  "type": "FeatureCollection",
+  "metadata": {"generated": 1767225600000},
+  "bbox": [-180, -90, 0, 180, 90, 700],
+  "features": [
+    {"type":"Feature","id":"shallow","properties":{"mag":1.0,"place":"Synthetic coast","time":1767222000000,"updated":1767222060000,"url":"https://earthquake.usgs.gov/earthquakes/eventpage/shallow","status":"reviewed","type":"earthquake","net":"xx","magType":"ml"},"geometry":{"type":"Point","coordinates":[120.5,-35.25,70]}},
+    {"type":"Feature","id":"intermediate","properties":{"mag":2.0,"place":null,"time":1767218400000,"updated":1767218460000,"url":"https://example.invalid/event","status":"automatic","type":"earthquake","net":"yy","magType":"mb"},"geometry":{"type":"Point","coordinates":[10,20,300]}},
+    {"type":"Feature","id":"deep","properties":{"mag":6.0,"place":"Synthetic deep event","time":1767214800000,"updated":1767214860000,"url":"https://earthquake.usgs.gov/earthquakes/eventpage/deep","status":"reviewed","type":"earthquake","net":"zz","magType":"mw"},"geometry":{"type":"Point","coordinates":[-10,-20,700]}},
+    {"type":"Feature","id":"duplicate","properties":{"mag":3.0,"place":"Older duplicate","time":1767211200000,"updated":1767211260000,"type":"earthquake"},"geometry":{"type":"Point","coordinates":[1,2,10]}},
+    {"type":"Feature","id":"duplicate","properties":{"mag":4.0,"place":"Newer duplicate","time":1767211200000,"updated":1767211320000,"type":"earthquake"},"geometry":{"type":"Point","coordinates":[1,2,10]}},
+    {"type":"Feature","id":"outside","properties":{"mag":5.0,"time":1767135600000,"updated":1767135600000,"type":"earthquake"},"geometry":{"type":"Point","coordinates":[1,2,10]}},
+    {"type":"Feature","id":"blast","properties":{"mag":1.5,"time":1767220000000,"type":"quarry blast"},"geometry":{"type":"Point","coordinates":[1,2,3]}},
+    {"type":"Feature","id":"bad-lat","properties":{"mag":1.5,"time":1767220000000,"type":"earthquake"},"geometry":{"type":"Point","coordinates":[1,91,3]}},
+    {"type":"Feature","id":"bad-depth","properties":{"mag":1.5,"time":1767220000000,"type":"earthquake"},"geometry":{"type":"Point","coordinates":[1,2,-1]}},
+    {"type":"Feature","id":"bad-mag","properties":{"mag":null,"time":1767220000000,"type":"earthquake"},"geometry":{"type":"Point","coordinates":[1,2,3]}},
+    {"type":"Feature","id":"bad-time","properties":{"mag":1.5,"time":"yesterday","type":"earthquake"},"geometry":{"type":"Point","coordinates":[1,2,3]}}
+  ]
+}
