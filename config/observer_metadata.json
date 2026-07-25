@@ -1,6 +1,18 @@
 {
   "observers": [
     {
+      "observer": "earthquake-observer",
+      "display_name": "Earthquake Observer",
+      "category": "environment",
+      "description": "Current earthquake observations normalized from the USGS all-earthquakes past-day feed.",
+      "tags": ["environment", "earthquakes", "usgs"],
+      "dashboard_priority": 8,
+      "planned": false,
+      "primary_metric": "summary.event_count",
+      "primary_metric_label": "Catalog events",
+      "primary_metric_unit": "count"
+    },
+    {
       "observer": "time-observer",
       "display_name": "Time Observer",
       "category": "technology",
