@@ -57,6 +57,11 @@ OBSERVERS: List[str] = [
     "wiesmoor-weather",
 ]
 
+# High-frequency observers whose full payloads are intentionally excluded from
+# the daily archive. Their dedicated runners own collection and compact history.
+DEDICATED_OBSERVERS: List[str] = ["ocean-buoy-observer"]
+ALL_OBSERVERS: List[str] = sorted([*OBSERVERS, *DEDICATED_OBSERVERS])
+
 META_OBSERVER = "world-observer-meta"
 FUEL_OBSERVER = "germany-fuel-prices"
 LAST_KNOWN_GOOD_OBSERVERS = {"earthquake-observer"}

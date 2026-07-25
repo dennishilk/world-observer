@@ -1,0 +1,11 @@
+[Unit]
+Description=World Observer Ocean Buoy Observer hourly production refresh
+Documentation=https://github.com/dennishilk/world-observer
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=nebu
+WorkingDirectory=/opt/world-observer/world-observer
+ExecStart=/opt/world-observer/world-observer/scripts/run_ocean_buoy_observer_production.sh

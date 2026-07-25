@@ -29,6 +29,7 @@ observers/undersea-cable-dependency-map/.cache/
 /data/daily/
 /data/latest/
 /data/hourly/
+/state/ocean-buoy-observer-history/
 
 # Python bytecode/cache
 *.pyc

@@ -7,7 +7,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT))
 
-from scripts.run_daily import OBSERVERS
+from scripts.run_daily import ALL_OBSERVERS, OBSERVERS
 
 
 def _observer_dirs_with_entrypoints() -> set[str]:
@@ -21,7 +21,7 @@ def _observer_dirs_with_entrypoints() -> set[str]:
 
 def test_observer_name_consistency() -> None:
     observed = _observer_dirs_with_entrypoints()
-    configured = set(OBSERVERS)
+    configured = set(ALL_OBSERVERS)
 
     assert observed == configured
 

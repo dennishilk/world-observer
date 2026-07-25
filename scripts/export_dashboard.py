@@ -5,14 +5,16 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
+import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Iterable, Tuple
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from scripts.run_daily import OBSERVERS
+from scripts.run_daily import ALL_OBSERVERS, OBSERVERS
 
 DASHBOARD_VERSION = 1
 MEDIA_OBSERVER = "media-language-germany"
@@ -147,13 +149,26 @@ def _is_degraded(status: str) -> bool:
 
 
 def _compact_write(path: Path, payload: Dict[str, Any]) -> None:
-    path.write_text(json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n", encoding="utf-8")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    descriptor, staging_name = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
+    try:
+        with os.fdopen(descriptor, "w", encoding="utf-8") as staging:
+            staging.write(json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n")
+            staging.flush()
+            os.fsync(staging.fileno())
+        os.replace(staging_name, path)
+    except BaseException:
+        try:
+            os.unlink(staging_name)
+        except FileNotFoundError:
+            pass
+        raise
 
 
 def _load_latest(latest_dir: Path) -> Tuple[Dict[str, Dict[str, Any]], Dict[str, str]]:
     loaded: Dict[str, Dict[str, Any]] = {}
     errors: Dict[str, str] = {}
-    for observer in OBSERVERS:
+    for observer in ALL_OBSERVERS:
         path = latest_dir / f"{observer}.json"
         if not path.exists():
             errors[observer] = "missing"
@@ -1411,7 +1426,7 @@ def _export_latest_snapshots(latest_dir: Path, dashboard_dir: Path) -> Dict[str,
     latest_dashboard_dir = dashboard_dir / "latest"
     latest_dashboard_dir.mkdir(parents=True, exist_ok=True)
     written: Dict[str, Path] = {}
-    for observer in OBSERVERS:
+    for observer in ALL_OBSERVERS:
         source = latest_dir / f"{observer}.json"
         if not source.exists():
             continue
