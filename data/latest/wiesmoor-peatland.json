@@ -1,6 +1,6 @@
 {
   "category": "environment",
-  "collected_at_utc": "2026-07-26T12:13:50Z",
+  "collected_at_utc": "2026-07-26T12:18:35Z",
   "copernicus_soil_water": {
     "data_status": "unavailable",
     "file_naming_convention": "c_gls_SWI1km_YYYYMMDD1200_CEURO_SCATSAR_VX.Y.X.nc",

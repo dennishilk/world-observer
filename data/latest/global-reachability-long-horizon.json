@@ -7,9 +7,9 @@
       "country": "DE",
       "score_today": 100.0,
       "mean_90d": 99.2593,
-      "mean_180d": 99.3711,
-      "slope_90d": -0.007682,
-      "slope_180d": -0.010075,
+      "mean_180d": 99.377,
+      "slope_90d": -0.006585,
+      "slope_180d": -0.009469,
       "drawdown_180d": 0.0,
       "is_new_180d_low": false,
       "is_new_180d_high": true
@@ -28,7 +28,7 @@
   ],
   "global": {
     "avg_score_today": 100.0,
-    "avg_mean_180d": 99.6856,
+    "avg_mean_180d": 99.6885,
     "is_new_180d_low": false,
     "is_new_180d_high": true
   },
