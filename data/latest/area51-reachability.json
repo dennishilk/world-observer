@@ -11,8 +11,8 @@
   },
   "bucket_count": 2,
   "au": {
-    "janet_like": 9,
-    "other": 11,
+    "janet_like": 11,
+    "other": 9,
     "total": 20
   },
   "baseline_30d": {
@@ -36,11 +36,11 @@
     "sigma_mult": 2.0,
     "janet_like": {
       "is_significant": false,
-      "z": -0.6559
+      "z": -0.6364
     },
     "other": {
       "is_significant": false,
-      "z": -0.4103
+      "z": -0.4536
     },
     "total": {
       "is_significant": false,

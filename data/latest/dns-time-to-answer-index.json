@@ -1,6 +1,6 @@
 {
   "observer": "dns-time-to-answer-index",
-  "timestamp": "2026-07-26T12:16:43.436021+00:00",
+  "timestamp": "2026-07-26T12:23:33.305789+00:00",
   "targets": [
     {
       "name": "Cloudflare",
@@ -8,12 +8,12 @@
       "queries": {
         "A": {
           "status": "success",
-          "query_ms": 9.18,
+          "query_ms": 17.57,
           "error": null
         },
         "AAAA": {
           "status": "success",
-          "query_ms": 11.3,
+          "query_ms": 8.6,
           "error": null
         }
       }
@@ -24,12 +24,12 @@
       "queries": {
         "A": {
           "status": "success",
-          "query_ms": 9.27,
+          "query_ms": 9.44,
           "error": null
         },
         "AAAA": {
           "status": "success",
-          "query_ms": 7.98,
+          "query_ms": 8.87,
           "error": null
         }
       }
@@ -40,12 +40,12 @@
       "queries": {
         "A": {
           "status": "success",
-          "query_ms": 7.74,
+          "query_ms": 7.78,
           "error": null
         },
         "AAAA": {
           "status": "success",
-          "query_ms": 8.2,
+          "query_ms": 9.0,
           "error": null
         }
       }
@@ -55,7 +55,7 @@
     "total_queries": 6,
     "successful": 6,
     "timeouts": 0,
-    "avg_query_ms": 8.95
+    "avg_query_ms": 10.21
   },
   "notes": "Sequential DNS A and AAAA lookups with a conservative timeout. No answers, resolver identities, or TTL values are stored.",
   "data_status": "ok",
