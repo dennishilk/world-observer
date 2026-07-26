@@ -156,6 +156,7 @@ def _compact_write(path: Path, payload: Dict[str, Any]) -> None:
             staging.write(json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n")
             staging.flush()
             os.fsync(staging.fileno())
+            os.fchmod(staging.fileno(), 0o644)
         os.replace(staging_name, path)
     except BaseException:
         try:
