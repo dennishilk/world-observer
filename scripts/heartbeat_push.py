@@ -21,7 +21,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 HEARTBEAT_DIR = REPO_ROOT / "state" / "heartbeat"
 LOG_FILE = REPO_ROOT / "logs" / "heartbeat.log"
 LOCK_FILE = REPO_ROOT / "state" / "heartbeat_push.lock"
-DEPLOY_KEY = Path("/home/nebu/.ssh/deploy_key")
+DEPLOY_KEY = Path(os.environ["WORLD_OBSERVER_DEPLOY_KEY"]) if os.environ.get("WORLD_OBSERVER_DEPLOY_KEY") else None
 KEEP_FILES = 12
 
 
@@ -54,10 +54,11 @@ def _logger() -> logging.Logger:
 
 def _git_env() -> dict[str, str]:
     env = os.environ.copy()
-    env["GIT_SSH_COMMAND"] = (
-        f"ssh -i {DEPLOY_KEY} -o IdentitiesOnly=yes -o BatchMode=yes "
-        "-o StrictHostKeyChecking=accept-new"
-    )
+    if DEPLOY_KEY is not None and DEPLOY_KEY.is_file():
+        env["GIT_SSH_COMMAND"] = (
+            f"ssh -i {DEPLOY_KEY} -o IdentitiesOnly=yes -o BatchMode=yes "
+            "-o StrictHostKeyChecking=accept-new"
+        )
     return env
 
 

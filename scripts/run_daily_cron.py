@@ -21,7 +21,7 @@ import fcntl
 REPO_ROOT = Path(__file__).resolve().parents[1]
 LOG_FILE = REPO_ROOT / "logs" / "cron.log"
 LOCK_FILE = REPO_ROOT / "state" / "daily_run.lock"
-DEPLOY_KEY = Path("/home/nebu/.ssh/deploy_key")
+DEPLOY_KEY = Path(os.environ["WORLD_OBSERVER_DEPLOY_KEY"]) if os.environ.get("WORLD_OBSERVER_DEPLOY_KEY") else None
 RUN_DAILY_SCRIPT = REPO_ROOT / "scripts" / "run_daily.py"
 SIGNIFICANCE_SCRIPT = REPO_ROOT / "visualizations" / "generate_significance_png.py"
 DATA_DAILY_DIR = REPO_ROOT / "data" / "daily"
@@ -70,10 +70,11 @@ def _target_date(input_date: str | None) -> str:
 
 def _git_env() -> dict[str, str]:
     env = os.environ.copy()
-    env["GIT_SSH_COMMAND"] = (
-        f"ssh -i {DEPLOY_KEY} -o IdentitiesOnly=yes -o BatchMode=yes "
-        "-o StrictHostKeyChecking=accept-new"
-    )
+    if DEPLOY_KEY is not None and DEPLOY_KEY.is_file():
+        env["GIT_SSH_COMMAND"] = (
+            f"ssh -i {DEPLOY_KEY} -o IdentitiesOnly=yes -o BatchMode=yes "
+            "-o StrictHostKeyChecking=accept-new"
+        )
     return env
 
 
