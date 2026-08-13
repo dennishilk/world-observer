@@ -1,0 +1,75 @@
+{
+  "dataset": "Official municipal population snapshots for Wiesmoor",
+  "retrieved_at_utc": "2026-08-13T00:00:00Z",
+  "geography": {
+    "municipality": "Wiesmoor, Stadt",
+    "municipality_code_ags": "03452025",
+    "postal_code": "26639",
+    "state": "Lower Saxony",
+    "country": "Germany"
+  },
+  "observations": [
+    {
+      "reference_date": "2019-12-31",
+      "population": 13236,
+      "male": 6376,
+      "female": 6860,
+      "area_km2": 82.94,
+      "population_density_per_km2": 160,
+      "census_basis": "Zensus 2011",
+      "source_url": "https://www.destatis.de/DE/Themen/Laender-Regionen/Regionales/Gemeindeverzeichnis/Administrativ/Archiv/GVAuszugJ/31122019_Auszug_GV.xlsx?__blob=publicationFile"
+    },
+    {
+      "reference_date": "2020-12-31",
+      "population": 13339,
+      "male": 6447,
+      "female": 6892,
+      "area_km2": 82.94,
+      "population_density_per_km2": 161,
+      "census_basis": "Zensus 2011",
+      "source_url": "https://www.destatis.de/DE/Themen/Laender-Regionen/Regionales/Gemeindeverzeichnis/Administrativ/Archiv/GVAuszugJ/31122020_Auszug_GV.xlsx?__blob=publicationFile"
+    },
+    {
+      "reference_date": "2021-12-31",
+      "population": 13372,
+      "male": 6451,
+      "female": 6921,
+      "area_km2": 82.94,
+      "population_density_per_km2": 161,
+      "census_basis": "Zensus 2011",
+      "source_url": "https://www.destatis.de/DE/Themen/Laender-Regionen/Regionales/Gemeindeverzeichnis/Administrativ/Archiv/GVAuszugJ/31122021_Auszug_GV.xlsx?__blob=publicationFile"
+    },
+    {
+      "reference_date": "2022-12-31",
+      "population": 13502,
+      "male": 6524,
+      "female": 6978,
+      "area_km2": 82.94,
+      "population_density_per_km2": 163,
+      "census_basis": "Zensus 2011",
+      "source_url": "https://www.destatis.de/DE/Themen/Laender-Regionen/Regionales/Gemeindeverzeichnis/Administrativ/Archiv/GVAuszugJ/31122022_Auszug_GV.xlsx?__blob=publicationFile"
+    },
+    {
+      "reference_date": "2023-12-31",
+      "population": 13610,
+      "male": 6579,
+      "female": 7031,
+      "area_km2": 82.94,
+      "population_density_per_km2": 164,
+      "census_basis": "Zensus 2011",
+      "source_url": "https://www.destatis.de/DE/Themen/Laender-Regionen/Regionales/Gemeindeverzeichnis/Administrativ/Archiv/GVAuszugJ/31122023_Auszug_GV.xlsx?__blob=publicationFile"
+    },
+    {
+      "reference_date": "2024-12-31",
+      "population": 13875,
+      "male": 6796,
+      "female": 7079,
+      "area_km2": 82.94,
+      "population_density_per_km2": 167,
+      "census_basis": "Zensus 2022",
+      "source_url": "https://www.destatis.de/DE/Themen/Laender-Regionen/Regionales/Gemeindeverzeichnis/Administrativ/Archiv/GVAuszugJ/31122024_Auszug_GV.xlsx?__blob=publicationFile"
+    }
+  ],
+  "source_landing_page": "https://www.statistik.niedersachsen.de/startseite/themen/bevoelkerung/bevolkerungsstand_einwohnerzahl_niedersachsens/bevolkerungsstand-einwohnerzahl-niedersachsens-tabellen-201964.html",
+  "method_note": "The archived 2019-2023 municipal directory snapshots use the Zensus 2011 basis. The 2024 snapshot uses the Zensus 2022 basis, so the apparent 2023-2024 difference is not published as a year-on-year change."
+}

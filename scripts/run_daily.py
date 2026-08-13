@@ -52,7 +52,12 @@ OBSERVERS: List[str] = [
     "traceroute-to-nowhere",
     "undersea-cable-dependency",
     "undersea-cable-dependency-map",
+    "wiesmoor-development",
+    "wiesmoor-energy",
+    "wiesmoor-finance",
+    "wiesmoor-groundwater",
     "wiesmoor-peatland",
+    "wiesmoor-population",
     "wiesmoor-sky-observer",
     "wiesmoor-weather",
 ]
