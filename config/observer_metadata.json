@@ -453,6 +453,127 @@
       "trend_metric": "kp.value"
     },
     {
+      "observer": "wiesmoor-development",
+      "display_name": "Wiesmoor City Development Observer",
+      "category": "society",
+      "description": "Periodic observation of official Wiesmoor planning-document listings without inferring legal project stages.",
+      "tags": [
+        "society",
+        "planning",
+        "wiesmoor",
+        "official-documents"
+      ],
+      "dashboard_priority": 30,
+      "planned": false,
+      "primary_metric": "listed_collection_count",
+      "primary_metric_label": "Official collections listed",
+      "primary_metric_unit": "collections",
+      "secondary_metrics": [
+        [
+          "listed_document_count",
+          "Official documents linked",
+          "documents"
+        ]
+      ]
+    },
+    {
+      "observer": "wiesmoor-energy",
+      "display_name": "Wiesmoor Energy Observer",
+      "category": "technology",
+      "description": "Privacy-preserving municipal aggregates of installed electrical capacity from the official Marktstammdatenregister.",
+      "tags": [
+        "technology",
+        "energy",
+        "wiesmoor",
+        "aggregate"
+      ],
+      "dashboard_priority": 11,
+      "planned": false,
+      "primary_metric": "totals.installed_net_nominal_capacity_kw_operational",
+      "primary_metric_label": "Operational installed power",
+      "primary_metric_unit": "kW",
+      "secondary_metrics": [
+        [
+          "totals.operational_units",
+          "Operational units",
+          "count"
+        ],
+        [
+          "categories",
+          "Energy categories",
+          "count"
+        ]
+      ]
+    },
+    {
+      "observer": "wiesmoor-finance",
+      "display_name": "Wiesmoor City Finance Observer",
+      "category": "society",
+      "description": "Official municipal budget snapshot with strict ACTUAL, PLAN, and FORECAST separation.",
+      "tags": [
+        "society",
+        "finance",
+        "wiesmoor",
+        "official-budget"
+      ],
+      "dashboard_priority": 31,
+      "planned": false,
+      "primary_metric": "latest_budget_plan.result_budget_eur.overall_result",
+      "primary_metric_label": "2026 planned overall result",
+      "primary_metric_unit": "EUR"
+    },
+    {
+      "observer": "wiesmoor-groundwater",
+      "display_name": "Wiesmoor Groundwater Observer",
+      "category": "environment",
+      "description": "Official NLWKN daily groundwater values from a clearly labelled regional reference station near Wiesmoor.",
+      "tags": [
+        "environment",
+        "groundwater",
+        "wiesmoor",
+        "regional-proxy"
+      ],
+      "dashboard_priority": 17,
+      "planned": false,
+      "primary_metric": "latest_official_observation.water_level_m_nhn",
+      "primary_metric_label": "Regional groundwater level",
+      "primary_metric_unit": "m NHN",
+      "secondary_metrics": [
+        [
+          "reference_station.distance_from_wiesmoor_km",
+          "Reference-station distance",
+          "km"
+        ]
+      ]
+    },
+    {
+      "observer": "wiesmoor-population",
+      "display_name": "Wiesmoor Population Observer",
+      "category": "society",
+      "description": "Official annual municipal population snapshots with census-basis breaks made explicit.",
+      "tags": [
+        "society",
+        "population",
+        "wiesmoor",
+        "official-statistics"
+      ],
+      "dashboard_priority": 29,
+      "planned": false,
+      "primary_metric": "latest_official_observation.population",
+      "primary_metric_label": "Official population",
+      "primary_metric_unit": "people",
+      "secondary_metrics": [
+        [
+          "latest_official_observation.reference_date",
+          "Reference date",
+          "date"
+        ]
+      ],
+      "trend_metric": "latest_official_observation.population",
+      "trend_metric_label": "Official population",
+      "trend_metric_unit": "people"
+    },
+    {
       "observer": "wiesmoor-peatland",
       "display_name": "Wiesmoor Peatland Observer",
       "category": "environment",
