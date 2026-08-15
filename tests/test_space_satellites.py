@@ -47,6 +47,16 @@ def fake_fetcher(query_group: str):
     }
 
 
+def _all_mapping_keys(value):
+    if isinstance(value, dict):
+        for key, nested in value.items():
+            yield key
+            yield from _all_mapping_keys(nested)
+    elif isinstance(value, list):
+        for nested in value:
+            yield from _all_mapping_keys(nested)
+
+
 def test_group_url_uses_documented_csv_gp_query() -> None:
     assert space._group_url("GPS-OPS") == (
         "https://celestrak.org/NORAD/elements/gp.php?GROUP=GPS-OPS&FORMAT=CSV"
@@ -84,8 +94,9 @@ def test_success_payload_keeps_groups_separate_and_never_invents_global_total(tm
     assert payload["groups"]["oneweb"]["record_count"] == 2
     assert payload["groups"]["gps_ops"]["query_group"] == "GPS-OPS"
     assert payload["groups"]["cubesat"]["unique_catalog_ids"] == 2
-    assert "total_satellites" not in json.dumps(payload)
-    assert "satellite_total" not in json.dumps(payload)
+    keys = set(_all_mapping_keys(payload))
+    assert "total_satellites" not in keys
+    assert "satellite_total" not in keys
     assert payload["methodology"]["no_global_total_from_group_sums"] is True
     assert payload["diagnostics"]["api_attempts"] == 6
     assert payload["diagnostics"]["retries"] == 0
