@@ -122,7 +122,7 @@ def test_collection_stops_after_first_source_error(tmp_path: Path) -> None:
     assert payload["methodology"]["stop_after_first_source_error"] is True
 
 
-def test_run_persists_state_and_latest_without_network(tmp_path: Path) -> None:
+def test_run_persists_state_latest_and_dashboard_snapshot_without_network(tmp_path: Path) -> None:
     payload = space.run(
         "2026-08-15",
         root=tmp_path,
@@ -132,11 +132,60 @@ def test_run_persists_state_and_latest_without_network(tmp_path: Path) -> None:
 
     state_path = tmp_path / "state" / space.OBSERVER / "2026-08-15.json"
     latest_path = tmp_path / "data" / "latest" / f"{space.OBSERVER}.json"
+    dashboard_path = tmp_path / "dashboard" / "latest" / f"{space.OBSERVER}.json"
     assert state_path.exists()
     assert latest_path.exists()
+    assert dashboard_path.exists()
     assert json.loads(state_path.read_text(encoding="utf-8"))["groups"]["starlink"]["record_count"] == 3
     assert json.loads(latest_path.read_text(encoding="utf-8"))["summary"]["groups_available"] == 6
+    assert json.loads(dashboard_path.read_text(encoding="utf-8"))["source"]["provider"] == "CelesTrak"
     assert payload["history"][-1]["starlink_records"] == 3
+
+
+def test_second_run_same_utc_day_uses_cache_and_makes_zero_source_requests(tmp_path: Path) -> None:
+    first = space.run(
+        "2026-08-15",
+        root=tmp_path,
+        fetcher=fake_fetcher,
+        collected_at=NOW,
+    )
+    calls: list[str] = []
+
+    def must_not_fetch(query_group: str):
+        calls.append(query_group)
+        raise AssertionError("same-day cached observer must not call CelesTrak")
+
+    second = space.run(
+        "2026-08-15",
+        root=tmp_path,
+        fetcher=must_not_fetch,
+        collected_at=NOW,
+    )
+    assert calls == []
+    assert second == first
+    assert (tmp_path / "dashboard" / "latest" / f"{space.OBSERVER}.json").exists()
+
+
+def test_failed_day_is_cached_instead_of_automatically_retrying_source(tmp_path: Path) -> None:
+    calls: list[str] = []
+
+    def fail_first(query_group: str):
+        calls.append(query_group)
+        raise space.SourceFetchError(
+            "CelesTrak returned HTTP 503",
+            url=space._group_url(query_group),
+            http_status=503,
+        )
+
+    first = space.run("2026-08-15", root=tmp_path, fetcher=fail_first, collected_at=NOW)
+    assert first["status"] == "unavailable"
+    assert calls == ["STATIONS"]
+
+    def must_not_retry(_query_group: str):
+        raise AssertionError("source errors are cached for the UTC day")
+
+    second = space.run("2026-08-15", root=tmp_path, fetcher=must_not_retry, collected_at=NOW)
+    assert second == first
 
 
 def test_history_uses_published_daily_group_counts_without_summing(tmp_path: Path) -> None:
