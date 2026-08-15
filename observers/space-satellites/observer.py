@@ -336,6 +336,20 @@ def persist(payload: dict[str, Any], root: Path) -> None:
     date_str = str(payload.get("date") or _date_utc())[:10]
     _write_json(root / "state" / OBSERVER / f"{date_str}.json", payload)
     _write_json(root / "data" / "latest" / f"{OBSERVER}.json", payload)
+    _write_json(root / "dashboard" / "latest" / f"{OBSERVER}.json", payload)
+
+
+def _cached_payload(root: Path, date_str: str) -> dict[str, Any] | None:
+    path = root / "state" / OBSERVER / f"{date_str}.json"
+    if not path.is_file():
+        return None
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    if not isinstance(payload, dict) or payload.get("observer") != OBSERVER:
+        return None
+    return payload
 
 
 def run(
@@ -347,6 +361,10 @@ def run(
 ) -> dict[str, Any]:
     root = root or _repo_root()
     date_str = date_str or _date_utc()
+    cached = _cached_payload(root, date_str)
+    if cached is not None:
+        persist(cached, root)
+        return cached
     payload = build_payload(date_str, root=root, fetcher=fetcher, collected_at=collected_at)
     persist(payload, root)
     return payload
