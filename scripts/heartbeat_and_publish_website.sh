@@ -23,6 +23,13 @@ cd "$repo_root"
 log "running heartbeat_push.py"
 "$python_bin" scripts/heartbeat_push.py
 
+# The dedicated Space / Satellites observer caches every UTC date in state/.
+# Calling it from the hourly publisher therefore makes at most one source
+# collection per day while ensuring its dashboard/latest snapshot is present
+# before the website dashboard is copied.
+log "running cached space-satellites observer"
+WORLD_OBSERVER_DATE_UTC="$snapshot_date" "$python_bin" observers/space-satellites/observer.py >/dev/null
+
 log "running export_dashboard.py"
 "$python_bin" scripts/export_dashboard.py
 
