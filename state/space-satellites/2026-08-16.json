@@ -1,0 +1,117 @@
+{
+  "observer": "space-satellites",
+  "category": "technology",
+  "date": "2026-08-16",
+  "collected_at_utc": "2026-08-16T00:00:03Z",
+  "status": "partial",
+  "data_status": "partial",
+  "summary": {
+    "groups_requested": 6,
+    "groups_available": 1,
+    "groups_unavailable_or_not_attempted": 5,
+    "freshest_selected_group_epoch_utc": "2026-08-15T15:16:20Z",
+    "group_counts_are_memberships": true,
+    "groups_may_overlap": true,
+    "global_satellite_total_calculated": false
+  },
+  "groups": {
+    "stations": {
+      "label": "Space Stations",
+      "query_group": "STATIONS",
+      "status": "ok",
+      "record_count": 22,
+      "unique_catalog_ids": 22,
+      "epoch_count": 22,
+      "mean_inclination_deg": 48.8596,
+      "oldest_epoch_utc": "2026-08-15T02:00:30Z",
+      "newest_epoch_utc": "2026-08-15T15:16:20Z",
+      "median_epoch_age_hours": 10.92
+    },
+    "starlink": {
+      "label": "Starlink",
+      "query_group": "STARLINK",
+      "status": "unavailable",
+      "reason": "CelesTrak request failed: The read operation timed out"
+    },
+    "oneweb": {
+      "label": "OneWeb",
+      "query_group": "ONEWEB",
+      "status": "not_attempted",
+      "reason": "collection stopped after the first source error"
+    },
+    "gps_ops": {
+      "label": "GPS Operational",
+      "query_group": "GPS-OPS",
+      "status": "not_attempted",
+      "reason": "collection stopped after the first source error"
+    },
+    "galileo": {
+      "label": "Galileo",
+      "query_group": "GALILEO",
+      "status": "not_attempted",
+      "reason": "collection stopped after the first source error"
+    },
+    "cubesat": {
+      "label": "CubeSats",
+      "query_group": "CUBESAT",
+      "status": "not_attempted",
+      "reason": "collection stopped after the first source error"
+    }
+  },
+  "source": {
+    "provider": "CelesTrak",
+    "dataset": "Current GP Element Sets",
+    "format": "CSV with OMM keywords",
+    "documentation_url": "https://celestrak.org/NORAD/documentation/gp-data-formats.php",
+    "usage_policy_url": "https://celestrak.org/usage-policy.php"
+  },
+  "methodology": {
+    "collection_cadence": "daily",
+    "requests_per_run_max": 6,
+    "one_request_per_selected_group": true,
+    "stop_after_first_source_error": true,
+    "counts_are_per_group_records": true,
+    "groups_are_not_assumed_disjoint": true,
+    "no_global_total_from_group_sums": true,
+    "no_orbit_propagation": true,
+    "no_real_time_position_claims": true
+  },
+  "diagnostics": {
+    "api_attempts": 2,
+    "retries": 0,
+    "http_status": null,
+    "stop_reason": "CelesTrak request failed: The read operation timed out",
+    "requests": [
+      {
+        "group": "STATIONS",
+        "status": "ok",
+        "url": "https://celestrak.org/NORAD/elements/gp.php?GROUP=STATIONS&FORMAT=CSV",
+        "http_status": 200,
+        "bytes": 3502,
+        "record_count": 22
+      },
+      {
+        "group": "STARLINK",
+        "url": "https://celestrak.org/NORAD/elements/gp.php?GROUP=STARLINK&FORMAT=CSV",
+        "http_status": null,
+        "status": "error",
+        "reason": "CelesTrak request failed: The read operation timed out"
+      }
+    ]
+  },
+  "history": [
+    {
+      "date": "2026-08-15",
+      "stations_records": 22,
+      "starlink_records": 10929,
+      "oneweb_records": 651,
+      "gps_ops_records": 32,
+      "galileo_records": 32,
+      "cubesat_records": 86
+    },
+    {
+      "date": "2026-08-16",
+      "stations_records": 22
+    }
+  ]
+}
