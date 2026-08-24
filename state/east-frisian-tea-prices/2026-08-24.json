@@ -163,7 +163,7 @@
   "diagnostics": {
     "source": "combi_product_meta",
     "fetch_url": "https://www.combi.de/buenting_tee_gruenpack_1101010007.html",
-    "fetched_at_utc": "2026-08-24T05:40:03.272307+00:00",
+    "fetched_at_utc": "2026-08-24T06:06:46.253001+00:00",
     "http_status": 200,
     "api_attempts": 1,
     "retries": 0,
