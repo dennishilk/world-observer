@@ -14,7 +14,7 @@
     "api_attempts": 2,
     "compressed_bytes": {
       "core": 130051,
-      "extra": 8859981
+      "extra": 8860061
     },
     "fetch_urls": {
       "core": "https://geo.mirror.pkgbuild.com/core/os/x86_64/core.db",
