@@ -1,6 +1,6 @@
 {
   "observer": "silent-countries-list",
-  "date_utc": "2026-08-24",
+  "date_utc": "2026-08-25",
   "data_status": "ok",
   "top_silent_countries": [
     {
@@ -63,10 +63,8 @@
   },
   "significance": {
     "sigma_mult": 2.0,
-    "any_significant": true,
-    "triggers": [
-      "new top-N entries: CU, DE, IR, KP, US"
-    ]
+    "any_significant": false,
+    "triggers": []
   },
   "diagnostics": {
     "api_attempts": 0,
