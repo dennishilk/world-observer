@@ -1,13 +1,13 @@
 {
   "status": "ok",
   "observer": "north-korea-connectivity",
-  "date_utc": "2026-08-25",
+  "date_utc": "2026-08-26",
   "data_status": "ok",
   "connectivity_state": "partial",
   "layers": {
     "dns": {
       "success_rate": 0.25,
-      "mean_latency_ms": 579.88,
+      "mean_latency_ms": 1565.87,
       "probe_count": 8,
       "data_completeness": 1.0
     },
@@ -28,9 +28,9 @@
     }
   },
   "time_to_silence": {
-    "mean_seconds": 15.057,
-    "p95_seconds": 15.057,
-    "worst_seconds": 15.057
+    "mean_seconds": 10.794,
+    "p95_seconds": 10.794,
+    "worst_seconds": 10.794
   },
   "baseline_30d": {
     "dns_success_rate": {
@@ -54,24 +54,24 @@
       "samples": 30
     },
     "tts_mean_seconds": {
-      "mean": 25.4173,
-      "stddev": 5.539052,
+      "mean": 24.7326,
+      "stddev": 5.507745,
       "samples": 30
     },
     "tts_p95_seconds": {
-      "mean": 26.119667,
-      "stddev": 6.417829,
+      "mean": 25.434967,
+      "stddev": 6.465641,
       "samples": 30
     },
     "tts_worst_seconds": {
-      "mean": 26.119667,
-      "stddev": 6.417829,
+      "mean": 25.434967,
+      "stddev": 6.465641,
       "samples": 30
     }
   },
   "significance": {
     "sigma_mult": 2.0,
-    "any_significant": false,
+    "any_significant": true,
     "details": {
       "metrics": {
         "dns_success_rate": {
@@ -103,28 +103,32 @@
           "triggered": false
         },
         "tts_mean_seconds": {
-          "value": 15.057,
-          "mean_30d": 25.4173,
-          "stddev_30d": 5.539052,
-          "zscore": -1.8704,
-          "triggered": false
+          "value": 10.794,
+          "mean_30d": 24.7326,
+          "stddev_30d": 5.507745,
+          "zscore": -2.5307,
+          "triggered": true
         },
         "tts_p95_seconds": {
-          "value": 15.057,
-          "mean_30d": 26.119667,
-          "stddev_30d": 6.417829,
-          "zscore": -1.7237,
-          "triggered": false
+          "value": 10.794,
+          "mean_30d": 25.434967,
+          "stddev_30d": 6.465641,
+          "zscore": -2.2644,
+          "triggered": true
         },
         "tts_worst_seconds": {
-          "value": 15.057,
-          "mean_30d": 26.119667,
-          "stddev_30d": 6.417829,
-          "zscore": -1.7237,
-          "triggered": false
+          "value": 10.794,
+          "mean_30d": 25.434967,
+          "stddev_30d": 6.465641,
+          "zscore": -2.2644,
+          "triggered": true
         }
       },
-      "triggered_metrics": [],
+      "triggered_metrics": [
+        "tts_mean_seconds",
+        "tts_p95_seconds",
+        "tts_worst_seconds"
+      ],
       "state_transition": {
         "previous_state": "partial",
         "current_state": "partial",
@@ -139,11 +143,11 @@
     "api_attempts": 48,
     "retries": 0,
     "http_status": null,
-    "probes_attempted": 67,
-    "probes_succeeded": 11,
-    "probes_failed": 56,
-    "timeouts": 5,
-    "duration_s": 60.016,
+    "probes_attempted": 54,
+    "probes_succeeded": 12,
+    "probes_failed": 42,
+    "timeouts": 3,
+    "duration_s": 60.435,
     "budget_s": 60.0,
     "budget_exhausted": true
   }

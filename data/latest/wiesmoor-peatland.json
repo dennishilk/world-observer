@@ -1,6 +1,6 @@
 {
   "category": "environment",
-  "collected_at_utc": "2026-08-25T06:08:57Z",
+  "collected_at_utc": "2026-08-26T06:09:05Z",
   "copernicus_soil_water": {
     "data_status": "unavailable",
     "file_naming_convention": "c_gls_SWI1km_YYYYMMDD1200_CEURO_SCATSAR_VX.Y.X.nc",
@@ -58,8 +58,8 @@
     "variable_meaning": "SWI_002 means T=2"
   },
   "data_status": "partial",
-  "date": "2026-08-25",
-  "date_utc": "2026-08-25",
+  "date": "2026-08-26",
+  "date_utc": "2026-08-26",
   "diagnostics": {
     "adapter_errors": [
       "Live Copernicus SWI discovery/download is not enabled: anonymous CDSE product discovery was not verified in this environment, and the adapter must not guess OData collection identifiers or file paths."
@@ -89,7 +89,7 @@
     "nearest_station": {
       "data_status": "ok",
       "distance_km": 12.01,
-      "latest_date": "25.08.2026",
+      "latest_date": "26.08.2026",
       "latest_value": 4.27,
       "latest_value_unit": "m",
       "latitude": 53.308712851665724,
@@ -112,7 +112,7 @@
       {
         "data_status": "ok",
         "distance_km": 12.01,
-        "latest_date": "25.08.2026",
+        "latest_date": "26.08.2026",
         "latest_value": 4.27,
         "latest_value_unit": "m",
         "latitude": 53.308712851665724,
@@ -125,8 +125,8 @@
       {
         "data_status": "ok",
         "distance_km": 12.3,
-        "latest_date": "25.08.2026",
-        "latest_value": 2.17,
+        "latest_date": "26.08.2026",
+        "latest_value": 2.18,
         "latest_value_unit": "m",
         "latitude": 53.50290852872384,
         "longitude": 7.616982588807925,
@@ -138,8 +138,8 @@
       {
         "data_status": "ok",
         "distance_km": 17.68,
-        "latest_date": "25.08.2026",
-        "latest_value": 1.71,
+        "latest_date": "26.08.2026",
+        "latest_value": 1.72,
         "latest_value_unit": "m",
         "latitude": 53.55419782828839,
         "longitude": 7.867499351844094,
@@ -239,7 +239,7 @@
       "regional_soil_water": {
         "class": "normal",
         "direction": "normal",
-        "latest_value": 78.7,
+        "latest_value": 78.2,
         "strength": "moderate",
         "unit": "‰ nFK",
         "valid": true
@@ -311,8 +311,8 @@
       "y": 5921001.0
     },
     "label": "regional DWD gridded soil-moisture condition",
-    "latest_date": "2026-08-23",
-    "latest_value": 78.7,
+    "latest_date": "2026-08-24",
+    "latest_value": 78.2,
     "limitations": [
       "Regional gridded model product, not an in-situ peat water-table sensor.",
       "DWD AMBAV soil moisture under grass preserves source-native ‰ nFK semantics and is not converted to water-table depth."
@@ -323,7 +323,7 @@
       "dataset_id": "urn:wmo:md:de-dwd-cdc:25285481-9c88-4304-a90a-26fff84a9a84",
       "description_url": "https://opendata.dwd.de/climate_environment/CDC/grids_germany/daily/soil_moisture/grass/DESCRIPTION_grids_germany_daily_soil_moisture_grass_en.pdf",
       "name": "Deutscher Wetterdienst (DWD) Climate Data Center",
-      "observation_date": "2026-08-23",
+      "observation_date": "2026-08-24",
       "selected_file_url": "https://opendata.dwd.de/climate_environment/CDC/grids_germany/daily/soil_moisture/grass/2026/grids_germany_daily_soil_moisture_grass_2026_0-60_v1.nc",
       "source_url": "https://opendata.dwd.de/climate_environment/CDC/grids_germany/daily/soil_moisture/grass/2026/grids_germany_daily_soil_moisture_grass_2026_0-60_v1.nc",
       "status": "live_adapter",
@@ -363,7 +363,7 @@
       "dataset_id": "urn:wmo:md:de-dwd-cdc:25285481-9c88-4304-a90a-26fff84a9a84",
       "description_url": "https://opendata.dwd.de/climate_environment/CDC/grids_germany/daily/soil_moisture/grass/DESCRIPTION_grids_germany_daily_soil_moisture_grass_en.pdf",
       "name": "Deutscher Wetterdienst (DWD) Climate Data Center",
-      "observation_date": "2026-08-23",
+      "observation_date": "2026-08-24",
       "selected_file_url": "https://opendata.dwd.de/climate_environment/CDC/grids_germany/daily/soil_moisture/grass/2026/grids_germany_daily_soil_moisture_grass_2026_0-60_v1.nc",
       "source_url": "https://opendata.dwd.de/climate_environment/CDC/grids_germany/daily/soil_moisture/grass/2026/grids_germany_daily_soil_moisture_grass_2026_0-60_v1.nc",
       "status": "live_adapter",
