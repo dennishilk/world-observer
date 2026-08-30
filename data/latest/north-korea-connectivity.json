@@ -1,13 +1,13 @@
 {
   "status": "ok",
   "observer": "north-korea-connectivity",
-  "date_utc": "2026-08-29",
+  "date_utc": "2026-08-30",
   "data_status": "ok",
   "connectivity_state": "partial",
   "layers": {
     "dns": {
       "success_rate": 0.25,
-      "mean_latency_ms": 667.01,
+      "mean_latency_ms": 1046.9,
       "probe_count": 8,
       "data_completeness": 1.0
     },
@@ -28,9 +28,9 @@
     }
   },
   "time_to_silence": {
-    "mean_seconds": 18.167,
-    "p95_seconds": 18.167,
-    "worst_seconds": 18.167
+    "mean_seconds": 19.097,
+    "p95_seconds": 19.097,
+    "worst_seconds": 19.097
   },
   "baseline_30d": {
     "dns_success_rate": {
@@ -54,18 +54,18 @@
       "samples": 30
     },
     "tts_mean_seconds": {
-      "mean": 22.169367,
-      "stddev": 7.267877,
+      "mean": 21.602867,
+      "stddev": 6.885356,
       "samples": 30
     },
     "tts_p95_seconds": {
-      "mean": 22.871733,
-      "stddev": 8.239657,
+      "mean": 22.305233,
+      "stddev": 7.954484,
       "samples": 30
     },
     "tts_worst_seconds": {
-      "mean": 22.871733,
-      "stddev": 8.239657,
+      "mean": 22.305233,
+      "stddev": 7.954484,
       "samples": 30
     }
   },
@@ -103,32 +103,32 @@
           "triggered": false
         },
         "tts_mean_seconds": {
-          "value": 18.167,
-          "mean_30d": 22.169367,
-          "stddev_30d": 7.267877,
-          "zscore": -0.5507,
+          "value": 19.097,
+          "mean_30d": 21.602867,
+          "stddev_30d": 6.885356,
+          "zscore": -0.3639,
           "triggered": false
         },
         "tts_p95_seconds": {
-          "value": 18.167,
-          "mean_30d": 22.871733,
-          "stddev_30d": 8.239657,
-          "zscore": -0.571,
+          "value": 19.097,
+          "mean_30d": 22.305233,
+          "stddev_30d": 7.954484,
+          "zscore": -0.4033,
           "triggered": false
         },
         "tts_worst_seconds": {
-          "value": 18.167,
-          "mean_30d": 22.871733,
-          "stddev_30d": 8.239657,
-          "zscore": -0.571,
+          "value": 19.097,
+          "mean_30d": 22.305233,
+          "stddev_30d": 7.954484,
+          "zscore": -0.4033,
           "triggered": false
         }
       },
       "triggered_metrics": [],
       "state_transition": {
-        "previous_state": "dark",
+        "previous_state": "partial",
         "current_state": "partial",
-        "transition": "dark->partial",
+        "transition": "partial->partial",
         "rare": false,
         "known_rare_transition": false,
         "uncommon_state_today": false
@@ -139,11 +139,11 @@
     "api_attempts": 48,
     "retries": 0,
     "http_status": null,
-    "probes_attempted": 67,
+    "probes_attempted": 65,
     "probes_succeeded": 12,
-    "probes_failed": 55,
+    "probes_failed": 53,
     "timeouts": 3,
-    "duration_s": 60.023,
+    "duration_s": 60.47,
     "budget_s": 60.0,
     "budget_exhausted": true
   }
