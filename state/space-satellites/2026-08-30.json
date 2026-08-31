@@ -2,14 +2,14 @@
   "observer": "space-satellites",
   "category": "technology",
   "date": "2026-08-30",
-  "collected_at_utc": "2026-08-30T06:00:03Z",
-  "status": "unavailable",
-  "data_status": "unavailable",
+  "collected_at_utc": "2026-08-30T23:00:03Z",
+  "status": "partial",
+  "data_status": "partial",
   "summary": {
     "groups_requested": 6,
-    "groups_available": 0,
-    "groups_unavailable_or_not_attempted": 6,
-    "freshest_selected_group_epoch_utc": null,
+    "groups_available": 3,
+    "groups_unavailable_or_not_attempted": 3,
+    "freshest_selected_group_epoch_utc": "2026-08-30T20:13:55Z",
     "group_counts_are_memberships": true,
     "groups_may_overlap": true,
     "global_satellite_total_calculated": false
@@ -18,26 +18,44 @@
     "stations": {
       "label": "Space Stations",
       "query_group": "STATIONS",
-      "status": "unavailable",
-      "reason": "CelesTrak request failed: <urlopen error timed out>"
+      "status": "ok",
+      "record_count": 22,
+      "unique_catalog_ids": 22,
+      "epoch_count": 22,
+      "mean_inclination_deg": 48.8572,
+      "oldest_epoch_utc": "2026-08-29T20:56:34Z",
+      "newest_epoch_utc": "2026-08-30T12:06:24Z",
+      "median_epoch_age_hours": 12.51
     },
     "starlink": {
       "label": "Starlink",
       "query_group": "STARLINK",
-      "status": "not_attempted",
-      "reason": "collection stopped after the first source error"
+      "status": "ok",
+      "record_count": 11040,
+      "unique_catalog_ids": 11040,
+      "epoch_count": 11040,
+      "mean_inclination_deg": 57.1196,
+      "oldest_epoch_utc": "2026-08-25T02:07:39Z",
+      "newest_epoch_utc": "2026-08-30T20:13:55Z",
+      "median_epoch_age_hours": 11.55
     },
     "oneweb": {
       "label": "OneWeb",
       "query_group": "ONEWEB",
-      "status": "not_attempted",
-      "reason": "collection stopped after the first source error"
+      "status": "ok",
+      "record_count": 651,
+      "unique_catalog_ids": 651,
+      "epoch_count": 651,
+      "mean_inclination_deg": 87.9034,
+      "oldest_epoch_utc": "2026-08-30T02:56:26Z",
+      "newest_epoch_utc": "2026-08-30T15:03:45Z",
+      "median_epoch_age_hours": 10.97
     },
     "gps_ops": {
       "label": "GPS Operational",
       "query_group": "GPS-OPS",
-      "status": "not_attempted",
-      "reason": "collection stopped after the first source error"
+      "status": "unavailable",
+      "reason": "CelesTrak returned HTTP 503"
     },
     "galileo": {
       "label": "Galileo",
@@ -71,17 +89,41 @@
     "no_real_time_position_claims": true
   },
   "diagnostics": {
-    "api_attempts": 1,
+    "api_attempts": 4,
     "retries": 0,
-    "http_status": null,
-    "stop_reason": "CelesTrak request failed: <urlopen error timed out>",
+    "http_status": 503,
+    "stop_reason": "CelesTrak returned HTTP 503",
     "requests": [
       {
         "group": "STATIONS",
+        "status": "ok",
         "url": "https://celestrak.org/NORAD/elements/gp.php?GROUP=STATIONS&FORMAT=CSV",
-        "http_status": null,
+        "http_status": 200,
+        "bytes": 3550,
+        "record_count": 22
+      },
+      {
+        "group": "STARLINK",
+        "status": "ok",
+        "url": "https://celestrak.org/NORAD/elements/gp.php?GROUP=STARLINK&FORMAT=CSV",
+        "http_status": 200,
+        "bytes": 1685174,
+        "record_count": 11040
+      },
+      {
+        "group": "ONEWEB",
+        "status": "ok",
+        "url": "https://celestrak.org/NORAD/elements/gp.php?GROUP=ONEWEB&FORMAT=CSV",
+        "http_status": 200,
+        "bytes": 97222,
+        "record_count": 651
+      },
+      {
+        "group": "GPS-OPS",
+        "url": "https://celestrak.org/NORAD/elements/gp.php?GROUP=GPS-OPS&FORMAT=CSV",
+        "http_status": 503,
         "status": "error",
-        "reason": "CelesTrak request failed: <urlopen error timed out>"
+        "reason": "CelesTrak returned HTTP 503"
       }
     ]
   },
@@ -215,6 +257,12 @@
       "gps_ops_records": 32,
       "galileo_records": 31,
       "cubesat_records": 86
+    },
+    {
+      "date": "2026-08-30",
+      "stations_records": 22,
+      "starlink_records": 11040,
+      "oneweb_records": 651
     }
   ]
 }

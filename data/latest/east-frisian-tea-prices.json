@@ -1,13 +1,13 @@
 {
   "availability": "instock",
-  "average_30d": 11.6,
-  "average_365d": 10.33,
+  "average_30d": 11.62,
+  "average_365d": 10.37,
   "category": "society",
   "currency": "EUR",
   "current_price": 11.69,
   "data_status": "ok",
-  "date": "2026-08-30",
-  "date_utc": "2026-08-30",
+  "date": "2026-08-31",
+  "date_utc": "2026-08-31",
   "description": "Tracks the retail price development of a representative 500 g loose East Frisian black tea product over time. The observer is descriptive only and does not rate brands or product quality.",
   "diagnostics": {
     "api_attempts": 1,
@@ -17,7 +17,7 @@
     "currency": "EUR",
     "ean": "4008837201054",
     "fetch_url": "https://www.combi.de/buenting_tee_gruenpack_1101010007.html",
-    "fetched_at_utc": "2026-08-30T06:07:07.076816+00:00",
+    "fetched_at_utc": "2026-08-31T06:07:08.911264+00:00",
     "http_status": 200,
     "meta_fields_present": [
       "product:availability",
@@ -202,10 +202,15 @@
       "date": "2026-08-30",
       "source": "combi_product_meta",
       "value": 11.69
+    },
+    {
+      "date": "2026-08-31",
+      "source": "combi_product_meta",
+      "value": 11.69
     }
   ],
   "observed_changes": [
-    "Price increased compared with the previous observation."
+    "Price is unchanged compared with the previous observation."
   ],
   "observer": "east-frisian-tea-prices",
   "record_high": 11.69,
@@ -213,7 +218,7 @@
   "source": "combi_product_meta",
   "source_url": "https://www.combi.de/buenting_tee_gruenpack_1101010007.html",
   "status": "ok",
-  "trend_delta": 0.1,
-  "trend_delta_percent": 0.86,
+  "trend_delta": 0.0,
+  "trend_delta_percent": 0.0,
   "unit": "EUR per 500 g loose tea"
 }
