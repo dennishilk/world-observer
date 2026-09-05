@@ -1,13 +1,13 @@
 {
   "status": "ok",
   "observer": "north-korea-connectivity",
-  "date_utc": "2026-09-04",
+  "date_utc": "2026-09-05",
   "data_status": "ok",
   "connectivity_state": "partial",
   "layers": {
     "dns": {
-      "success_rate": 0.125,
-      "mean_latency_ms": 594.86,
+      "success_rate": 0.25,
+      "mean_latency_ms": 1693.6,
       "probe_count": 8,
       "data_completeness": 1.0
     },
@@ -28,14 +28,14 @@
     }
   },
   "time_to_silence": {
-    "mean_seconds": 5.416,
-    "p95_seconds": 5.416,
-    "worst_seconds": 5.416
+    "mean_seconds": 0.324,
+    "p95_seconds": 0.324,
+    "worst_seconds": 0.324
   },
   "baseline_30d": {
     "dns_success_rate": {
-      "mean": 0.2375,
-      "stddev": 0.0375,
+      "mean": 0.233333,
+      "stddev": 0.042492,
       "samples": 30
     },
     "tcp_success_rate": {
@@ -54,18 +54,18 @@
       "samples": 30
     },
     "tts_mean_seconds": {
-      "mean": 19.808667,
-      "stddev": 7.913075,
+      "mean": 19.132333,
+      "stddev": 8.240449,
       "samples": 30
     },
     "tts_p95_seconds": {
-      "mean": 19.808667,
-      "stddev": 7.913075,
+      "mean": 19.132333,
+      "stddev": 8.240449,
       "samples": 30
     },
     "tts_worst_seconds": {
-      "mean": 19.808667,
-      "stddev": 7.913075,
+      "mean": 19.132333,
+      "stddev": 8.240449,
       "samples": 30
     }
   },
@@ -75,11 +75,11 @@
     "details": {
       "metrics": {
         "dns_success_rate": {
-          "value": 0.125,
-          "mean_30d": 0.2375,
-          "stddev_30d": 0.0375,
-          "zscore": -3.0,
-          "triggered": true
+          "value": 0.25,
+          "mean_30d": 0.233333,
+          "stddev_30d": 0.042492,
+          "zscore": 0.3922,
+          "triggered": false
         },
         "tcp_success_rate": {
           "value": 0.1667,
@@ -103,29 +103,31 @@
           "triggered": false
         },
         "tts_mean_seconds": {
-          "value": 5.416,
-          "mean_30d": 19.808667,
-          "stddev_30d": 7.913075,
-          "zscore": -1.8188,
-          "triggered": false
+          "value": 0.324,
+          "mean_30d": 19.132333,
+          "stddev_30d": 8.240449,
+          "zscore": -2.2824,
+          "triggered": true
         },
         "tts_p95_seconds": {
-          "value": 5.416,
-          "mean_30d": 19.808667,
-          "stddev_30d": 7.913075,
-          "zscore": -1.8188,
-          "triggered": false
+          "value": 0.324,
+          "mean_30d": 19.132333,
+          "stddev_30d": 8.240449,
+          "zscore": -2.2824,
+          "triggered": true
         },
         "tts_worst_seconds": {
-          "value": 5.416,
-          "mean_30d": 19.808667,
-          "stddev_30d": 7.913075,
-          "zscore": -1.8188,
-          "triggered": false
+          "value": 0.324,
+          "mean_30d": 19.132333,
+          "stddev_30d": 8.240449,
+          "zscore": -2.2824,
+          "triggered": true
         }
       },
       "triggered_metrics": [
-        "dns_success_rate"
+        "tts_mean_seconds",
+        "tts_p95_seconds",
+        "tts_worst_seconds"
       ],
       "state_transition": {
         "previous_state": "partial",
@@ -141,11 +143,11 @@
     "api_attempts": 48,
     "retries": 0,
     "http_status": null,
-    "probes_attempted": 51,
-    "probes_succeeded": 7,
-    "probes_failed": 44,
-    "timeouts": 4,
-    "duration_s": 62.064,
+    "probes_attempted": 49,
+    "probes_succeeded": 8,
+    "probes_failed": 41,
+    "timeouts": 3,
+    "duration_s": 60.015,
     "budget_s": 60.0,
     "budget_exhausted": true
   }

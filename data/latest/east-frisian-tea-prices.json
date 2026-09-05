@@ -1,13 +1,13 @@
 {
   "availability": "instock",
   "average_30d": 11.64,
-  "average_365d": 10.51,
+  "average_365d": 10.54,
   "category": "society",
   "currency": "EUR",
   "current_price": 11.69,
   "data_status": "ok",
-  "date": "2026-09-04",
-  "date_utc": "2026-09-04",
+  "date": "2026-09-05",
+  "date_utc": "2026-09-05",
   "description": "Tracks the retail price development of a representative 500 g loose East Frisian black tea product over time. The observer is descriptive only and does not rate brands or product quality.",
   "diagnostics": {
     "api_attempts": 1,
@@ -17,7 +17,7 @@
     "currency": "EUR",
     "ean": "4008837201054",
     "fetch_url": "https://www.combi.de/buenting_tee_gruenpack_1101010007.html",
-    "fetched_at_utc": "2026-09-04T06:07:12.187992+00:00",
+    "fetched_at_utc": "2026-09-05T06:07:07.305832+00:00",
     "http_status": 200,
     "meta_fields_present": [
       "product:availability",
@@ -225,6 +225,11 @@
     },
     {
       "date": "2026-09-04",
+      "source": "combi_product_meta",
+      "value": 11.69
+    },
+    {
+      "date": "2026-09-05",
       "source": "combi_product_meta",
       "value": 11.69
     }
