@@ -1,13 +1,13 @@
 {
   "status": "ok",
   "observer": "north-korea-connectivity",
-  "date_utc": "2026-09-13",
+  "date_utc": "2026-09-14",
   "data_status": "ok",
   "connectivity_state": "partial",
   "layers": {
     "dns": {
       "success_rate": 0.25,
-      "mean_latency_ms": 1013.33,
+      "mean_latency_ms": 563.39,
       "probe_count": 8,
       "data_completeness": 1.0
     },
@@ -28,9 +28,9 @@
     }
   },
   "time_to_silence": {
-    "mean_seconds": 15.851,
-    "p95_seconds": 15.851,
-    "worst_seconds": 15.851
+    "mean_seconds": 22.835,
+    "p95_seconds": 22.835,
+    "worst_seconds": 22.835
   },
   "baseline_30d": {
     "dns_success_rate": {
@@ -54,18 +54,18 @@
       "samples": 30
     },
     "tts_mean_seconds": {
-      "mean": 15.596067,
-      "stddev": 8.916942,
+      "mean": 15.2035,
+      "stddev": 8.633326,
       "samples": 30
     },
     "tts_p95_seconds": {
-      "mean": 15.596067,
-      "stddev": 8.916942,
+      "mean": 15.2035,
+      "stddev": 8.633326,
       "samples": 30
     },
     "tts_worst_seconds": {
-      "mean": 15.596067,
-      "stddev": 8.916942,
+      "mean": 15.2035,
+      "stddev": 8.633326,
       "samples": 30
     }
   },
@@ -103,24 +103,24 @@
           "triggered": false
         },
         "tts_mean_seconds": {
-          "value": 15.851,
-          "mean_30d": 15.596067,
-          "stddev_30d": 8.916942,
-          "zscore": 0.0286,
+          "value": 22.835,
+          "mean_30d": 15.2035,
+          "stddev_30d": 8.633326,
+          "zscore": 0.884,
           "triggered": false
         },
         "tts_p95_seconds": {
-          "value": 15.851,
-          "mean_30d": 15.596067,
-          "stddev_30d": 8.916942,
-          "zscore": 0.0286,
+          "value": 22.835,
+          "mean_30d": 15.2035,
+          "stddev_30d": 8.633326,
+          "zscore": 0.884,
           "triggered": false
         },
         "tts_worst_seconds": {
-          "value": 15.851,
-          "mean_30d": 15.596067,
-          "stddev_30d": 8.916942,
-          "zscore": 0.0286,
+          "value": 22.835,
+          "mean_30d": 15.2035,
+          "stddev_30d": 8.633326,
+          "zscore": 0.884,
           "triggered": false
         }
       },
@@ -139,11 +139,11 @@
     "api_attempts": 48,
     "retries": 0,
     "http_status": null,
-    "probes_attempted": 65,
-    "probes_succeeded": 12,
-    "probes_failed": 53,
-    "timeouts": 3,
-    "duration_s": 60.215,
+    "probes_attempted": 80,
+    "probes_succeeded": 13,
+    "probes_failed": 67,
+    "timeouts": 4,
+    "duration_s": 60.52,
     "budget_s": 60.0,
     "budget_exhausted": true
   }
