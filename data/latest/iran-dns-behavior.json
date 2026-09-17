@@ -1,6 +1,6 @@
 {
   "observer": "iran-dns-behavior",
-  "timestamp": "2026-09-16T06:07:15.652328+00:00",
+  "timestamp": "2026-09-17T06:07:15.091134+00:00",
   "status": "ok",
   "data_status": "partial",
   "targets": [
@@ -10,25 +10,25 @@
       "queries": {
         "A": {
           "status": "answer",
-          "query_ms": 9.62,
+          "query_ms": 9.25,
           "answer_count": 2,
           "error": null
         },
         "AAAA": {
           "status": "answer",
-          "query_ms": 8.91,
+          "query_ms": 9.14,
           "answer_count": 2,
           "error": null
         },
         "MX": {
           "status": "answer",
-          "query_ms": 9.48,
+          "query_ms": 9.77,
           "answer_count": 1,
           "error": null
         },
         "TXT": {
           "status": "answer",
-          "query_ms": 11.88,
+          "query_ms": 11.64,
           "answer_count": 2,
           "error": null
         }
@@ -40,25 +40,25 @@
       "queries": {
         "A": {
           "status": "answer",
-          "query_ms": 8.22,
+          "query_ms": 8.26,
           "answer_count": 1,
           "error": null
         },
         "AAAA": {
           "status": "answer",
-          "query_ms": 97.39,
+          "query_ms": 9.15,
           "answer_count": 1,
           "error": null
         },
         "MX": {
           "status": "answer",
-          "query_ms": 21.3,
+          "query_ms": 97.68,
           "answer_count": 4,
           "error": null
         },
         "TXT": {
           "status": "answer",
-          "query_ms": 41.8,
+          "query_ms": 44.26,
           "answer_count": 12,
           "error": null
         }
@@ -70,25 +70,25 @@
       "queries": {
         "A": {
           "status": "answer",
-          "query_ms": 7.89,
+          "query_ms": 7.72,
           "answer_count": 1,
           "error": null
         },
         "AAAA": {
           "status": "answer",
-          "query_ms": 9.16,
+          "query_ms": 8.34,
           "answer_count": 1,
           "error": null
         },
         "MX": {
           "status": "answer",
-          "query_ms": 23.74,
+          "query_ms": 23.03,
           "answer_count": 2,
           "error": null
         },
         "TXT": {
           "status": "answer",
-          "query_ms": 21.97,
+          "query_ms": 17.61,
           "answer_count": 3,
           "error": null
         }
@@ -100,7 +100,7 @@
       "queries": {
         "A": {
           "status": "answer",
-          "query_ms": 8.46,
+          "query_ms": 8.66,
           "answer_count": 1,
           "error": null
         },
@@ -112,13 +112,13 @@
         },
         "MX": {
           "status": "answer",
-          "query_ms": 10.71,
+          "query_ms": 8.51,
           "answer_count": 1,
           "error": null
         },
         "TXT": {
           "status": "answer",
-          "query_ms": 25.21,
+          "query_ms": 27.36,
           "answer_count": 24,
           "error": null
         }
@@ -130,26 +130,26 @@
       "queries": {
         "A": {
           "status": "answer",
-          "query_ms": 8.75,
+          "query_ms": 8.36,
           "answer_count": 2,
           "error": null
         },
         "AAAA": {
           "status": "answer",
-          "query_ms": 8.32,
+          "query_ms": 8.05,
           "answer_count": 2,
           "error": null
         },
         "MX": {
           "status": "answer",
-          "query_ms": 9.51,
+          "query_ms": 8.72,
           "answer_count": 4,
           "error": null
         },
         "TXT": {
           "status": "answer",
-          "query_ms": 31.21,
-          "answer_count": 28,
+          "query_ms": 38.06,
+          "answer_count": 29,
           "error": null
         }
       }

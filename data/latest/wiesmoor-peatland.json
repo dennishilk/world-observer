@@ -1,6 +1,6 @@
 {
   "category": "environment",
-  "collected_at_utc": "2026-09-16T06:08:50Z",
+  "collected_at_utc": "2026-09-17T06:08:53Z",
   "copernicus_soil_water": {
     "data_status": "unavailable",
     "file_naming_convention": "c_gls_SWI1km_YYYYMMDD1200_CEURO_SCATSAR_VX.Y.X.nc",
@@ -58,8 +58,8 @@
     "variable_meaning": "SWI_002 means T=2"
   },
   "data_status": "partial",
-  "date": "2026-09-16",
-  "date_utc": "2026-09-16",
+  "date": "2026-09-17",
+  "date_utc": "2026-09-17",
   "diagnostics": {
     "adapter_errors": [
       "Live Copernicus SWI discovery/download is not enabled: anonymous CDSE product discovery was not verified in this environment, and the adapter must not guess OData collection identifiers or file paths."
@@ -88,18 +88,18 @@
     "label": "groundwater proxy",
     "nearest_station": {
       "data_status": "ok",
-      "distance_km": 35.14,
-      "latest_date": "16.09.2026",
-      "latest_value": -888.0,
+      "distance_km": 12.01,
+      "latest_date": "17.09.2026",
+      "latest_value": 4.28,
       "latest_value_unit": "m",
-      "latitude": 53.102760918704966,
-      "longitude": 7.672408559197076,
+      "latitude": 53.308712851665724,
+      "longitude": 7.739583352396522,
       "source_url": "https://www.grundwasserstandonline.nlwkn.niedersachsen.de/",
-      "station_id": "9700212",
-      "station_name": "Ramsloh",
-      "status_category": "-"
+      "station_id": "9850631",
+      "station_name": "Remels",
+      "status_category": "very_low"
     },
-    "regional_status_summary": "-",
+    "regional_status_summary": "mixed_source_native_status",
     "selection_method": "Fetch official NLWKN Grundwasserstandonline public station metadata, parse station coordinates and current values when present, then select the nearest suitable stations to Wiesmoor (53.4167, 7.7333) by haversine distance; prefer stations with live value/date/status metadata but never fabricate missing values.",
     "source": {
       "dataset": "Grundwasserstandonline public station metadata with current daily value where exposed",
@@ -111,42 +111,42 @@
     "stations": [
       {
         "data_status": "ok",
-        "distance_km": 35.14,
-        "latest_date": "16.09.2026",
-        "latest_value": -888.0,
+        "distance_km": 12.01,
+        "latest_date": "17.09.2026",
+        "latest_value": 4.28,
         "latest_value_unit": "m",
-        "latitude": 53.102760918704966,
-        "longitude": 7.672408559197076,
+        "latitude": 53.308712851665724,
+        "longitude": 7.739583352396522,
         "source_url": "https://www.grundwasserstandonline.nlwkn.niedersachsen.de/",
-        "station_id": "9700212",
-        "station_name": "Ramsloh",
-        "status_category": "-"
+        "station_id": "9850631",
+        "station_name": "Remels",
+        "status_category": "very_low"
       },
       {
         "data_status": "ok",
-        "distance_km": 45.14,
-        "latest_date": "16.09.2026",
-        "latest_value": -888.0,
+        "distance_km": 12.3,
+        "latest_date": "17.09.2026",
+        "latest_value": 2.01,
         "latest_value_unit": "m",
-        "latitude": 53.01569566700201,
-        "longitude": 7.83836426153762,
+        "latitude": 53.50290852872384,
+        "longitude": 7.616982588807925,
         "source_url": "https://www.grundwasserstandonline.nlwkn.niedersachsen.de/",
-        "station_id": "9700082",
-        "station_name": "Friesoythe",
-        "status_category": "-"
+        "station_id": "9851831",
+        "station_name": "Pfalzdorfer Moor I",
+        "status_category": "normal"
       },
       {
         "data_status": "ok",
-        "distance_km": 50.79,
-        "latest_date": "16.09.2026",
-        "latest_value": -888.0,
+        "distance_km": 17.68,
+        "latest_date": "17.09.2026",
+        "latest_value": 1.54,
         "latest_value_unit": "m",
-        "latitude": 52.960341792322374,
-        "longitude": 7.763682238213195,
+        "latitude": 53.55419782828839,
+        "longitude": 7.867499351844094,
         "source_url": "https://www.grundwasserstandonline.nlwkn.niedersachsen.de/",
-        "station_id": "9700182",
-        "station_name": "Neuarenberg II",
-        "status_category": "-"
+        "station_id": "9611193",
+        "station_name": "Cleverns Barderstede II",
+        "status_category": "normal"
       }
     ]
   },
@@ -231,7 +231,7 @@
   "peatland_hydrological_pressure": {
     "basis": {
       "groundwater_proxy": {
-        "class": "-",
+        "class": "mixed_source_native_status",
         "direction": null,
         "strength": "unavailable",
         "valid": false
@@ -247,10 +247,10 @@
       "weather_pressure": {
         "class": "wet",
         "direction": "wet",
-        "dry_days_30d": 10,
-        "dry_days_7d": 3,
-        "rainfall_30d_mm": 108.4,
-        "rainfall_7d_mm": 27.9,
+        "dry_days_30d": 11,
+        "dry_days_7d": 4,
+        "rainfall_30d_mm": 106.8,
+        "rainfall_7d_mm": 6.8,
         "strength": "moderate",
         "valid": true
       }
@@ -311,7 +311,7 @@
       "y": 5921001.0
     },
     "label": "regional DWD gridded soil-moisture condition",
-    "latest_date": "2026-09-14",
+    "latest_date": "2026-09-15",
     "latest_value": 87.30000000000001,
     "limitations": [
       "Regional gridded model product, not an in-situ peat water-table sensor.",
@@ -323,7 +323,7 @@
       "dataset_id": "urn:wmo:md:de-dwd-cdc:25285481-9c88-4304-a90a-26fff84a9a84",
       "description_url": "https://opendata.dwd.de/climate_environment/CDC/grids_germany/daily/soil_moisture/grass/DESCRIPTION_grids_germany_daily_soil_moisture_grass_en.pdf",
       "name": "Deutscher Wetterdienst (DWD) Climate Data Center",
-      "observation_date": "2026-09-14",
+      "observation_date": "2026-09-15",
       "selected_file_url": "https://opendata.dwd.de/climate_environment/CDC/grids_germany/daily/soil_moisture/grass/2026/grids_germany_daily_soil_moisture_grass_2026_0-60_v1.nc",
       "source_url": "https://opendata.dwd.de/climate_environment/CDC/grids_germany/daily/soil_moisture/grass/2026/grids_germany_daily_soil_moisture_grass_2026_0-60_v1.nc",
       "status": "live_adapter",
@@ -363,7 +363,7 @@
       "dataset_id": "urn:wmo:md:de-dwd-cdc:25285481-9c88-4304-a90a-26fff84a9a84",
       "description_url": "https://opendata.dwd.de/climate_environment/CDC/grids_germany/daily/soil_moisture/grass/DESCRIPTION_grids_germany_daily_soil_moisture_grass_en.pdf",
       "name": "Deutscher Wetterdienst (DWD) Climate Data Center",
-      "observation_date": "2026-09-14",
+      "observation_date": "2026-09-15",
       "selected_file_url": "https://opendata.dwd.de/climate_environment/CDC/grids_germany/daily/soil_moisture/grass/2026/grids_germany_daily_soil_moisture_grass_2026_0-60_v1.nc",
       "source_url": "https://opendata.dwd.de/climate_environment/CDC/grids_germany/daily/soil_moisture/grass/2026/grids_germany_daily_soil_moisture_grass_2026_0-60_v1.nc",
       "status": "live_adapter",
@@ -382,7 +382,7 @@
     {
       "dataset": "Recent daily climate observations Germany (KL), daily precipitation RSK and daily mean temperature TMK",
       "name": "Deutscher Wetterdienst (DWD) Climate Data Center",
-      "observation_date": "2026-09-14",
+      "observation_date": "2026-09-15",
       "selected_station_zip_url": "https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/daily/kl/recent/tageswerte_KL_05640_akt.zip",
       "station_description_url": "https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/daily/kl/recent/KL_Tageswerte_Beschreibung_Stationen.txt",
       "status": "live_adapter",
@@ -392,7 +392,7 @@
   "status": "ok",
   "summary": "Wiesmoor peatland hydrological pressure remains unavailable as an in-situ conclusion; DWD daily rainfall is emitted when available as a regional weather proxy component only.",
   "weather_pressure": {
-    "consecutive_dry_days": 2,
+    "consecutive_dry_days": 3,
     "coverage": {
       "dry_day_rule": "A dry day is a valid DWD daily precipitation (RSK) observation below 1.0 mm/day; exactly 1.0 mm/day is not dry. Missing markers and absent dates are unavailable, never dry.",
       "dry_day_threshold_mm": 1.0,
@@ -405,17 +405,17 @@
       "valid_temperature_days_7d": 7
     },
     "data_status": "ok",
-    "dry_days_30d": 10,
-    "dry_days_7d": 3,
+    "dry_days_30d": 11,
+    "dry_days_7d": 4,
     "label": "weather pressure",
-    "latest_date": "2026-09-14",
+    "latest_date": "2026-09-15",
     "latest_precipitation_mm": 0.0,
-    "rainfall_30d_mm": 108.4,
-    "rainfall_7d_mm": 27.9,
+    "rainfall_30d_mm": 106.8,
+    "rainfall_7d_mm": 6.8,
     "source": {
       "dataset": "Recent daily climate observations Germany (KL), daily precipitation RSK and daily mean temperature TMK",
       "name": "Deutscher Wetterdienst (DWD) Climate Data Center",
-      "observation_date": "2026-09-14",
+      "observation_date": "2026-09-15",
       "selected_station_zip_url": "https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/daily/kl/recent/tageswerte_KL_05640_akt.zip",
       "station_description_url": "https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/daily/kl/recent/KL_Tageswerte_Beschreibung_Stationen.txt",
       "status": "live_adapter",
@@ -429,9 +429,9 @@
       "station_id": "05640",
       "station_name": "Wittmundhafen"
     },
-    "temperature_c": 15.2,
+    "temperature_c": 19.7,
     "temperature_label": "latest valid daily mean temperature (TMK), not an instantaneous/current temperature",
-    "temperature_mean_30d_c": 16.5,
-    "temperature_mean_7d_c": 15.3
+    "temperature_mean_30d_c": 16.6,
+    "temperature_mean_7d_c": 15.7
   }
 }
