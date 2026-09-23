@@ -1,13 +1,13 @@
 {
   "status": "ok",
   "observer": "north-korea-connectivity",
-  "date_utc": "2026-09-22",
+  "date_utc": "2026-09-23",
   "data_status": "ok",
   "connectivity_state": "partial",
   "layers": {
     "dns": {
-      "success_rate": 0.125,
-      "mean_latency_ms": 580.21,
+      "success_rate": 0.25,
+      "mean_latency_ms": 1293.13,
       "probe_count": 8,
       "data_completeness": 1.0
     },
@@ -28,14 +28,14 @@
     }
   },
   "time_to_silence": {
-    "mean_seconds": 2.888,
-    "p95_seconds": 2.888,
-    "worst_seconds": 2.888
+    "mean_seconds": 10.299,
+    "p95_seconds": 10.299,
+    "worst_seconds": 10.299
   },
   "baseline_30d": {
     "dns_success_rate": {
-      "mean": 0.227223,
-      "stddev": 0.068038,
+      "mean": 0.223057,
+      "stddev": 0.070305,
       "samples": 30
     },
     "tcp_success_rate": {
@@ -54,18 +54,18 @@
       "samples": 30
     },
     "tts_mean_seconds": {
-      "mean": 10.842033,
-      "stddev": 8.224896,
+      "mean": 9.742467,
+      "stddev": 6.903654,
       "samples": 30
     },
     "tts_p95_seconds": {
-      "mean": 10.842033,
-      "stddev": 8.224896,
+      "mean": 9.742467,
+      "stddev": 6.903654,
       "samples": 30
     },
     "tts_worst_seconds": {
-      "mean": 10.842033,
-      "stddev": 8.224896,
+      "mean": 9.742467,
+      "stddev": 6.903654,
       "samples": 30
     }
   },
@@ -75,10 +75,10 @@
     "details": {
       "metrics": {
         "dns_success_rate": {
-          "value": 0.125,
-          "mean_30d": 0.227223,
-          "stddev_30d": 0.068038,
-          "zscore": -1.5024,
+          "value": 0.25,
+          "mean_30d": 0.223057,
+          "stddev_30d": 0.070305,
+          "zscore": 0.3832,
           "triggered": false
         },
         "tcp_success_rate": {
@@ -103,24 +103,24 @@
           "triggered": false
         },
         "tts_mean_seconds": {
-          "value": 2.888,
-          "mean_30d": 10.842033,
-          "stddev_30d": 8.224896,
-          "zscore": -0.9671,
+          "value": 10.299,
+          "mean_30d": 9.742467,
+          "stddev_30d": 6.903654,
+          "zscore": 0.0806,
           "triggered": false
         },
         "tts_p95_seconds": {
-          "value": 2.888,
-          "mean_30d": 10.842033,
-          "stddev_30d": 8.224896,
-          "zscore": -0.9671,
+          "value": 10.299,
+          "mean_30d": 9.742467,
+          "stddev_30d": 6.903654,
+          "zscore": 0.0806,
           "triggered": false
         },
         "tts_worst_seconds": {
-          "value": 2.888,
-          "mean_30d": 10.842033,
-          "stddev_30d": 8.224896,
-          "zscore": -0.9671,
+          "value": 10.299,
+          "mean_30d": 9.742467,
+          "stddev_30d": 6.903654,
+          "zscore": 0.0806,
           "triggered": false
         }
       },
@@ -139,11 +139,11 @@
     "api_attempts": 48,
     "retries": 0,
     "http_status": null,
-    "probes_attempted": 52,
-    "probes_succeeded": 7,
-    "probes_failed": 45,
-    "timeouts": 4,
-    "duration_s": 60.37,
+    "probes_attempted": 54,
+    "probes_succeeded": 12,
+    "probes_failed": 42,
+    "timeouts": 3,
+    "duration_s": 61.943,
     "budget_s": 60.0,
     "budget_exhausted": true
   }
