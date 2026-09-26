@@ -1,36 +1,36 @@
 {
   "status": "ok",
   "observer": "north-korea-connectivity",
-  "date_utc": "2026-09-25",
-  "data_status": "ok",
+  "date_utc": "2026-09-26",
+  "data_status": "partial",
   "connectivity_state": "partial",
   "layers": {
     "dns": {
-      "success_rate": 0.25,
-      "mean_latency_ms": 1061.33,
-      "probe_count": 8,
-      "data_completeness": 1.0
+      "success_rate": 0.1429,
+      "mean_latency_ms": 794.27,
+      "probe_count": 7,
+      "data_completeness": 0.875
     },
     "tcp": {
-      "success_rate": 0.1667,
-      "probe_count": 24,
-      "data_completeness": 1.0
+      "success_rate": 0.2,
+      "probe_count": 20,
+      "data_completeness": 0.8333
     },
     "icmp": {
       "success_rate": 0.0,
-      "probe_count": 8,
-      "data_completeness": 1.0
+      "probe_count": 7,
+      "data_completeness": 0.875
     },
     "tls": {
-      "success_rate": 0.25,
-      "probe_count": 8,
-      "data_completeness": 1.0
+      "success_rate": 0.2857,
+      "probe_count": 7,
+      "data_completeness": 0.875
     }
   },
   "time_to_silence": {
-    "mean_seconds": 4.005,
-    "p95_seconds": 4.005,
-    "worst_seconds": 4.005
+    "mean_seconds": 0.0,
+    "p95_seconds": 0.0,
+    "worst_seconds": 0.0
   },
   "baseline_30d": {
     "dns_success_rate": {
@@ -54,18 +54,18 @@
       "samples": 30
     },
     "tts_mean_seconds": {
-      "mean": 9.285767,
-      "stddev": 7.047217,
+      "mean": 9.059467,
+      "stddev": 7.103927,
       "samples": 30
     },
     "tts_p95_seconds": {
-      "mean": 9.285767,
-      "stddev": 7.047217,
+      "mean": 9.059467,
+      "stddev": 7.103927,
       "samples": 30
     },
     "tts_worst_seconds": {
-      "mean": 9.285767,
-      "stddev": 7.047217,
+      "mean": 9.059467,
+      "stddev": 7.103927,
       "samples": 30
     }
   },
@@ -75,17 +75,17 @@
     "details": {
       "metrics": {
         "dns_success_rate": {
-          "value": 0.25,
+          "value": 0.1429,
           "mean_30d": 0.21889,
           "stddev_30d": 0.072262,
-          "zscore": 0.4305,
+          "zscore": -1.0516,
           "triggered": false
         },
         "tcp_success_rate": {
-          "value": 0.1667,
+          "value": 0.2,
           "mean_30d": 0.16921,
           "stddev_30d": 0.038462,
-          "zscore": -0.0653,
+          "zscore": 0.8005,
           "triggered": false
         },
         "icmp_success_rate": {
@@ -96,31 +96,31 @@
           "triggered": false
         },
         "tls_success_rate": {
-          "value": 0.25,
+          "value": 0.2857,
           "mean_30d": 0.239207,
           "stddev_30d": 0.051612,
-          "zscore": 0.2091,
+          "zscore": 0.9008,
           "triggered": false
         },
         "tts_mean_seconds": {
-          "value": 4.005,
-          "mean_30d": 9.285767,
-          "stddev_30d": 7.047217,
-          "zscore": -0.7493,
+          "value": 0.0,
+          "mean_30d": 9.059467,
+          "stddev_30d": 7.103927,
+          "zscore": -1.2753,
           "triggered": false
         },
         "tts_p95_seconds": {
-          "value": 4.005,
-          "mean_30d": 9.285767,
-          "stddev_30d": 7.047217,
-          "zscore": -0.7493,
+          "value": 0.0,
+          "mean_30d": 9.059467,
+          "stddev_30d": 7.103927,
+          "zscore": -1.2753,
           "triggered": false
         },
         "tts_worst_seconds": {
-          "value": 4.005,
-          "mean_30d": 9.285767,
-          "stddev_30d": 7.047217,
-          "zscore": -0.7493,
+          "value": 0.0,
+          "mean_30d": 9.059467,
+          "stddev_30d": 7.103927,
+          "zscore": -1.2753,
           "triggered": false
         }
       },
@@ -136,14 +136,14 @@
     }
   },
   "diagnostics": {
-    "api_attempts": 48,
+    "api_attempts": 41,
     "retries": 0,
     "http_status": null,
-    "probes_attempted": 56,
-    "probes_succeeded": 9,
-    "probes_failed": 47,
-    "timeouts": 5,
-    "duration_s": 60.522,
+    "probes_attempted": 41,
+    "probes_succeeded": 7,
+    "probes_failed": 34,
+    "timeouts": 3,
+    "duration_s": 60.118,
     "budget_s": 60.0,
     "budget_exhausted": true
   }
