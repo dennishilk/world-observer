@@ -1,6 +1,6 @@
 {
   "observer": "cuba-internet-weather",
-  "timestamp": "2026-10-05T06:06:53.883271+00:00",
+  "timestamp": "2026-10-06T06:07:09.875201+00:00",
   "targets": [
     {
       "name": "Cuba government portal",
@@ -22,7 +22,7 @@
       "dns": {
         "a": {
           "status": "answer",
-          "query_ms": 818.18,
+          "query_ms": 995.0,
           "error": null
         }
       }
@@ -32,22 +32,22 @@
       "host": "www.etecsa.cu",
       "ping": {
         "sent": 4,
-        "received": 4,
-        "loss_percent": 0.0,
-        "rtt_min_ms": 224.195,
-        "rtt_avg_ms": 224.333,
-        "rtt_max_ms": 224.587,
+        "received": 3,
+        "loss_percent": 25.0,
+        "rtt_min_ms": 225.113,
+        "rtt_avg_ms": 225.168,
+        "rtt_max_ms": 225.256,
         "error": null
       },
       "tcp_443": {
         "ok": true,
-        "connect_ms": 387.64,
+        "connect_ms": 1172.52,
         "error": null
       },
       "dns": {
         "a": {
           "status": "answer",
-          "query_ms": 215.92,
+          "query_ms": 202.1,
           "error": null
         }
       }
@@ -59,20 +59,20 @@
         "sent": 4,
         "received": 4,
         "loss_percent": 0.0,
-        "rtt_min_ms": 183.866,
-        "rtt_avg_ms": 184.032,
-        "rtt_max_ms": 184.338,
+        "rtt_min_ms": 183.884,
+        "rtt_avg_ms": 184.0,
+        "rtt_max_ms": 184.229,
         "error": null
       },
       "tcp_443": {
         "ok": true,
-        "connect_ms": 532.05,
+        "connect_ms": 2024.36,
         "error": null
       },
       "dns": {
         "a": {
           "status": "answer",
-          "query_ms": 327.67,
+          "query_ms": 9.13,
           "error": null
         }
       }
@@ -91,13 +91,13 @@
       },
       "tcp_443": {
         "ok": true,
-        "connect_ms": 186.21,
+        "connect_ms": 177.49,
         "error": null
       },
       "dns": {
         "a": {
           "status": "answer",
-          "query_ms": 8.84,
+          "query_ms": 9.94,
           "error": null
         }
       }
@@ -109,20 +109,20 @@
         "sent": 4,
         "received": 4,
         "loss_percent": 0.0,
-        "rtt_min_ms": 183.85,
-        "rtt_avg_ms": 184.168,
-        "rtt_max_ms": 184.561,
+        "rtt_min_ms": 183.904,
+        "rtt_avg_ms": 184.069,
+        "rtt_max_ms": 184.273,
         "error": null
       },
       "tcp_443": {
         "ok": true,
-        "connect_ms": 518.23,
+        "connect_ms": 3103.07,
         "error": null
       },
       "dns": {
         "a": {
           "status": "answer",
-          "query_ms": 347.43,
+          "query_ms": 1311.59,
           "error": null
         }
       }
@@ -134,20 +134,20 @@
         "sent": 4,
         "received": 4,
         "loss_percent": 0.0,
-        "rtt_min_ms": 189.19,
-        "rtt_avg_ms": 189.4,
-        "rtt_max_ms": 189.905,
+        "rtt_min_ms": 217.426,
+        "rtt_avg_ms": 219.735,
+        "rtt_max_ms": 226.39,
         "error": null
       },
       "tcp_443": {
         "ok": true,
-        "connect_ms": 1112.09,
+        "connect_ms": 593.97,
         "error": null
       },
       "dns": {
         "a": {
           "status": "answer",
-          "query_ms": 390.61,
+          "query_ms": 803.1,
           "error": null
         }
       }
