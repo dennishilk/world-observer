@@ -1,6 +1,6 @@
 {
   "observer": "tls-fingerprint-change",
-  "date_utc": "2026-10-06",
+  "date_utc": "2026-10-07",
   "data_status": "ok",
   "countries": [
     {
@@ -121,8 +121,8 @@
     },
     {
       "country": "JP",
-      "tls_success_rate": 1.0,
-      "handshake_abort_rate": 0.0,
+      "tls_success_rate": 0.75,
+      "handshake_abort_rate": 0.25,
       "tls_version_distribution": {
         "TLS1.0": 0.0,
         "TLS1.1": 0.0,
@@ -140,7 +140,7 @@
       "alpn_presence_rate": 0.0,
       "sample_size": 4,
       "data_completeness": 1.0,
-      "tls_change_score": 0.0,
+      "tls_change_score": 0.05,
       "baseline_30d": {
         "mean": 0.0,
         "std": 0.0
@@ -150,8 +150,8 @@
     },
     {
       "country": "ZA",
-      "tls_success_rate": 1.0,
-      "handshake_abort_rate": 0.0,
+      "tls_success_rate": 0.75,
+      "handshake_abort_rate": 0.25,
       "tls_version_distribution": {
         "TLS1.0": 0.0,
         "TLS1.1": 0.0,
@@ -169,7 +169,7 @@
       "alpn_presence_rate": 0.0,
       "sample_size": 4,
       "data_completeness": 1.0,
-      "tls_change_score": 0.0,
+      "tls_change_score": 0.05,
       "baseline_30d": {
         "mean": 0.0,
         "std": 0.0
