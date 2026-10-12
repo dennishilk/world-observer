@@ -1,11 +1,11 @@
 {
-  "average_30d": 160.32,
-  "average_365d": 158.77,
+  "average_30d": 160.33,
+  "average_365d": 158.79,
   "category": "technology",
-  "current_size_bytes": 160392664,
-  "current_size_mb": 160.39,
+  "current_size_bytes": 160425804,
+  "current_size_mb": 160.43,
   "data_status": "ok",
-  "date": "2026-10-11",
+  "date": "2026-10-12",
   "diagnostics": {
     "api_attempts": 1,
     "http_status": 200,
@@ -13,20 +13,20 @@
     "retries": 0,
     "tarball_head_attempts": [
       {
-        "content_length": 160392664,
+        "content_length": 160425804,
         "head": {
-          "content_length": 160392664,
+          "content_length": 160425804,
           "http_status": 200
         },
         "http_status": 200,
         "moniker": "stable",
-        "url": "https://cdn.kernel.org/pub/linux/kernel/v7.x/linux-7.2.9.tar.xz",
-        "version": "7.2.9"
+        "url": "https://cdn.kernel.org/pub/linux/kernel/v7.x/linux-7.2.10.tar.xz",
+        "version": "7.2.10"
       }
     ],
-    "tarball_url": "https://cdn.kernel.org/pub/linux/kernel/v7.x/linux-7.2.9.tar.xz"
+    "tarball_url": "https://cdn.kernel.org/pub/linux/kernel/v7.x/linux-7.2.10.tar.xz"
   },
-  "historical_max": 160.39,
+  "historical_max": 160.43,
   "historical_min": 126.82,
   "history": [
     {
@@ -463,19 +463,31 @@
     },
     {
       "date": "2026-10-11",
-      "source": "kernel.org",
+      "source": "kernel.org releases.json and tarball HEAD Content-Length",
       "value": 160.39,
       "version": "7.2.9"
+    },
+    {
+      "date": "2026-10-12",
+      "source": "kernel.org",
+      "value": 160.43,
+      "version": "7.2.10"
     }
   ],
-  "observed_changes": [],
+  "observed_changes": [
+    {
+      "delta": 0.04,
+      "metric": "current_size_mb",
+      "unit": "MB"
+    }
+  ],
   "observer": "linux-kernel-size",
-  "release_date": "2026-10-03",
+  "release_date": "2026-10-11",
   "source": "kernel.org releases.json and tarball HEAD Content-Length",
-  "source_url": "https://cdn.kernel.org/pub/linux/kernel/v7.x/linux-7.2.9.tar.xz",
+  "source_url": "https://cdn.kernel.org/pub/linux/kernel/v7.x/linux-7.2.10.tar.xz",
   "status": "ok",
-  "trend_delta": 0.0,
-  "trend_delta_percent": 0.0,
+  "trend_delta": 0.04,
+  "trend_delta_percent": 0.02,
   "unit": "MB",
-  "version": "7.2.9"
+  "version": "7.2.10"
 }

@@ -1,8 +1,8 @@
 {
   "observer": "germany-fuel-prices",
   "category": "society",
-  "date": "2026-10-11",
-  "date_utc": "2026-10-11",
+  "date": "2026-10-12",
+  "date_utc": "2026-10-12",
   "status": "ok",
   "data_status": "ok",
   "source": "public fuel average page",
@@ -10,13 +10,13 @@
     "benzin": {
       "label": "Super E5",
       "current_price": 2.21,
-      "average_30d": 2.287,
-      "average_365d": 2.231,
+      "average_30d": 2.284,
+      "average_365d": 2.23,
       "record_low": 1.98,
       "record_high": 2.37,
       "historical_min": 1.98,
       "historical_max": 2.37,
-      "last_seen_date": "2026-10-11",
+      "last_seen_date": "2026-10-12",
       "status": "ok",
       "data_status": "ok",
       "observed_changes": [
@@ -26,18 +26,18 @@
       ],
       "trend_delta": 0.0,
       "trend_delta_percent": 0.0,
-      "compared_with_365d_percent": -0.94
+      "compared_with_365d_percent": -0.9
     },
     "diesel": {
       "label": "Diesel",
       "current_price": 2.27,
-      "average_30d": 2.367,
+      "average_30d": 2.364,
       "average_365d": 2.239,
       "record_low": 1.86,
       "record_high": 2.47,
       "historical_min": 1.86,
       "historical_max": 2.47,
-      "last_seen_date": "2026-10-11",
+      "last_seen_date": "2026-10-12",
       "status": "ok",
       "data_status": "ok",
       "observed_changes": [
@@ -59,7 +59,7 @@
     "source": "www.ndr.de",
     "primary_source": "www.ndr.de",
     "fetch_url": "https://www.ndr.de/nachrichten/info/spritpreise-aktuell-so-entwickeln-sich-benzin-und-dieselpreise%2Cspritpreise-128.html",
-    "fetched_at_utc": "2026-10-11T06:07:06.156388Z",
+    "fetched_at_utc": "2026-10-12T06:07:10.780120Z",
     "parse_status": "ok",
     "fallback_used": false,
     "api_attempts": 1,
@@ -67,7 +67,7 @@
     "http_status": 200,
     "missing_fuels_after_primary": [],
     "priced_fuel_count": 2,
-    "daily_state_history_count": 148,
+    "daily_state_history_count": 150,
     "daily_state_history_dates": [
       "2026-07-01",
       "2026-07-02",
@@ -142,7 +142,8 @@
       "2026-10-07",
       "2026-10-08",
       "2026-10-09",
-      "2026-10-10"
+      "2026-10-10",
+      "2026-10-11"
     ],
     "state_history_note": "Trend calculations use repository state snapshots as recorded; prices absent from state/import history are not reconstructed."
   }
