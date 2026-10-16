@@ -1,15 +1,15 @@
 {
   "observer": "space-satellites",
   "category": "technology",
-  "date": "2026-10-15",
-  "collected_at_utc": "2026-10-15T02:00:03Z",
+  "date": "2026-10-16",
+  "collected_at_utc": "2026-10-16T00:00:03Z",
   "status": "ok",
   "data_status": "ok",
   "summary": {
     "groups_requested": 6,
     "groups_available": 6,
     "groups_unavailable_or_not_attempted": 0,
-    "freshest_selected_group_epoch_utc": "2026-10-14T22:42:11Z",
+    "freshest_selected_group_epoch_utc": "2026-10-15T18:34:54Z",
     "group_counts_are_memberships": true,
     "groups_may_overlap": true,
     "global_satellite_total_calculated": false
@@ -22,22 +22,22 @@
       "record_count": 21,
       "unique_catalog_ids": 21,
       "epoch_count": 21,
-      "mean_inclination_deg": 48.7271,
-      "oldest_epoch_utc": "2026-10-12T15:18:26Z",
-      "newest_epoch_utc": "2026-10-14T06:49:21Z",
-      "median_epoch_age_hours": 30.28
+      "mean_inclination_deg": 48.726,
+      "oldest_epoch_utc": "2026-10-14T17:43:39Z",
+      "newest_epoch_utc": "2026-10-15T14:30:53Z",
+      "median_epoch_age_hours": 12.02
     },
     "starlink": {
       "label": "Starlink",
       "query_group": "STARLINK",
       "status": "ok",
-      "record_count": 11098,
-      "unique_catalog_ids": 11098,
-      "epoch_count": 11098,
-      "mean_inclination_deg": 57.2233,
+      "record_count": 11125,
+      "unique_catalog_ids": 11125,
+      "epoch_count": 11125,
+      "mean_inclination_deg": 57.2543,
       "oldest_epoch_utc": "2026-09-21T05:49:13Z",
-      "newest_epoch_utc": "2026-10-14T22:42:11Z",
-      "median_epoch_age_hours": 23.06
+      "newest_epoch_utc": "2026-10-15T18:34:54Z",
+      "median_epoch_age_hours": 14.03
     },
     "oneweb": {
       "label": "OneWeb",
@@ -47,9 +47,9 @@
       "unique_catalog_ids": 651,
       "epoch_count": 651,
       "mean_inclination_deg": 87.9037,
-      "oldest_epoch_utc": "2026-10-13T17:36:39Z",
-      "newest_epoch_utc": "2026-10-14T08:00:01Z",
-      "median_epoch_age_hours": 22.09
+      "oldest_epoch_utc": "2026-10-14T16:34:02Z",
+      "newest_epoch_utc": "2026-10-15T16:00:03Z",
+      "median_epoch_age_hours": 12.51
     },
     "gps_ops": {
       "label": "GPS Operational",
@@ -60,32 +60,32 @@
       "epoch_count": 32,
       "mean_inclination_deg": 55.028,
       "oldest_epoch_utc": "2026-09-17T07:40:50Z",
-      "newest_epoch_utc": "2026-10-14T07:17:09Z",
-      "median_epoch_age_hours": 29.42
+      "newest_epoch_utc": "2026-10-15T15:56:42Z",
+      "median_epoch_age_hours": 20.78
     },
     "galileo": {
       "label": "Galileo",
       "query_group": "GALILEO",
       "status": "ok",
-      "record_count": 32,
-      "unique_catalog_ids": 32,
-      "epoch_count": 32,
-      "mean_inclination_deg": 55.3871,
-      "oldest_epoch_utc": "2026-09-15T07:12:15Z",
-      "newest_epoch_utc": "2026-10-14T08:14:32Z",
-      "median_epoch_age_hours": 213.86
+      "record_count": 30,
+      "unique_catalog_ids": 30,
+      "epoch_count": 30,
+      "mean_inclination_deg": 55.3357,
+      "oldest_epoch_utc": "2026-09-16T01:27:04Z",
+      "newest_epoch_utc": "2026-10-15T10:44:25Z",
+      "median_epoch_age_hours": 224.72
     },
     "cubesat": {
       "label": "CubeSats",
       "query_group": "CUBESAT",
       "status": "ok",
-      "record_count": 83,
-      "unique_catalog_ids": 83,
-      "epoch_count": 83,
-      "mean_inclination_deg": 89.9138,
-      "oldest_epoch_utc": "2026-10-13T09:57:10Z",
-      "newest_epoch_utc": "2026-10-14T08:11:30Z",
-      "median_epoch_age_hours": 22.0
+      "record_count": 84,
+      "unique_catalog_ids": 84,
+      "epoch_count": 84,
+      "mean_inclination_deg": 90.0026,
+      "oldest_epoch_utc": "2026-10-14T08:31:41Z",
+      "newest_epoch_utc": "2026-10-15T15:58:17Z",
+      "median_epoch_age_hours": 10.95
     }
   },
   "source": {
@@ -117,7 +117,7 @@
         "status": "ok",
         "url": "https://celestrak.org/NORAD/elements/gp.php?GROUP=STATIONS&FORMAT=CSV",
         "http_status": 200,
-        "bytes": 3418,
+        "bytes": 3403,
         "record_count": 21
       },
       {
@@ -125,15 +125,15 @@
         "status": "ok",
         "url": "https://celestrak.org/NORAD/elements/gp.php?GROUP=STARLINK&FORMAT=CSV",
         "http_status": 200,
-        "bytes": 1699295,
-        "record_count": 11098
+        "bytes": 1703460,
+        "record_count": 11125
       },
       {
         "group": "ONEWEB",
         "status": "ok",
         "url": "https://celestrak.org/NORAD/elements/gp.php?GROUP=ONEWEB&FORMAT=CSV",
         "http_status": 200,
-        "bytes": 97454,
+        "bytes": 97406,
         "record_count": 651
       },
       {
@@ -141,7 +141,7 @@
         "status": "ok",
         "url": "https://celestrak.org/NORAD/elements/gp.php?GROUP=GPS-OPS&FORMAT=CSV",
         "http_status": 200,
-        "bytes": 4861,
+        "bytes": 4834,
         "record_count": 32
       },
       {
@@ -149,16 +149,16 @@
         "status": "ok",
         "url": "https://celestrak.org/NORAD/elements/gp.php?GROUP=GALILEO&FORMAT=CSV",
         "http_status": 200,
-        "bytes": 4861,
-        "record_count": 32
+        "bytes": 4572,
+        "record_count": 30
       },
       {
         "group": "CUBESAT",
         "status": "ok",
         "url": "https://celestrak.org/NORAD/elements/gp.php?GROUP=CUBESAT&FORMAT=CSV",
         "http_status": 200,
-        "bytes": 12762,
-        "record_count": 83
+        "bytes": 12932,
+        "record_count": 84
       }
     ]
   },
@@ -712,6 +712,15 @@
       "gps_ops_records": 32,
       "galileo_records": 32,
       "cubesat_records": 83
+    },
+    {
+      "date": "2026-10-16",
+      "stations_records": 21,
+      "starlink_records": 11125,
+      "oneweb_records": 651,
+      "gps_ops_records": 32,
+      "galileo_records": 30,
+      "cubesat_records": 84
     }
   ]
 }
