@@ -1,11 +1,11 @@
 {
-  "average_30d": 160.36,
-  "average_365d": 158.88,
+  "average_30d": 160.37,
+  "average_365d": 158.89,
   "category": "technology",
   "current_size_bytes": 160421420,
   "current_size_mb": 160.42,
   "data_status": "ok",
-  "date": "2026-10-16",
+  "date": "2026-10-17",
   "diagnostics": {
     "api_attempts": 1,
     "http_status": 200,
@@ -493,25 +493,25 @@
     },
     {
       "date": "2026-10-16",
+      "source": "kernel.org releases.json and tarball HEAD Content-Length",
+      "value": 160.42,
+      "version": "7.2.11"
+    },
+    {
+      "date": "2026-10-17",
       "source": "kernel.org",
       "value": 160.42,
       "version": "7.2.11"
     }
   ],
-  "observed_changes": [
-    {
-      "delta": -0.01,
-      "metric": "current_size_mb",
-      "unit": "MB"
-    }
-  ],
+  "observed_changes": [],
   "observer": "linux-kernel-size",
   "release_date": "2026-10-15",
   "source": "kernel.org releases.json and tarball HEAD Content-Length",
   "source_url": "https://cdn.kernel.org/pub/linux/kernel/v7.x/linux-7.2.11.tar.xz",
   "status": "ok",
-  "trend_delta": -0.01,
-  "trend_delta_percent": -0.01,
+  "trend_delta": 0.0,
+  "trend_delta_percent": 0.0,
   "unit": "MB",
   "version": "7.2.11"
 }
