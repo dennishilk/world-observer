@@ -1,134 +1,134 @@
 {
   "observer": "dns-tta-stress-index",
-  "date_utc": "2026-10-18",
+  "date_utc": "2026-10-19",
   "data_status": "ok",
   "countries": [
     {
       "country": "US",
-      "tta_mean_ms": 36.67,
-      "tta_p95_ms": 50.52,
+      "tta_mean_ms": 35.96,
+      "tta_p95_ms": 45.09,
       "timeout_rate": 0.0,
       "success_rate": 1.0,
-      "jitter_ms": 7.04,
+      "jitter_ms": 4.87,
       "probe_count": 12,
-      "dns_stress_score": 0.03651,
+      "dns_stress_score": 0.031173,
       "baseline_30d": {
-        "mean": 0.043827,
-        "std": 0.069378
+        "mean": 0.04378,
+        "std": 0.069383
       },
-      "z": -0.105466,
+      "z": -0.181702,
       "is_significant": false
     },
     {
       "country": "DE",
-      "tta_mean_ms": 32.98,
-      "tta_p95_ms": 41.13,
+      "tta_mean_ms": 34.78,
+      "tta_p95_ms": 39.84,
       "timeout_rate": 0.0,
       "success_rate": 1.0,
-      "jitter_ms": 4.03,
+      "jitter_ms": 3.08,
       "probe_count": 12,
-      "dns_stress_score": 0.028022,
+      "dns_stress_score": 0.02632,
       "baseline_30d": {
-        "mean": 0.025811,
-        "std": 0.004214
+        "mean": 0.025341,
+        "std": 0.002974
       },
-      "z": 0.52468,
+      "z": 0.329186,
       "is_significant": false
     },
     {
       "country": "BR",
-      "tta_mean_ms": 33.16,
-      "tta_p95_ms": 37.33,
+      "tta_mean_ms": 37.8,
+      "tta_p95_ms": 41.99,
       "timeout_rate": 0.0,
       "success_rate": 1.0,
-      "jitter_ms": 2.6,
+      "jitter_ms": 3.82,
       "probe_count": 12,
-      "dns_stress_score": 0.024376,
+      "dns_stress_score": 0.028314,
       "baseline_30d": {
-        "mean": 0.025076,
-        "std": 0.003325
+        "mean": 0.024987,
+        "std": 0.003307
       },
-      "z": -0.210526,
+      "z": 1.006048,
       "is_significant": false
     },
     {
       "country": "IN",
-      "tta_mean_ms": 32.36,
-      "tta_p95_ms": 36.69,
+      "tta_mean_ms": 36.42,
+      "tta_p95_ms": 39.71,
       "timeout_rate": 0.0,
       "success_rate": 1.0,
-      "jitter_ms": 2.44,
+      "jitter_ms": 2.34,
       "probe_count": 12,
-      "dns_stress_score": 0.023842,
+      "dns_stress_score": 0.025504,
       "baseline_30d": {
-        "mean": 0.025394,
-        "std": 0.003197
+        "mean": 0.025274,
+        "std": 0.003185
       },
-      "z": -0.485455,
+      "z": 0.072214,
       "is_significant": false
     },
     {
       "country": "ZA",
-      "tta_mean_ms": 26.63,
-      "tta_p95_ms": 36.44,
+      "tta_mean_ms": 29.46,
+      "tta_p95_ms": 45.07,
       "timeout_rate": 0.0,
       "success_rate": 1.0,
-      "jitter_ms": 6.75,
+      "jitter_ms": 8.75,
       "probe_count": 12,
-      "dns_stress_score": 0.028007,
+      "dns_stress_score": 0.035041,
       "baseline_30d": {
-        "mean": 0.031088,
-        "std": 0.002923
+        "mean": 0.03098,
+        "std": 0.002974
       },
-      "z": -1.054054,
+      "z": 1.365501,
       "is_significant": false
     },
     {
       "country": "JP",
-      "tta_mean_ms": 20.55,
-      "tta_p95_ms": 21.8,
+      "tta_mean_ms": 21.83,
+      "tta_p95_ms": 23.05,
       "timeout_rate": 0.0,
       "success_rate": 1.0,
-      "jitter_ms": 0.87,
+      "jitter_ms": 1.04,
       "probe_count": 12,
-      "dns_stress_score": 0.013587,
+      "dns_stress_score": 0.014486,
       "baseline_30d": {
-        "mean": 0.016046,
-        "std": 0.003021
+        "mean": 0.015998,
+        "std": 0.003048
       },
-      "z": -0.813969,
+      "z": -0.496063,
       "is_significant": false
     },
     {
       "country": "AU",
-      "tta_mean_ms": 21.08,
-      "tta_p95_ms": 24.29,
+      "tta_mean_ms": 23.41,
+      "tta_p95_ms": 27.74,
       "timeout_rate": 0.0,
       "success_rate": 1.0,
-      "jitter_ms": 2.09,
+      "jitter_ms": 2.52,
       "probe_count": 12,
-      "dns_stress_score": 0.016259,
+      "dns_stress_score": 0.018702,
       "baseline_30d": {
-        "mean": 0.016292,
-        "std": 0.002352
+        "mean": 0.016315,
+        "std": 0.002349
       },
-      "z": -0.014031,
+      "z": 1.016177,
       "is_significant": false
     },
     {
       "country": "CA",
-      "tta_mean_ms": 19.56,
-      "tta_p95_ms": 24.03,
+      "tta_mean_ms": 22.07,
+      "tta_p95_ms": 23.87,
       "timeout_rate": 0.0,
       "success_rate": 1.0,
-      "jitter_ms": 2.39,
+      "jitter_ms": 1.08,
       "probe_count": 12,
-      "dns_stress_score": 0.016408,
+      "dns_stress_score": 0.015004,
       "baseline_30d": {
-        "mean": 0.032202,
-        "std": 0.075455
+        "mean": 0.032267,
+        "std": 0.075441
       },
-      "z": -0.209317,
+      "z": -0.228828,
       "is_significant": false
     }
   ],
@@ -143,7 +143,7 @@
     "retries": 0,
     "timeouts": 0,
     "failures": 0,
-    "duration_s": 2.736,
+    "duration_s": 2.967,
     "http_status": null
   },
   "significance": {
