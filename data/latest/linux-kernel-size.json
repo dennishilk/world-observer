@@ -1,11 +1,11 @@
 {
   "average_30d": 160.39,
-  "average_365d": 158.97,
+  "average_365d": 158.99,
   "category": "technology",
-  "current_size_bytes": 160421420,
-  "current_size_mb": 160.42,
+  "current_size_bytes": 160445268,
+  "current_size_mb": 160.45,
   "data_status": "ok",
-  "date": "2026-10-21",
+  "date": "2026-10-22",
   "diagnostics": {
     "api_attempts": 1,
     "http_status": 200,
@@ -13,20 +13,20 @@
     "retries": 0,
     "tarball_head_attempts": [
       {
-        "content_length": 160421420,
+        "content_length": 160445268,
         "head": {
-          "content_length": 160421420,
+          "content_length": 160445268,
           "http_status": 200
         },
         "http_status": 200,
         "moniker": "stable",
-        "url": "https://cdn.kernel.org/pub/linux/kernel/v7.x/linux-7.2.11.tar.xz",
-        "version": "7.2.11"
+        "url": "https://cdn.kernel.org/pub/linux/kernel/v7.x/linux-7.2.12.tar.xz",
+        "version": "7.2.12"
       }
     ],
-    "tarball_url": "https://cdn.kernel.org/pub/linux/kernel/v7.x/linux-7.2.11.tar.xz"
+    "tarball_url": "https://cdn.kernel.org/pub/linux/kernel/v7.x/linux-7.2.12.tar.xz"
   },
-  "historical_max": 160.43,
+  "historical_max": 160.45,
   "historical_min": 126.82,
   "history": [
     {
@@ -523,19 +523,31 @@
     },
     {
       "date": "2026-10-21",
-      "source": "kernel.org",
+      "source": "kernel.org releases.json and tarball HEAD Content-Length",
       "value": 160.42,
       "version": "7.2.11"
+    },
+    {
+      "date": "2026-10-22",
+      "source": "kernel.org",
+      "value": 160.45,
+      "version": "7.2.12"
     }
   ],
-  "observed_changes": [],
+  "observed_changes": [
+    {
+      "delta": 0.03,
+      "metric": "current_size_mb",
+      "unit": "MB"
+    }
+  ],
   "observer": "linux-kernel-size",
-  "release_date": "2026-10-15",
+  "release_date": "2026-10-21",
   "source": "kernel.org releases.json and tarball HEAD Content-Length",
-  "source_url": "https://cdn.kernel.org/pub/linux/kernel/v7.x/linux-7.2.11.tar.xz",
+  "source_url": "https://cdn.kernel.org/pub/linux/kernel/v7.x/linux-7.2.12.tar.xz",
   "status": "ok",
-  "trend_delta": 0.0,
-  "trend_delta_percent": 0.0,
+  "trend_delta": 0.03,
+  "trend_delta_percent": 0.02,
   "unit": "MB",
-  "version": "7.2.11"
+  "version": "7.2.12"
 }
