@@ -1,20 +1,20 @@
 {
   "architecture": "x86_64",
-  "average_30d": 15321.67,
-  "average_365d": 15242.86,
+  "average_30d": 15323.9,
+  "average_365d": 15244.08,
   "averages": {
-    "30d": 15321.67,
-    "365d": 15242.86
+    "30d": 15323.9,
+    "365d": 15244.08
   },
   "category": "technology",
-  "current_package_count": 15341,
+  "current_package_count": 15350,
   "data_status": "ok",
-  "date": "2026-10-24",
+  "date": "2026-10-25",
   "diagnostics": {
     "api_attempts": 2,
     "compressed_bytes": {
-      "core": 131687,
-      "extra": 8844909
+      "core": 131635,
+      "extra": 8853093
     },
     "fetch_urls": {
       "core": "https://geo.mirror.pkgbuild.com/core/os/x86_64/core.db",
@@ -25,7 +25,7 @@
     "retries": 0
   },
   "distribution": "Arch Linux",
-  "historical_max": 15341,
+  "historical_max": 15350,
   "historical_min": 15121,
   "history": [
     {
@@ -462,9 +462,20 @@
       "date": "2026-10-24",
       "source": "Official Arch Linux repository databases",
       "value": 15341
+    },
+    {
+      "date": "2026-10-25",
+      "source": "Official Arch Linux repository databases",
+      "value": 15350
     }
   ],
-  "observed_changes": [],
+  "observed_changes": [
+    {
+      "delta": 9,
+      "metric": "current_package_count",
+      "unit": "packages"
+    }
+  ],
   "observer": "arch-package-count",
   "repositories": [
     "core",
@@ -472,7 +483,7 @@
   ],
   "repository_counts": {
     "core": 299,
-    "extra": 15042
+    "extra": 15051
   },
   "source": "Official Arch Linux repository databases",
   "source_url": {
@@ -480,8 +491,8 @@
     "extra": "https://geo.mirror.pkgbuild.com/extra/os/x86_64/extra.db"
   },
   "status": "ok",
-  "trend_delta": 0,
-  "trend_delta_percent": 0.0,
-  "trend_direction": "flat",
+  "trend_delta": 9,
+  "trend_delta_percent": 0.06,
+  "trend_direction": "up",
   "unit": "packages"
 }
