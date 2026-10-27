@@ -6,11 +6,11 @@
   "category": "society",
   "current_price_eur_per_kwh": 0.2963,
   "data_status": "ok",
-  "date": "2026-10-26",
-  "date_utc": "2026-10-26",
+  "date": "2026-10-27",
+  "date_utc": "2026-10-27",
   "diagnostics": {
     "api_attempts": 0,
-    "daily_state_history_count": 88,
+    "daily_state_history_count": 89,
     "http_status": null,
     "retries": 0,
     "source_status": "static_tariff_loaded",
@@ -459,12 +459,17 @@
     },
     {
       "date": "2026-10-26",
+      "source": "daily",
+      "value": 0.2963
+    },
+    {
+      "date": "2026-10-27",
       "source": "static_tariff_observation",
       "value": 0.2963
     }
   ],
   "import_diagnostics": [],
-  "last_seen_date": "2026-10-26",
+  "last_seen_date": "2026-10-27",
   "monthly_cost_eur": 105.15,
   "observer": "germany-electricity-prices",
   "representative_household": {
