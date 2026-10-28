@@ -1,11 +1,11 @@
 {
   "average_30d": 160.41,
-  "average_365d": 159.07,
+  "average_365d": 159.08,
   "category": "technology",
   "current_size_bytes": 160478200,
   "current_size_mb": 160.48,
   "data_status": "ok",
-  "date": "2026-10-27",
+  "date": "2026-10-28",
   "diagnostics": {
     "api_attempts": 1,
     "http_status": 200,
@@ -559,25 +559,25 @@
     },
     {
       "date": "2026-10-27",
+      "source": "kernel.org releases.json and tarball HEAD Content-Length",
+      "value": 160.48,
+      "version": "7.2.13"
+    },
+    {
+      "date": "2026-10-28",
       "source": "kernel.org",
       "value": 160.48,
       "version": "7.2.13"
     }
   ],
-  "observed_changes": [
-    {
-      "delta": 0.03,
-      "metric": "current_size_mb",
-      "unit": "MB"
-    }
-  ],
+  "observed_changes": [],
   "observer": "linux-kernel-size",
   "release_date": "2026-10-26",
   "source": "kernel.org releases.json and tarball HEAD Content-Length",
   "source_url": "https://cdn.kernel.org/pub/linux/kernel/v7.x/linux-7.2.13.tar.xz",
   "status": "ok",
-  "trend_delta": 0.03,
-  "trend_delta_percent": 0.02,
+  "trend_delta": 0.0,
+  "trend_delta_percent": 0.0,
   "unit": "MB",
   "version": "7.2.13"
 }

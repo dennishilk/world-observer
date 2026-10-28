@@ -1,6 +1,6 @@
 {
   "observer": "cuba-internet-weather",
-  "timestamp": "2026-10-27T07:06:57.946753+00:00",
+  "timestamp": "2026-10-28T07:06:56.260515+00:00",
   "targets": [
     {
       "name": "Cuba government portal",
@@ -22,7 +22,7 @@
       "dns": {
         "a": {
           "status": "answer",
-          "query_ms": 212.53,
+          "query_ms": 796.58,
           "error": null
         }
       }
@@ -34,20 +34,20 @@
         "sent": 4,
         "received": 4,
         "loss_percent": 0.0,
-        "rtt_min_ms": 227.378,
-        "rtt_avg_ms": 227.539,
-        "rtt_max_ms": 227.777,
+        "rtt_min_ms": 227.419,
+        "rtt_avg_ms": 227.636,
+        "rtt_max_ms": 227.771,
         "error": null
       },
       "tcp_443": {
         "ok": true,
-        "connect_ms": 383.18,
+        "connect_ms": 382.75,
         "error": null
       },
       "dns": {
         "a": {
           "status": "answer",
-          "query_ms": 215.49,
+          "query_ms": 8.99,
           "error": null
         }
       }
@@ -59,20 +59,20 @@
         "sent": 4,
         "received": 4,
         "loss_percent": 0.0,
-        "rtt_min_ms": 184.496,
-        "rtt_avg_ms": 184.632,
-        "rtt_max_ms": 184.884,
+        "rtt_min_ms": 184.457,
+        "rtt_avg_ms": 184.681,
+        "rtt_max_ms": 184.791,
         "error": null
       },
       "tcp_443": {
         "ok": true,
-        "connect_ms": 1730.42,
+        "connect_ms": 539.89,
         "error": null
       },
       "dns": {
         "a": {
           "status": "answer",
-          "query_ms": 366.41,
+          "query_ms": 720.86,
           "error": null
         }
       }
@@ -91,13 +91,13 @@
       },
       "tcp_443": {
         "ok": true,
-        "connect_ms": 224.66,
+        "connect_ms": 214.93,
         "error": null
       },
       "dns": {
         "a": {
           "status": "answer",
-          "query_ms": 10.34,
+          "query_ms": 10.26,
           "error": null
         }
       }
@@ -109,20 +109,20 @@
         "sent": 4,
         "received": 4,
         "loss_percent": 0.0,
-        "rtt_min_ms": 184.519,
-        "rtt_avg_ms": 184.677,
-        "rtt_max_ms": 184.883,
+        "rtt_min_ms": 184.544,
+        "rtt_avg_ms": 184.703,
+        "rtt_max_ms": 184.816,
         "error": null
       },
       "tcp_443": {
         "ok": true,
-        "connect_ms": 914.99,
+        "connect_ms": 1144.14,
         "error": null
       },
       "dns": {
         "a": {
           "status": "answer",
-          "query_ms": 735.81,
+          "query_ms": 173.76,
           "error": null
         }
       }
@@ -134,20 +134,20 @@
         "sent": 4,
         "received": 4,
         "loss_percent": 0.0,
-        "rtt_min_ms": 219.267,
-        "rtt_avg_ms": 219.483,
-        "rtt_max_ms": 219.617,
+        "rtt_min_ms": 219.341,
+        "rtt_avg_ms": 219.48,
+        "rtt_max_ms": 219.649,
         "error": null
       },
       "tcp_443": {
         "ok": true,
-        "connect_ms": 807.85,
+        "connect_ms": 1478.06,
         "error": null
       },
       "dns": {
         "a": {
           "status": "answer",
-          "query_ms": 9.6,
+          "query_ms": 9.3,
           "error": null
         }
       }
