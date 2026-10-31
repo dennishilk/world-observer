@@ -1,8 +1,8 @@
 {
   "observer": "germany-fuel-prices",
   "category": "society",
-  "date": "2026-10-30",
-  "date_utc": "2026-10-30",
+  "date": "2026-10-31",
+  "date_utc": "2026-10-31",
   "status": "ok",
   "data_status": "ok",
   "source": "public fuel average page",
@@ -10,13 +10,13 @@
     "benzin": {
       "label": "Super E5",
       "current_price": 2.13,
-      "average_30d": 2.179,
-      "average_365d": 2.218,
+      "average_30d": 2.173,
+      "average_365d": 2.217,
       "record_low": 1.98,
       "record_high": 2.37,
       "historical_min": 1.98,
       "historical_max": 2.37,
-      "last_seen_date": "2026-10-30",
+      "last_seen_date": "2026-10-31",
       "status": "ok",
       "data_status": "ok",
       "observed_changes": [
@@ -26,28 +26,28 @@
       ],
       "trend_delta": 0.0,
       "trend_delta_percent": 0.0,
-      "compared_with_365d_percent": -3.97
+      "compared_with_365d_percent": -3.92
     },
     "diesel": {
       "label": "Diesel",
       "current_price": 2.28,
-      "average_30d": 2.265,
-      "average_365d": 2.244,
+      "average_30d": 2.261,
+      "average_365d": 2.245,
       "record_low": 1.86,
       "record_high": 2.47,
       "historical_min": 1.86,
       "historical_max": 2.47,
-      "last_seen_date": "2026-10-30",
+      "last_seen_date": "2026-10-31",
       "status": "ok",
       "data_status": "ok",
       "observed_changes": [
-        "Price decreased compared with the previous observation.",
+        "Price is unchanged compared with the previous observation.",
         "Price is above the 30-day average.",
         "Price is below the observed record high."
       ],
-      "trend_delta": -0.01,
-      "trend_delta_percent": -0.44,
-      "compared_with_365d_percent": 1.6
+      "trend_delta": 0.0,
+      "trend_delta_percent": 0.0,
+      "compared_with_365d_percent": 1.56
     }
   },
   "supported_fuel_types": {
@@ -59,7 +59,7 @@
     "source": "www.ndr.de",
     "primary_source": "www.ndr.de",
     "fetch_url": "https://www.ndr.de/nachrichten/info/spritpreise-aktuell-so-entwickeln-sich-benzin-und-dieselpreise%2Cspritpreise-128.html",
-    "fetched_at_utc": "2026-10-30T07:07:14.297319Z",
+    "fetched_at_utc": "2026-10-31T07:06:59.801806Z",
     "parse_status": "ok",
     "fallback_used": false,
     "api_attempts": 1,
@@ -67,7 +67,7 @@
     "http_status": 200,
     "missing_fuels_after_primary": [],
     "priced_fuel_count": 2,
-    "daily_state_history_count": 186,
+    "daily_state_history_count": 188,
     "daily_state_history_dates": [
       "2026-07-01",
       "2026-07-02",
@@ -161,7 +161,8 @@
       "2026-10-26",
       "2026-10-27",
       "2026-10-28",
-      "2026-10-29"
+      "2026-10-29",
+      "2026-10-30"
     ],
     "state_history_note": "Trend calculations use repository state snapshots as recorded; prices absent from state/import history are not reconstructed."
   }
