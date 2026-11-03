@@ -1,11 +1,11 @@
 {
-  "average_30d": 160.63,
-  "average_365d": 159.22,
+  "average_30d": 160.69,
+  "average_365d": 159.25,
   "category": "technology",
   "current_size_bytes": 162406920,
   "current_size_mb": 162.41,
   "data_status": "ok",
-  "date": "2026-11-02",
+  "date": "2026-11-03",
   "diagnostics": {
     "api_attempts": 1,
     "http_status": 200,
@@ -595,6 +595,12 @@
     },
     {
       "date": "2026-11-02",
+      "source": "kernel.org releases.json and tarball HEAD Content-Length",
+      "value": 162.41,
+      "version": "7.3.1"
+    },
+    {
+      "date": "2026-11-03",
       "source": "kernel.org",
       "value": 162.41,
       "version": "7.3.1"
