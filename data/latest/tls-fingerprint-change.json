@@ -1,6 +1,6 @@
 {
   "observer": "tls-fingerprint-change",
-  "date_utc": "2026-11-06",
+  "date_utc": "2026-11-07",
   "data_status": "ok",
   "countries": [
     {
@@ -142,10 +142,10 @@
       "data_completeness": 1.0,
       "tls_change_score": 0.0,
       "baseline_30d": {
-        "mean": 0.001667,
-        "std": 0.008975
+        "mean": 0.0,
+        "std": 0.0
       },
-      "z": -0.185738,
+      "z": 0.0,
       "is_significant": false
     },
     {
@@ -171,10 +171,10 @@
       "data_completeness": 1.0,
       "tls_change_score": 0.0,
       "baseline_30d": {
-        "mean": 0.001667,
-        "std": 0.008975
+        "mean": 0.0,
+        "std": 0.0
       },
-      "z": -0.185738,
+      "z": 0.0,
       "is_significant": false
     }
   ],
