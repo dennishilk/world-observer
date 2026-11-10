@@ -1,0 +1,29 @@
+[Unit]
+Description=WoW Forever character snapshot for dennishilk.com
+Documentation=https://github.com/dennishilk/world-observer
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=nebu
+WorkingDirectory=/opt/world-observer/world-observer
+ExecStart=/usr/bin/python3 /opt/world-observer/world-observer/scripts/collect_wow_forever.py
+TimeoutStartSec=120
+UMask=0022
+Environment=PYTHONDONTWRITEBYTECODE=1
+
+# The service reads a 0600 credentials file in nebu's home.
+# Only the public JSON output directory is writable.
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/srv/www/dennishilk.github.io/world-observer/data
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+LockPersonality=true
+CapabilityBoundingSet=
+RestrictSUIDSGID=true
