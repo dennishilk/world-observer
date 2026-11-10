@@ -1,0 +1,11 @@
+[Unit]
+Description=Refresh WoW Forever character snapshot hourly
+
+[Timer]
+OnCalendar=hourly
+RandomizedDelaySec=5min
+Persistent=true
+Unit=world-observer-wow-forever.service
+
+[Install]
+WantedBy=timers.target
