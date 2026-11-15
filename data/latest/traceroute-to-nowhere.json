@@ -1,6 +1,6 @@
 {
   "observer": "traceroute-to-nowhere",
-  "date_utc": "2026-11-14",
+  "date_utc": "2026-11-15",
   "data_status": "ok",
   "anchors": {
     "count": 8
@@ -18,8 +18,8 @@
       "std": 0.0
     },
     "median_last_replied_hop": {
-      "mean": 6.566667,
-      "std": 0.334996
+      "mean": 6.583333,
+      "std": 0.343592
     }
   },
   "significance": {

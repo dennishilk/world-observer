@@ -1,8 +1,8 @@
 {
   "observer": "germany-fuel-prices",
   "category": "society",
-  "date": "2026-11-14",
-  "date_utc": "2026-11-14",
+  "date": "2026-11-15",
+  "date_utc": "2026-11-15",
   "status": "ok",
   "data_status": "ok",
   "source": "public fuel average page",
@@ -10,13 +10,13 @@
     "benzin": {
       "label": "Super E5",
       "current_price": 2.0,
-      "average_30d": 2.112,
-      "average_365d": 2.197,
+      "average_30d": 2.106,
+      "average_365d": 2.195,
       "record_low": 1.98,
       "record_high": 2.37,
       "historical_min": 1.98,
       "historical_max": 2.37,
-      "last_seen_date": "2026-11-14",
+      "last_seen_date": "2026-11-15",
       "status": "ok",
       "data_status": "ok",
       "observed_changes": [
@@ -26,18 +26,18 @@
       ],
       "trend_delta": 0.0,
       "trend_delta_percent": 0.0,
-      "compared_with_365d_percent": -8.97
+      "compared_with_365d_percent": -8.88
     },
     "diesel": {
       "label": "Diesel",
       "current_price": 2.18,
-      "average_30d": 2.253,
-      "average_365d": 2.244,
+      "average_30d": 2.25,
+      "average_365d": 2.243,
       "record_low": 1.86,
       "record_high": 2.47,
       "historical_min": 1.86,
       "historical_max": 2.47,
-      "last_seen_date": "2026-11-14",
+      "last_seen_date": "2026-11-15",
       "status": "ok",
       "data_status": "ok",
       "observed_changes": [
@@ -47,7 +47,7 @@
       ],
       "trend_delta": 0.0,
       "trend_delta_percent": 0.0,
-      "compared_with_365d_percent": -2.85
+      "compared_with_365d_percent": -2.81
     }
   },
   "supported_fuel_types": {
@@ -59,7 +59,7 @@
     "source": "www.ndr.de",
     "primary_source": "www.ndr.de",
     "fetch_url": "https://www.ndr.de/nachrichten/info/spritpreise-aktuell-so-entwickeln-sich-benzin-und-dieselpreise%2Cspritpreise-128.html",
-    "fetched_at_utc": "2026-11-14T07:07:06.847597Z",
+    "fetched_at_utc": "2026-11-15T07:07:08.973799Z",
     "parse_status": "ok",
     "fallback_used": false,
     "api_attempts": 1,
@@ -67,7 +67,7 @@
     "http_status": 200,
     "missing_fuels_after_primary": [],
     "priced_fuel_count": 2,
-    "daily_state_history_count": 216,
+    "daily_state_history_count": 218,
     "daily_state_history_dates": [
       "2026-07-01",
       "2026-07-02",
@@ -176,7 +176,8 @@
       "2026-11-10",
       "2026-11-11",
       "2026-11-12",
-      "2026-11-13"
+      "2026-11-13",
+      "2026-11-14"
     ],
     "state_history_note": "Trend calculations use repository state snapshots as recorded; prices absent from state/import history are not reconstructed."
   }
