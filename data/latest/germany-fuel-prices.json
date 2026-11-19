@@ -1,8 +1,8 @@
 {
   "observer": "germany-fuel-prices",
   "category": "society",
-  "date": "2026-11-18",
-  "date_utc": "2026-11-18",
+  "date": "2026-11-19",
+  "date_utc": "2026-11-19",
   "status": "ok",
   "data_status": "ok",
   "source": "public fuel average page",
@@ -10,7 +10,7 @@
     "benzin": {
       "label": "Super E5",
       "current_price": null,
-      "average_30d": 2.095,
+      "average_30d": 2.092,
       "average_365d": 2.193,
       "record_low": 1.98,
       "record_high": 2.37,
@@ -27,13 +27,13 @@
     "diesel": {
       "label": "Diesel",
       "current_price": 2.4,
-      "average_30d": 2.257,
-      "average_365d": 2.245,
+      "average_30d": 2.262,
+      "average_365d": 2.247,
       "record_low": 1.86,
       "record_high": 2.47,
       "historical_min": 1.86,
       "historical_max": 2.47,
-      "last_seen_date": "2026-11-18",
+      "last_seen_date": "2026-11-19",
       "status": "ok",
       "data_status": "ok",
       "observed_changes": [
@@ -43,7 +43,7 @@
       ],
       "trend_delta": 0.0,
       "trend_delta_percent": 0.0,
-      "compared_with_365d_percent": 6.9
+      "compared_with_365d_percent": 6.81
     }
   },
   "supported_fuel_types": {
@@ -55,7 +55,7 @@
     "source": "www.ndr.de",
     "primary_source": "www.ndr.de",
     "fetch_url": "https://www.ndr.de/nachrichten/info/spritpreise-aktuell-so-entwickeln-sich-benzin-und-dieselpreise%2Cspritpreise-128.html",
-    "fetched_at_utc": "2026-11-18T07:07:13.665458Z",
+    "fetched_at_utc": "2026-11-19T07:07:12.322975Z",
     "parse_status": "ok",
     "fallback_used": false,
     "api_attempts": 1,
@@ -65,7 +65,7 @@
       "benzin"
     ],
     "priced_fuel_count": 1,
-    "daily_state_history_count": 223,
+    "daily_state_history_count": 224,
     "daily_state_history_dates": [
       "2026-07-01",
       "2026-07-02",
@@ -178,7 +178,8 @@
       "2026-11-14",
       "2026-11-15",
       "2026-11-16",
-      "2026-11-17"
+      "2026-11-17",
+      "2026-11-18"
     ],
     "state_history_note": "Trend calculations use repository state snapshots as recorded; prices absent from state/import history are not reconstructed."
   }
