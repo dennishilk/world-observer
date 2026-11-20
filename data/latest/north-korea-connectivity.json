@@ -1,30 +1,30 @@
 {
   "status": "ok",
   "observer": "north-korea-connectivity",
-  "date_utc": "2026-11-19",
+  "date_utc": "2026-11-20",
   "data_status": "partial",
   "connectivity_state": "partial",
   "layers": {
     "dns": {
-      "success_rate": 0.2,
-      "mean_latency_ms": 900.59,
-      "probe_count": 5,
-      "data_completeness": 0.625
+      "success_rate": 0.1667,
+      "mean_latency_ms": 814.32,
+      "probe_count": 6,
+      "data_completeness": 0.75
     },
     "tcp": {
-      "success_rate": 0.1667,
-      "probe_count": 12,
-      "data_completeness": 0.5
+      "success_rate": 0.2222,
+      "probe_count": 18,
+      "data_completeness": 0.75
     },
     "icmp": {
       "success_rate": 0.0,
-      "probe_count": 5,
-      "data_completeness": 0.625
+      "probe_count": 6,
+      "data_completeness": 0.75
     },
     "tls": {
       "success_rate": 0.0,
-      "probe_count": 5,
-      "data_completeness": 0.625
+      "probe_count": 6,
+      "data_completeness": 0.75
     }
   },
   "time_to_silence": {
@@ -34,13 +34,13 @@
   },
   "baseline_30d": {
     "dns_success_rate": {
-      "mean": 0.099887,
-      "stddev": 0.1214,
+      "mean": 0.106553,
+      "stddev": 0.121223,
       "samples": 30
     },
     "tcp_success_rate": {
-      "mean": 0.196117,
-      "stddev": 0.063332,
+      "mean": 0.201673,
+      "stddev": 0.052219,
       "samples": 30
     },
     "icmp_success_rate": {
@@ -75,17 +75,17 @@
     "details": {
       "metrics": {
         "dns_success_rate": {
-          "value": 0.2,
-          "mean_30d": 0.099887,
-          "stddev_30d": 0.1214,
-          "zscore": 0.8247,
+          "value": 0.1667,
+          "mean_30d": 0.106553,
+          "stddev_30d": 0.121223,
+          "zscore": 0.4962,
           "triggered": false
         },
         "tcp_success_rate": {
-          "value": 0.1667,
-          "mean_30d": 0.196117,
-          "stddev_30d": 0.063332,
-          "zscore": -0.4645,
+          "value": 0.2222,
+          "mean_30d": 0.201673,
+          "stddev_30d": 0.052219,
+          "zscore": 0.3931,
           "triggered": false
         },
         "icmp_success_rate": {
@@ -136,14 +136,14 @@
     }
   },
   "diagnostics": {
-    "api_attempts": 27,
+    "api_attempts": 36,
     "retries": 0,
     "http_status": null,
-    "probes_attempted": 27,
-    "probes_succeeded": 3,
-    "probes_failed": 24,
+    "probes_attempted": 36,
+    "probes_succeeded": 5,
+    "probes_failed": 31,
     "timeouts": 6,
-    "duration_s": 62.844,
+    "duration_s": 60.341,
     "budget_s": 60.0,
     "budget_exhausted": true
   }
