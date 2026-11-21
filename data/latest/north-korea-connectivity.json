@@ -1,20 +1,20 @@
 {
   "status": "ok",
   "observer": "north-korea-connectivity",
-  "date_utc": "2026-11-20",
+  "date_utc": "2026-11-21",
   "data_status": "partial",
   "connectivity_state": "partial",
   "layers": {
     "dns": {
       "success_rate": 0.1667,
-      "mean_latency_ms": 814.32,
+      "mean_latency_ms": 662.38,
       "probe_count": 6,
       "data_completeness": 0.75
     },
     "tcp": {
-      "success_rate": 0.2222,
-      "probe_count": 18,
-      "data_completeness": 0.75
+      "success_rate": 0.2667,
+      "probe_count": 15,
+      "data_completeness": 0.625
     },
     "icmp": {
       "success_rate": 0.0,
@@ -23,8 +23,8 @@
     },
     "tls": {
       "success_rate": 0.0,
-      "probe_count": 6,
-      "data_completeness": 0.75
+      "probe_count": 5,
+      "data_completeness": 0.625
     }
   },
   "time_to_silence": {
@@ -34,13 +34,13 @@
   },
   "baseline_30d": {
     "dns_success_rate": {
-      "mean": 0.106553,
-      "stddev": 0.121223,
+      "mean": 0.11211,
+      "stddev": 0.120026,
       "samples": 30
     },
     "tcp_success_rate": {
-      "mean": 0.201673,
-      "stddev": 0.052219,
+      "mean": 0.20908,
+      "stddev": 0.036473,
       "samples": 30
     },
     "icmp_success_rate": {
@@ -76,16 +76,16 @@
       "metrics": {
         "dns_success_rate": {
           "value": 0.1667,
-          "mean_30d": 0.106553,
-          "stddev_30d": 0.121223,
-          "zscore": 0.4962,
+          "mean_30d": 0.11211,
+          "stddev_30d": 0.120026,
+          "zscore": 0.4548,
           "triggered": false
         },
         "tcp_success_rate": {
-          "value": 0.2222,
-          "mean_30d": 0.201673,
-          "stddev_30d": 0.052219,
-          "zscore": 0.3931,
+          "value": 0.2667,
+          "mean_30d": 0.20908,
+          "stddev_30d": 0.036473,
+          "zscore": 1.5798,
           "triggered": false
         },
         "icmp_success_rate": {
@@ -136,14 +136,14 @@
     }
   },
   "diagnostics": {
-    "api_attempts": 36,
+    "api_attempts": 32,
     "retries": 0,
     "http_status": null,
-    "probes_attempted": 36,
+    "probes_attempted": 32,
     "probes_succeeded": 5,
-    "probes_failed": 31,
-    "timeouts": 6,
-    "duration_s": 60.341,
+    "probes_failed": 27,
+    "timeouts": 7,
+    "duration_s": 60.498,
     "budget_s": 60.0,
     "budget_exhausted": true
   }
