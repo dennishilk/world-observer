@@ -1,22 +1,22 @@
 {
   "architecture": "amd64",
-  "average_30d": 68825.0,
-  "average_365d": 68797.61,
+  "average_30d": 68825.13,
+  "average_365d": 68797.88,
   "category": "technology",
   "component": "main",
-  "current_package_count": 68825,
+  "current_package_count": 68829,
   "data_status": "ok",
-  "date": "2026-11-21",
+  "date": "2026-11-22",
   "diagnostics": {
     "api_attempts": 1,
-    "compressed_bytes": 9678380,
+    "compressed_bytes": 9679304,
     "fetch_url": "https://deb.debian.org/debian/dists/stable/main/binary-amd64/Packages.xz",
     "http_status": null,
     "parse_status": "ok",
     "retries": 0
   },
   "distribution": "Debian",
-  "historical_max": 68825,
+  "historical_max": 68829,
   "historical_min": 68755,
   "history": [
     {
@@ -591,17 +591,28 @@
     },
     {
       "date": "2026-11-21",
-      "source": "Debian Packages index",
+      "source": "Official Debian repository Packages index",
       "value": 68825
+    },
+    {
+      "date": "2026-11-22",
+      "source": "Debian Packages index",
+      "value": 68829
     }
   ],
-  "observed_changes": [],
+  "observed_changes": [
+    {
+      "delta": 4,
+      "metric": "current_package_count",
+      "unit": "packages"
+    }
+  ],
   "observer": "debian-package-count",
   "source": "Official Debian repository Packages index",
   "source_url": "https://deb.debian.org/debian/dists/stable/main/binary-amd64/Packages.xz",
   "status": "ok",
   "suite": "stable",
-  "trend_delta": 0,
-  "trend_delta_percent": 0.0,
+  "trend_delta": 4,
+  "trend_delta_percent": 0.01,
   "unit": "packages"
 }
