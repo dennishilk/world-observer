@@ -1,12 +1,12 @@
 {
   "architecture": "amd64",
-  "average_30d": 68825.13,
-  "average_365d": 68797.88,
+  "average_30d": 68825.27,
+  "average_365d": 68798.15,
   "category": "technology",
   "component": "main",
   "current_package_count": 68829,
   "data_status": "ok",
-  "date": "2026-11-22",
+  "date": "2026-11-23",
   "diagnostics": {
     "api_attempts": 1,
     "compressed_bytes": 9679304,
@@ -596,23 +596,22 @@
     },
     {
       "date": "2026-11-22",
+      "source": "Official Debian repository Packages index",
+      "value": 68829
+    },
+    {
+      "date": "2026-11-23",
       "source": "Debian Packages index",
       "value": 68829
     }
   ],
-  "observed_changes": [
-    {
-      "delta": 4,
-      "metric": "current_package_count",
-      "unit": "packages"
-    }
-  ],
+  "observed_changes": [],
   "observer": "debian-package-count",
   "source": "Official Debian repository Packages index",
   "source_url": "https://deb.debian.org/debian/dists/stable/main/binary-amd64/Packages.xz",
   "status": "ok",
   "suite": "stable",
-  "trend_delta": 4,
-  "trend_delta_percent": 0.01,
+  "trend_delta": 0,
+  "trend_delta_percent": 0.0,
   "unit": "packages"
 }
