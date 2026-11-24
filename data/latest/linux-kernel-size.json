@@ -1,11 +1,11 @@
 {
-  "average_30d": 162.04,
-  "average_365d": 159.8,
+  "average_30d": 162.11,
+  "average_365d": 159.83,
   "category": "technology",
-  "current_size_bytes": 162459524,
-  "current_size_mb": 162.46,
+  "current_size_bytes": 162613036,
+  "current_size_mb": 162.61,
   "data_status": "ok",
-  "date": "2026-11-23",
+  "date": "2026-11-24",
   "diagnostics": {
     "api_attempts": 1,
     "http_status": 200,
@@ -13,20 +13,20 @@
     "retries": 0,
     "tarball_head_attempts": [
       {
-        "content_length": 162459524,
+        "content_length": 162613036,
         "head": {
-          "content_length": 162459524,
+          "content_length": 162613036,
           "http_status": 200
         },
         "http_status": 200,
         "moniker": "stable",
-        "url": "https://cdn.kernel.org/pub/linux/kernel/v7.x/linux-7.3.5.tar.xz",
-        "version": "7.3.5"
+        "url": "https://cdn.kernel.org/pub/linux/kernel/v7.x/linux-7.3.6.tar.xz",
+        "version": "7.3.6"
       }
     ],
-    "tarball_url": "https://cdn.kernel.org/pub/linux/kernel/v7.x/linux-7.3.5.tar.xz"
+    "tarball_url": "https://cdn.kernel.org/pub/linux/kernel/v7.x/linux-7.3.6.tar.xz"
   },
-  "historical_max": 162.46,
+  "historical_max": 162.61,
   "historical_min": 126.82,
   "history": [
     {
@@ -721,19 +721,31 @@
     },
     {
       "date": "2026-11-23",
-      "source": "kernel.org",
+      "source": "kernel.org releases.json and tarball HEAD Content-Length",
       "value": 162.46,
       "version": "7.3.5"
+    },
+    {
+      "date": "2026-11-24",
+      "source": "kernel.org",
+      "value": 162.61,
+      "version": "7.3.6"
     }
   ],
-  "observed_changes": [],
+  "observed_changes": [
+    {
+      "delta": 0.15,
+      "metric": "current_size_mb",
+      "unit": "MB"
+    }
+  ],
   "observer": "linux-kernel-size",
-  "release_date": "2026-11-17",
+  "release_date": "2026-11-23",
   "source": "kernel.org releases.json and tarball HEAD Content-Length",
-  "source_url": "https://cdn.kernel.org/pub/linux/kernel/v7.x/linux-7.3.5.tar.xz",
+  "source_url": "https://cdn.kernel.org/pub/linux/kernel/v7.x/linux-7.3.6.tar.xz",
   "status": "ok",
-  "trend_delta": 0.0,
-  "trend_delta_percent": 0.0,
+  "trend_delta": 0.15,
+  "trend_delta_percent": 0.09,
   "unit": "MB",
-  "version": "7.3.5"
+  "version": "7.3.6"
 }
