@@ -1,12 +1,12 @@
 {
   "architecture": "amd64",
-  "average_30d": 68825.4,
-  "average_365d": 68798.41,
+  "average_30d": 68825.53,
+  "average_365d": 68798.66,
   "category": "technology",
   "component": "main",
   "current_package_count": 68829,
   "data_status": "ok",
-  "date": "2026-11-24",
+  "date": "2026-11-25",
   "diagnostics": {
     "api_attempts": 1,
     "compressed_bytes": 9679304,
@@ -606,6 +606,11 @@
     },
     {
       "date": "2026-11-24",
+      "source": "Official Debian repository Packages index",
+      "value": 68829
+    },
+    {
+      "date": "2026-11-25",
       "source": "Debian Packages index",
       "value": 68829
     }
