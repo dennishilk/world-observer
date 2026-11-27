@@ -1,20 +1,20 @@
 {
   "architecture": "x86_64",
-  "average_30d": 15539.1,
-  "average_365d": 15319.7,
+  "average_30d": 15545.03,
+  "average_365d": 15322.02,
   "averages": {
-    "30d": 15539.1,
-    "365d": 15319.7
+    "30d": 15545.03,
+    "365d": 15322.02
   },
   "category": "technology",
-  "current_package_count": 15598,
+  "current_package_count": 15601,
   "data_status": "ok",
-  "date": "2026-11-26",
+  "date": "2026-11-27",
   "diagnostics": {
     "api_attempts": 2,
     "compressed_bytes": {
-      "core": 130499,
-      "extra": 9065412
+      "core": 130505,
+      "extra": 9059138
     },
     "fetch_urls": {
       "core": "https://geo.mirror.pkgbuild.com/core/os/x86_64/core.db",
@@ -627,11 +627,16 @@
       "date": "2026-11-26",
       "source": "Official Arch Linux repository databases",
       "value": 15598
+    },
+    {
+      "date": "2026-11-27",
+      "source": "Official Arch Linux repository databases",
+      "value": 15601
     }
   ],
   "observed_changes": [
     {
-      "delta": -5,
+      "delta": 3,
       "metric": "current_package_count",
       "unit": "packages"
     }
@@ -643,7 +648,7 @@
   ],
   "repository_counts": {
     "core": 300,
-    "extra": 15298
+    "extra": 15301
   },
   "source": "Official Arch Linux repository databases",
   "source_url": {
@@ -651,8 +656,8 @@
     "extra": "https://geo.mirror.pkgbuild.com/extra/os/x86_64/extra.db"
   },
   "status": "ok",
-  "trend_delta": -5,
-  "trend_delta_percent": -0.03,
-  "trend_direction": "down",
+  "trend_delta": 3,
+  "trend_delta_percent": 0.02,
+  "trend_direction": "up",
   "unit": "packages"
 }
