@@ -1,15 +1,15 @@
 {
   "status": "ok",
   "observer": "north-korea-connectivity",
-  "date_utc": "2026-11-27",
+  "date_utc": "2026-11-28",
   "data_status": "partial",
   "connectivity_state": "partial",
   "layers": {
     "dns": {
-      "success_rate": 0.1667,
-      "mean_latency_ms": 954.24,
-      "probe_count": 6,
-      "data_completeness": 0.75
+      "success_rate": 0.2,
+      "mean_latency_ms": 1117.87,
+      "probe_count": 5,
+      "data_completeness": 0.625
     },
     "tcp": {
       "success_rate": 0.2667,
@@ -18,8 +18,8 @@
     },
     "icmp": {
       "success_rate": 0.0,
-      "probe_count": 6,
-      "data_completeness": 0.75
+      "probe_count": 5,
+      "data_completeness": 0.625
     },
     "tls": {
       "success_rate": 0.0,
@@ -34,13 +34,13 @@
   },
   "baseline_30d": {
     "dns_success_rate": {
-      "mean": 0.111793,
-      "stddev": 0.119648,
+      "mean": 0.11735,
+      "stddev": 0.118189,
       "samples": 30
     },
     "tcp_success_rate": {
-      "mean": 0.20896,
-      "stddev": 0.045994,
+      "mean": 0.212293,
+      "stddev": 0.046432,
       "samples": 30
     },
     "icmp_success_rate": {
@@ -75,17 +75,17 @@
     "details": {
       "metrics": {
         "dns_success_rate": {
-          "value": 0.1667,
-          "mean_30d": 0.111793,
-          "stddev_30d": 0.119648,
-          "zscore": 0.4589,
+          "value": 0.2,
+          "mean_30d": 0.11735,
+          "stddev_30d": 0.118189,
+          "zscore": 0.6993,
           "triggered": false
         },
         "tcp_success_rate": {
           "value": 0.2667,
-          "mean_30d": 0.20896,
-          "stddev_30d": 0.045994,
-          "zscore": 1.2554,
+          "mean_30d": 0.212293,
+          "stddev_30d": 0.046432,
+          "zscore": 1.1718,
           "triggered": false
         },
         "icmp_success_rate": {
@@ -126,9 +126,9 @@
       },
       "triggered_metrics": [],
       "state_transition": {
-        "previous_state": "anomalous",
+        "previous_state": "partial",
         "current_state": "partial",
-        "transition": "anomalous->partial",
+        "transition": "partial->partial",
         "rare": false,
         "known_rare_transition": false,
         "uncommon_state_today": false
@@ -136,14 +136,14 @@
     }
   },
   "diagnostics": {
-    "api_attempts": 32,
+    "api_attempts": 30,
     "retries": 0,
     "http_status": null,
-    "probes_attempted": 32,
+    "probes_attempted": 30,
     "probes_succeeded": 5,
-    "probes_failed": 27,
-    "timeouts": 9,
-    "duration_s": 60.52,
+    "probes_failed": 25,
+    "timeouts": 6,
+    "duration_s": 61.016,
     "budget_s": 60.0,
     "budget_exhausted": true
   }
